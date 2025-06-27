@@ -1,0 +1,276 @@
+import { useState } from 'react';
+import { PlusIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import AirportSearch from './AirportSearch';
+import DatePicker from './DatePicker';
+
+export default function Sidebar() {
+  // Direct state management (no tabs)
+  const [dates, setDates] = useState([]);
+  const [routes, setRoutes] = useState([]);
+  const [showAirportSearch, setShowAirportSearch] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+
+  // Route management
+  const handleRoutesUpdate = (newRoutes) => {
+    // Update route types based on the number of routes
+    const updatedRoutes = newRoutes.map((route, index) => {
+      let type;
+      if (newRoutes.length === 2) {
+        type = index === 0 ? 'origin' : 'destination';
+      } else {
+        if (index === 0) type = 'origin';
+        else if (index === newRoutes.length - 1) type = 'destination';
+        else type = `leg ${index}`;
+      }
+      return { ...route, type };
+    });
+
+    setRoutes(updatedRoutes);
+  };
+
+  // Date management functions
+  const handleDateClick = (date, fromTyping = false) => {
+    const dateString = date.toISOString().split('T')[0];
+    const currentDates = dates || [];
+    
+    // If user is typing, always replace the current selection
+    if (fromTyping || isTyping) {
+      setDates([dateString]);
+      return;
+    }
+    
+    // If no dates selected, or if clicking the same date, select single date
+    if (currentDates.length === 0 || currentDates.includes(dateString)) {
+      setDates([dateString]);
+      return;
+    }
+    
+    // If one date selected, create a range
+    if (currentDates.length === 1) {
+      const existingDate = new Date(currentDates[0] + 'T12:00:00');
+      const newDate = new Date(dateString + 'T12:00:00');
+      
+      // Sort dates to ensure start date comes first
+      const sortedDates = [existingDate, newDate].sort((a, b) => a - b);
+      setDates([
+        sortedDates[0].toISOString().split('T')[0],
+        sortedDates[1].toISOString().split('T')[0]
+      ]);
+      return;
+    }
+    
+    // If two dates selected, start over with new single date
+    setDates([dateString]);
+  };
+
+  const handleInputChange = (value, navigateToDate) => {
+    setInputValue(value);
+    setIsTyping(true);
+    if (!isDatePickerOpen) {
+      setIsDatePickerOpen(true);
+    }
+    if (navigateToDate) {
+      setCurrentDate(navigateToDate);
+    }
+  };
+
+  const handleCreateTheme = () => {
+    setShowAirportSearch(true);
+    setIsDatePickerOpen(false);
+    setInputValue('');
+  };
+
+  const handleEditDates = () => {
+    setShowAirportSearch(false);
+    setIsDatePickerOpen(true);
+  };
+
+  const navigateMonth = (direction) => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1));
+  };
+
+  // Helper function to format date string for display using Berlin timezone
+  const formatDateForDisplay = (dates) => {
+    if (!dates || dates.length === 0) return '';
+    
+    const formatSingleDate = (dateString) => {
+      // Parse the date string directly without timezone conversion
+      // dateString is in format "YYYY-MM-DD"
+      const [year, month, day] = dateString.split('-');
+      return `${day}/${month}/${year}`;
+    };
+    
+    if (dates.length === 1) {
+      return formatSingleDate(dates[0]);
+    } else if (dates.length === 2) {
+      const startFormatted = formatSingleDate(dates[0]);
+      const endFormatted = formatSingleDate(dates[1]);
+      return `${startFormatted} to ${endFormatted}`;
+    }
+    
+    return '';
+  };
+
+  // Get current date in Berlin timezone
+  const getBerlinToday = () => {
+    const now = new Date();
+    // Get Berlin time as a string, then parse it back to get the correct date
+    const berlinTimeString = now.toLocaleDateString("en-CA", {timeZone: "Europe/Berlin"}); // YYYY-MM-DD format
+    const berlinDate = new Date(berlinTimeString + 'T00:00:00');
+    return berlinDate;
+  };
+
+  // Generate dynamic theme title based on selected dates
+  const getThemeTitle = () => {
+    if (!dates || dates.length === 0) {
+      return 'Create Theme';
+    }
+
+    // Use the first selected date for the title
+    const firstDate = dates[0];
+    const [year, month, day] = firstDate.split('-');
+    
+    // Create a date object to get month name
+    const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    const monthName = dateObj.toLocaleDateString('en-US', { month: 'long' });
+    
+    return `Theme of ${monthName} ${year}`;
+  };
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="px-4 pt-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <h2 className="text-lg font-semibold text-gray-900">{getThemeTitle()}</h2>
+            <ChevronDownIcon className="w-5 h-5 text-gray-500" />
+          </div>
+          <button
+            className="p-1 rounded-full hover:bg-gray-100 opacity-50 cursor-not-allowed"
+            disabled={true}
+          >
+            <PlusIcon className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+      </div>
+
+      {/* Content Area */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {/* Date Picker Input */}
+        <div className="relative mb-4">
+          <label htmlFor="date-input" className="block text-sm font-bold text-gray-700 mb-2">
+            Add date(s)
+          </label>
+          <div className="relative">
+            <input
+              id="date-input"
+              type="text"
+              className="w-full p-2 pr-10 border border-gray-300 rounded-md bg-white focus:outline-none focus:border-indigo-500"
+              placeholder="DD/MM/YYYY"
+              value={inputValue || (dates.length > 0 ? formatDateForDisplay(dates) : '')}
+              onChange={(e) => {
+                // Allow full editing of the input field
+                handleInputChange(e.target.value);
+                if (!isDatePickerOpen) {
+                  setIsDatePickerOpen(true);
+                }
+              }}
+              onFocus={() => {
+                // When focusing, if there's a selected date, show it in the input for editing
+                if (dates.length > 0 && !inputValue) {
+                  setInputValue(formatDateForDisplay(dates));
+                }
+                if (!isDatePickerOpen) {
+                  setIsDatePickerOpen(true);
+                }
+                setIsTyping(false); // Reset typing flag when focusing to edit existing date
+              }}
+              onClick={() => {
+                if (!isDatePickerOpen) {
+                  setIsDatePickerOpen(true);
+                }
+                setIsTyping(false); // Reset typing flag when clicking
+              }}
+            />
+            <button
+              onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded"
+            >
+              <ChevronDownIcon className={`w-4 h-4 text-gray-500 transition-transform ${isDatePickerOpen ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Date Picker Dropdown */}
+        {isDatePickerOpen && (
+          <div className="mb-4 bg-white border border-gray-200 rounded-lg shadow-lg">
+            <DatePicker
+              currentDate={currentDate}
+              onNavigateMonth={navigateMonth}
+              selectedDates={dates}
+              onDateClick={handleDateClick}
+              onCreateTheme={handleCreateTheme}
+              onEditDates={handleEditDates}
+              inputValue={inputValue}
+              onInputChange={handleInputChange}
+              setCurrentDate={setCurrentDate}
+              berlinToday={getBerlinToday()}
+              showAirportSearch={showAirportSearch}
+            />
+          </div>
+        )}
+
+        {/* Create Theme Button */}
+        {dates.length > 0 && !showAirportSearch && (
+          <div className="mb-4">
+            <button
+              onClick={handleCreateTheme}
+              className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            >
+              Create theme
+            </button>
+          </div>
+        )}
+
+        {/* Airport Search and Routes */}
+        {showAirportSearch && (
+          <div className="mt-6">
+            <AirportSearch
+              routes={routes}
+              setRoutes={handleRoutesUpdate}
+              usedAirports={routes.map(r => r.airport.code)}
+              onRemoveRoute={(index) => {
+                const newRoutes = [...routes];
+                newRoutes.splice(index, 1);
+                handleRoutesUpdate(newRoutes);
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Create Themes Button - Sticky */}
+      {routes.length > 0 && (
+        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 mt-auto">
+          <button
+            className={`w-full px-4 py-2 rounded-md transition-colors
+              ${routes.length >= 2 
+                ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+            disabled={routes.length < 2}
+            onClick={() => {
+              // Handle create themes logic here
+              console.log('Creating themes...');
+            }}
+          >
+            Create themes
+          </button>
+        </div>
+      )}
+    </div>
+  );
+} 
