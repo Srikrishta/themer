@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { PlusIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import AirportSearch from './AirportSearch';
 import DatePicker from './DatePicker';
@@ -12,6 +12,36 @@ export default function Sidebar() {
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+
+  // Ref for datepicker container to detect clicks outside
+  const datePickerRef = useRef(null);
+
+  // Handle clicks outside datepicker to close it
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (datePickerRef.current && !datePickerRef.current.contains(event.target)) {
+        // Don't close if clicking on navigation buttons
+        const clickedElement = event.target.closest('button');
+        if (clickedElement && clickedElement.getAttribute('data-navigation')) {
+          return;
+        }
+        
+        setIsDatePickerOpen(false);
+        setInputValue(''); // Clear any temporary input value
+        setIsTyping(false); // Reset typing state
+      }
+    };
+
+    // Only add event listener when datepicker is open
+    if (isDatePickerOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    // Cleanup event listener
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDatePickerOpen]);
 
   // Route management
   const handleRoutesUpdate = (newRoutes) => {
@@ -31,9 +61,18 @@ export default function Sidebar() {
     setRoutes(updatedRoutes);
   };
 
+  // Helper function to convert Date to YYYY-MM-DD string without timezone issues
+  const dateToString = (date) => {
+    // Use the local date values to avoid timezone conversion issues
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Date management functions
   const handleDateClick = (date, fromTyping = false) => {
-    const dateString = date.toISOString().split('T')[0];
+    const dateString = dateToString(date);
     const currentDates = dates || [];
     
     // If user is typing, always replace the current selection
@@ -56,8 +95,8 @@ export default function Sidebar() {
       // Sort dates to ensure start date comes first
       const sortedDates = [existingDate, newDate].sort((a, b) => a - b);
       setDates([
-        sortedDates[0].toISOString().split('T')[0],
-        sortedDates[1].toISOString().split('T')[0]
+        dateToString(sortedDates[0]),
+        dateToString(sortedDates[1])
       ]);
       return;
     }
@@ -89,7 +128,16 @@ export default function Sidebar() {
   };
 
   const navigateMonth = (direction) => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1));
+    const oldDate = currentDate;
+    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1);
+    console.log('Sidebar navigateMonth:', {
+      direction,
+      oldMonth: oldDate.getMonth(),
+      oldYear: oldDate.getFullYear(),
+      newMonth: newDate.getMonth(),
+      newYear: newDate.getFullYear()
+    });
+    setCurrentDate(newDate);
   };
 
   // Helper function to format date string for display using Berlin timezone
@@ -160,69 +208,72 @@ export default function Sidebar() {
 
       {/* Content Area */}
       <div className="flex-1 overflow-y-auto p-4">
-        {/* Date Picker Input */}
-        <div className="relative mb-4">
-          <label htmlFor="date-input" className="block text-sm font-bold text-gray-700 mb-2">
-            Add date(s)
-          </label>
+        {/* Date Picker Container - includes both input and dropdown */}
+        <div className="relative mb-4" ref={datePickerRef}>
+          {/* Date Picker Input */}
           <div className="relative">
-            <input
-              id="date-input"
-              type="text"
-              className="w-full p-2 pr-10 border border-gray-300 rounded-md bg-white focus:outline-none focus:border-indigo-500"
-              placeholder="DD/MM/YYYY"
-              value={inputValue || (dates.length > 0 ? formatDateForDisplay(dates) : '')}
-              onChange={(e) => {
-                // Allow full editing of the input field
-                handleInputChange(e.target.value);
-                if (!isDatePickerOpen) {
-                  setIsDatePickerOpen(true);
-                }
-              }}
-              onFocus={() => {
-                // When focusing, if there's a selected date, show it in the input for editing
-                if (dates.length > 0 && !inputValue) {
-                  setInputValue(formatDateForDisplay(dates));
-                }
-                if (!isDatePickerOpen) {
-                  setIsDatePickerOpen(true);
-                }
-                setIsTyping(false); // Reset typing flag when focusing to edit existing date
-              }}
-              onClick={() => {
-                if (!isDatePickerOpen) {
-                  setIsDatePickerOpen(true);
-                }
-                setIsTyping(false); // Reset typing flag when clicking
-              }}
-            />
-            <button
-              onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded"
-            >
-              <ChevronDownIcon className={`w-4 h-4 text-gray-500 transition-transform ${isDatePickerOpen ? 'rotate-180' : ''}`} />
-            </button>
+            <label htmlFor="date-input" className="block text-sm font-bold text-gray-700 mb-2">
+              Add date(s)
+            </label>
+            <div className="relative">
+              <input
+                id="date-input"
+                type="text"
+                className="w-full p-2 pr-10 border border-gray-300 rounded-md bg-white focus:outline-none focus:border-indigo-500"
+                placeholder="DD/MM/YYYY"
+                value={inputValue || (dates.length > 0 ? formatDateForDisplay(dates) : '')}
+                onChange={(e) => {
+                  // Allow full editing of the input field
+                  handleInputChange(e.target.value);
+                  if (!isDatePickerOpen) {
+                    setIsDatePickerOpen(true);
+                  }
+                }}
+                onFocus={() => {
+                  // When focusing, if there's a selected date, show it in the input for editing
+                  if (dates.length > 0 && !inputValue) {
+                    setInputValue(formatDateForDisplay(dates));
+                  }
+                  if (!isDatePickerOpen) {
+                    setIsDatePickerOpen(true);
+                  }
+                  setIsTyping(false); // Reset typing flag when focusing to edit existing date
+                }}
+                onClick={() => {
+                  if (!isDatePickerOpen) {
+                    setIsDatePickerOpen(true);
+                  }
+                  setIsTyping(false); // Reset typing flag when clicking
+                }}
+              />
+              <button
+                onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded"
+              >
+                <ChevronDownIcon className={`w-4 h-4 text-gray-500 transition-transform ${isDatePickerOpen ? 'rotate-180' : ''}`} />
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* Date Picker Dropdown */}
-        {isDatePickerOpen && (
-          <div className="mb-4 bg-white border border-gray-200 rounded-lg shadow-lg">
-            <DatePicker
-              currentDate={currentDate}
-              onNavigateMonth={navigateMonth}
-              selectedDates={dates}
-              onDateClick={handleDateClick}
-              onCreateTheme={handleCreateTheme}
-              onEditDates={handleEditDates}
-              inputValue={inputValue}
-              onInputChange={handleInputChange}
-              setCurrentDate={setCurrentDate}
-              berlinToday={getBerlinToday()}
-              showAirportSearch={showAirportSearch}
-            />
-          </div>
-        )}
+          {/* Date Picker Dropdown */}
+          {isDatePickerOpen && (
+            <div className="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg">
+              <DatePicker
+                currentDate={currentDate}
+                onNavigateMonth={navigateMonth}
+                selectedDates={dates}
+                onDateClick={handleDateClick}
+                onCreateTheme={handleCreateTheme}
+                onEditDates={handleEditDates}
+                inputValue={inputValue}
+                onInputChange={handleInputChange}
+                setCurrentDate={setCurrentDate}
+                berlinToday={getBerlinToday()}
+                showAirportSearch={showAirportSearch}
+              />
+            </div>
+          )}
+        </div>
 
         {/* Create Theme Button */}
         {dates.length > 0 && !showAirportSearch && (

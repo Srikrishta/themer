@@ -22,6 +22,14 @@ const DatePicker = ({
 }) => {
   const [inputError, setInputError] = useState('');
 
+  // Helper function to convert Date to YYYY-MM-DD string without timezone issues
+  const dateToString = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Use Berlin timezone for date calculations
   const today = berlinToday || new Date();
   const maxDate = new Date(today);
@@ -119,21 +127,19 @@ const DatePicker = ({
 
   // Handle input changes from the main input field
   React.useEffect(() => {
-    if (inputValue === '' || inputValue === null || inputValue === undefined) {
-      // Complete deletion - reset to today's date
-      if (setCurrentDate) {
-        setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1));
-      }
-      return;
+    // Only run this effect when there's actual input value
+    if (!inputValue || inputValue === '' || inputValue === null || inputValue === undefined) {
+      return; // Don't interfere with navigation when no input
     }
-
-    if (inputValue) {
       const formatted = formatDateInput(inputValue);
       const nearestDate = findNearestDate(inputValue);
       
       if (nearestDate && setCurrentDate) {
         // Navigate to the month of the nearest date
-        setCurrentDate(new Date(nearestDate.getFullYear(), nearestDate.getMonth(), 1));
+        const targetMonth = new Date(nearestDate.getFullYear(), nearestDate.getMonth(), 1);
+        if (currentDate.getTime() !== targetMonth.getTime()) {
+          setCurrentDate(targetMonth);
+        }
       } else {
         // If no valid date found, try to find the best month to show based on partial input
         const numbers = inputValue.replace(/\D/g, '');
@@ -151,7 +157,10 @@ const DatePicker = ({
               // Try current year first
               let testDate = new Date(currentYear, month - 1, day);
               if (testDate >= today && testDate <= maxDate) {
-                setCurrentDate(new Date(currentYear, month - 1, 1));
+                const targetMonth = new Date(currentYear, month - 1, 1);
+                if (currentDate.getTime() !== targetMonth.getTime()) {
+                  setCurrentDate(targetMonth);
+                }
                 return;
               }
               
@@ -160,7 +169,10 @@ const DatePicker = ({
                 const testYear = currentYear + yearOffset;
                 testDate = new Date(testYear, month - 1, day);
                 if (testDate >= today && testDate <= maxDate) {
-                  setCurrentDate(new Date(testYear, month - 1, 1));
+                  const targetMonth = new Date(testYear, month - 1, 1);
+                  if (currentDate.getTime() !== targetMonth.getTime()) {
+                    setCurrentDate(targetMonth);
+                  }
                   return;
                 }
               }
@@ -174,7 +186,10 @@ const DatePicker = ({
             // Try current month first
             let testDate = new Date(currentYear, currentMonth, day);
             if (testDate >= today && testDate <= maxDate) {
-              setCurrentDate(new Date(currentYear, currentMonth, 1));
+              const targetMonth = new Date(currentYear, currentMonth, 1);
+              if (currentDate.getTime() !== targetMonth.getTime()) {
+                setCurrentDate(targetMonth);
+              }
               return;
             }
             
@@ -182,7 +197,10 @@ const DatePicker = ({
             for (let monthOffset = 1; monthOffset <= 12; monthOffset++) {
               testDate = new Date(currentYear, currentMonth + monthOffset, day);
               if (testDate >= today && testDate <= maxDate) {
-                setCurrentDate(new Date(testDate.getFullYear(), testDate.getMonth(), 1));
+                const targetMonth = new Date(testDate.getFullYear(), testDate.getMonth(), 1);
+                if (currentDate.getTime() !== targetMonth.getTime()) {
+                  setCurrentDate(targetMonth);
+                }
                 return;
               }
             }
@@ -190,21 +208,21 @@ const DatePicker = ({
         }
         
         // Fallback to today if nothing else works
-        if (setCurrentDate) {
-          setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1));
+        const todayFirstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        if (setCurrentDate && currentDate.getTime() !== todayFirstOfMonth.getTime()) {
+          setCurrentDate(todayFirstOfMonth);
         }
       }
       
       // Auto-select the date if it's complete and valid
       if (nearestDate && formatted.length === 10) {
-        const dateString = nearestDate.toISOString().split('T')[0];
+        const dateString = dateToString(nearestDate);
         if (!selectedDates.includes(dateString)) {
           // Pass true to indicate this is from typing
           onDateClick(nearestDate, true);
-        }
       }
     }
-  }, [inputValue, setCurrentDate, onDateClick, selectedDates, today, maxDate]);
+  }, [inputValue, onDateClick, selectedDates, today, maxDate]);
 
   const handleInputSubmit = (e) => {
     if (e.key === 'Enter') {
@@ -250,20 +268,20 @@ const DatePicker = ({
 
   // Highlight the date being typed
   const typedDate = findNearestDate(inputValue);
-  const highlightDateString = typedDate ? typedDate.toISOString().split('T')[0] : null;
+  const highlightDateString = typedDate ? dateToString(typedDate) : null;
 
   return (
     <div className="p-4">
       {/* Calendar Header */}
       <div className="flex items-center justify-between mb-4">
         <button 
-          onClick={() => onNavigateMonth(-1)}
-          disabled={
-            // Disable if going to previous month would be before the minimum allowed month
-            currentDate.getFullYear() < today.getFullYear() || 
-            (currentDate.getFullYear() === today.getFullYear() && currentDate.getMonth() - 1 < today.getMonth())
-          }
-          className="disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 p-1 rounded"
+          onClick={() => {
+            console.log('Left click - before navigation, current month:', MONTHS[currentDate.getMonth()], currentDate.getFullYear());
+            onNavigateMonth(-1);
+          }}
+          disabled={false}
+          data-navigation="true"
+          className="hover:bg-gray-100 p-2 rounded border border-gray-300 bg-white cursor-pointer"
         >
           <ChevronLeftIcon className="w-5 h-5 text-gray-500" />
         </button>
@@ -271,13 +289,13 @@ const DatePicker = ({
           {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
         </span>
         <button 
-          onClick={() => onNavigateMonth(1)}
-          disabled={
-            // Disable if going to next month would be after the maximum allowed month
-            currentDate.getFullYear() > maxDate.getFullYear() || 
-            (currentDate.getFullYear() === maxDate.getFullYear() && currentDate.getMonth() + 1 > maxDate.getMonth())
-          }
-          className="disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 p-1 rounded"
+          onClick={() => {
+            console.log('Right click - before navigation, current month:', MONTHS[currentDate.getMonth()], currentDate.getFullYear());
+            onNavigateMonth(1);
+          }}
+          disabled={false}
+          data-navigation="true"
+          className="hover:bg-gray-100 p-2 rounded border border-gray-300 bg-white cursor-pointer"
         >
           <ChevronRightIcon className="w-5 h-5 text-gray-500" />
         </button>
@@ -292,7 +310,7 @@ const DatePicker = ({
         ))}
 
         {calendarDays.map((day, i) => {
-          const dateString = day.date.toISOString().split('T')[0];
+          const dateString = dateToString(day.date);
           const isSelected = selectedDates.includes(dateString);
           const isInRange = isDateInRange(day.date);
           const isHighlighted = highlightDateString === dateString;
@@ -314,7 +332,7 @@ const DatePicker = ({
             
             // Check if previous and next dates are in the selected range
             const prevDateInRange = i > 0 && calendarDays[i - 1] && (() => {
-              const prevDateString = calendarDays[i - 1].date.toISOString().split('T')[0];
+              const prevDateString = dateToString(calendarDays[i - 1].date);
               const prevDateObj = new Date(prevDateString + 'T12:00:00');
               const startDateObj = new Date(selectedDates[0] + 'T12:00:00');
               const endDateObj = new Date(selectedDates[1] + 'T12:00:00');
@@ -322,7 +340,7 @@ const DatePicker = ({
             })();
             
             const nextDateInRange = i < calendarDays.length - 1 && calendarDays[i + 1] && (() => {
-              const nextDateString = calendarDays[i + 1].date.toISOString().split('T')[0];
+              const nextDateString = dateToString(calendarDays[i + 1].date);
               const nextDateObj = new Date(nextDateString + 'T12:00:00');
               const startDateObj = new Date(selectedDates[0] + 'T12:00:00');
               const endDateObj = new Date(selectedDates[1] + 'T12:00:00');
