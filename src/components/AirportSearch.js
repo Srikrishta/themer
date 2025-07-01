@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { XMarkIcon, ChevronDownIcon, ChevronUpIcon, Bars3Icon } from '@heroicons/react/24/outline';
@@ -20,97 +20,113 @@ const AIRPORTS = [
   { code: 'MNL', name: 'Ninoy Aquino International Airport', city: 'Manila', country: 'Philippines' }
 ];
 
-const ItemTypes = {
-  ROUTE_CARD: 'route_card'
-};
+const ITEM_TYPE = 'ROUTE_CARD';
 
-function DraggableRouteCard({ route, onRemove, isFirst, isLast, index, moveCard }) {
+function RouteCard({ route, index, moveCard, onRemove }) {
   const ref = useRef(null);
 
-  const [{ handlerId, isOver }, drop] = useDrop({
-    accept: ItemTypes.ROUTE_CARD,
+  const [{ handlerId }, drop] = useDrop({
+    accept: ITEM_TYPE,
     collect(monitor) {
       return {
         handlerId: monitor.getHandlerId(),
-        isOver: monitor.isOver(),
       };
     },
     hover(item, monitor) {
-      if (!ref.current) return;
-      
+      if (!ref.current) {
+        return;
+      }
       const dragIndex = item.index;
       const hoverIndex = index;
-      
-      // Don't replace items with themselves
-      if (dragIndex === hoverIndex) return;
 
-      // Get the bounding rectangle of the hover target
+      // Don't replace items with themselves
+      if (dragIndex === hoverIndex) {
+        return;
+      }
+
+      // Determine rectangle on screen
       const hoverBoundingRect = ref.current.getBoundingClientRect();
-      
-      // Get mouse position
+
+      // Get vertical middle
+      const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+
+      // Determine mouse position
       const clientOffset = monitor.getClientOffset();
-      if (!clientOffset) return;
-      
+
       // Get pixels to the top
       const hoverClientY = clientOffset.y - hoverBoundingRect.top;
-      const hoverHeight = hoverBoundingRect.bottom - hoverBoundingRect.top;
-      
-      // Calculate position as percentage (0 = top, 1 = bottom)
-      const hoverPosition = hoverClientY / hoverHeight;
 
-      // Dragging downwards (moving item to higher index)
-      // Only swap when we're past 30% into the target
-      if (dragIndex < hoverIndex && hoverPosition < 0.3) {
+      // Only perform the move when the mouse has crossed half of the items height
+      // When dragging downwards, only move when the cursor is below 50%
+      // When dragging upwards, only move when the cursor is above 50%
+
+      // Dragging downwards
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
         return;
       }
 
-      // Dragging upwards (moving item to lower index)
-      // Only swap when we're past 70% into the target (closer to top)
-      if (dragIndex > hoverIndex && hoverPosition > 0.7) {
+      // Dragging upwards
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
         return;
       }
 
-      // Perform the move
+      // Time to actually perform the action
       moveCard(dragIndex, hoverIndex);
+
+      // Note: we're mutating the monitor item here!
+      // Generally it's better to avoid mutations,
+      // but it's good here for the sake of performance
+      // to avoid expensive index searches.
       item.index = hoverIndex;
     },
   });
 
-  const [{ isDragging }, drag] = useDrag({
-    type: ItemTypes.ROUTE_CARD,
-    item: () => ({ id: route.id, index }),
+  const [{ isDragging }, drag, preview] = useDrag({
+    type: ITEM_TYPE,
+    item: () => {
+      return { id: route.id, index };
+    },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
   });
 
-  // Make the entire card draggable
-  drag(drop(ref));
+  // Separate drag handle from the preview
+  const opacity = isDragging ? 0.5 : 1;
+
+  // Combine drop and preview refs
+  drop(preview(ref));
 
   return (
-    <div className="relative flex">
-      {/* Static Progress Dot */}
-      <div className="flex-none w-6 flex items-center justify-center py-4">
+    <div
+      ref={ref}
+      className="relative w-full mb-4"
+      style={{ 
+        opacity,
+        // Ensure consistent layout during drag
+        display: 'grid',
+        gridTemplateColumns: '24px 1fr',
+        gap: '16px',
+        alignItems: 'start',
+      }}
+      data-handler-id={handlerId}
+    >
+      {/* Dot - moves with the card */}
+      <div className="flex items-center justify-center py-4">
         <div className="w-3 h-3 rounded-full border-2 border-white bg-gray-500 relative z-10" />
       </div>
 
-      {/* Draggable Card Content */}
+      {/* Card Content - Entire card is draggable */}
       <div 
-        ref={ref}
-        data-handler-id={handlerId}
-        className={`flex-1 ml-4 transition-all duration-150 ease-out transform cursor-move ${
-          isDragging ? 'opacity-50 scale-105 rotate-1 shadow-xl z-50' : 'opacity-100 scale-100 rotate-0'
-        } ${isOver && !isDragging ? 'translate-y-1 border-indigo-300' : 'translate-y-0'}`}
-        style={{
-          transformOrigin: 'center',
-        }}
+        ref={drag}
+        className="w-full cursor-grab active:cursor-grabbing"
       >
-        <div className={`bg-white p-4 rounded-lg border shadow-sm transition-all duration-150 ${
-          isDragging ? 'border-indigo-300 shadow-lg' : 'border-gray-200'
-        } ${isOver && !isDragging ? 'border-indigo-400 shadow-md' : ''}`}>
+        <div className={`bg-white p-4 rounded-lg border shadow-sm transition-all ${
+          isDragging ? 'border-indigo-300 shadow-lg' : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+        }`}>
           <div className="flex justify-between items-start">
             <div className="flex items-start space-x-3">
-              {/* Drag Handle - Visual indicator only */}
+              {/* Visual Drag Indicator */}
               <div className="mt-1 p-1 rounded">
                 <Bars3Icon className="w-5 h-5 text-gray-400" />
               </div>
@@ -127,29 +143,63 @@ function DraggableRouteCard({ route, onRemove, isFirst, isLast, index, moveCard 
                 e.stopPropagation();
                 onRemove();
               }}
-              className="p-1 rounded-full hover:bg-gray-100 transition-all duration-150"
+              className="p-1 rounded-full hover:bg-gray-100 transition-colors z-10 relative"
             >
               <XMarkIcon className="w-5 h-5 text-gray-400" />
             </button>
           </div>
         </div>
       </div>
-
-      {/* Drop Indicator */}
-      {isOver && !isDragging && (
-        <div className="absolute inset-0 pointer-events-none flex items-center">
-          <div className="w-full mx-6 flex items-center">
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-indigo-300 to-transparent opacity-60"></div>
-            <div className="w-2 h-2 bg-indigo-400 rounded-full mx-2 opacity-80 animate-pulse"></div>
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-indigo-300 to-transparent opacity-60"></div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-export default function AirportSearch({ routes = [], setRoutes, usedAirports = [], onRemoveRoute }) {
+function RouteList({ routes, setRoutes, onRemoveRoute }) {
+  const moveCard = useCallback((dragIndex, hoverIndex) => {
+    const newRoutes = [...routes];
+    const [reorderedRoute] = newRoutes.splice(dragIndex, 1);
+    newRoutes.splice(hoverIndex, 0, reorderedRoute);
+    
+    // Recalculate types after reordering
+    const updatedRoutes = newRoutes.map((route, index) => ({
+      ...route,
+      type: index === 0 ? 'origin' : index === newRoutes.length - 1 ? 'destination' : `leg ${index}`
+    }));
+    
+    setRoutes(updatedRoutes);
+  }, [routes, setRoutes]);
+
+  return (
+    <div className="relative">
+      {/* Static Line - stays in place during drag operations */}
+      {routes.length > 1 && (
+        <div 
+          className="absolute w-0.5 bg-gray-200 z-0"
+          style={{
+            left: '12px',
+            top: '32px',
+            bottom: '32px'
+          }}
+        />
+      )}
+      
+      {/* Route Cards */}
+      <div className="relative z-10">
+        {routes.map((route, index) => (
+          <RouteCard
+            key={route.id}
+            route={route}
+            index={index}
+            moveCard={moveCard}
+            onRemove={() => onRemoveRoute(index)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], onRemoveRoute }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -189,111 +239,82 @@ export default function AirportSearch({ routes = [], setRoutes, usedAirports = [
     }
   };
 
-  const moveCard = (dragIndex, hoverIndex) => {
-    const newRoutes = [...routes];
-    const [movedRoute] = newRoutes.splice(dragIndex, 1);
-    newRoutes.splice(hoverIndex, 0, movedRoute);
-    
-    // Recalculate types after reordering
-    const updatedRoutes = newRoutes.map((route, index) => ({
-      ...route,
-      type: index === 0 ? 'origin' : index === newRoutes.length - 1 ? 'destination' : `leg ${index}`
-    }));
-    
-    setRoutes(updatedRoutes);
-  };
+  return (
+    <div className="space-y-4 relative">
+      <div className="relative">
+        <label htmlFor="airport-search" className="block text-sm font-bold text-gray-700 mb-2">
+          Add route
+        </label>
+        <div className="relative">
+          <input
+            id="airport-search"
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onClick={() => setIsDropdownOpen(true)}
+            placeholder="Search airports..."
+            className="w-full p-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:border-indigo-500"
+          />
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+          >
+            {isDropdownOpen ? (
+              <ChevronUpIcon className="w-5 h-5" />
+            ) : (
+              <ChevronDownIcon className="w-5 h-5" />
+            )}
+          </button>
+        </div>
 
+        {/* Dropdown */}
+        {isDropdownOpen && (
+          <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+            {Object.keys(groupedAirports).length > 0 ? (
+              Object.entries(groupedAirports).map(([region, airports]) => (
+                <div key={region}>
+                  {/* Region Header */}
+                  <div className="sticky top-0 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-100">
+                    {region}
+                  </div>
+                  {/* Airports in Region */}
+                  {airports.map(airport => (
+                    <button
+                      key={airport.code}
+                      onClick={() => handleAirportSelect(airport)}
+                      className="w-full text-left p-3 hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors"
+                    >
+                      <h3 className="text-lg font-medium text-gray-900">{airport.code}</h3>
+                      <p className="text-sm text-gray-500">{airport.city}, {airport.country}</p>
+                    </button>
+                  ))}
+                </div>
+              ))
+            ) : (
+              <div className="p-3 text-gray-500 text-center">
+                {searchTerm ? 'No airports found' : 'All airports have been selected'}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Route Cards with Drag and Drop */}
+      {routes.length > 0 && (
+        <RouteList 
+          routes={routes} 
+          setRoutes={setRoutes} 
+          onRemoveRoute={onRemoveRoute} 
+        />
+      )}
+    </div>
+  );
+}
+
+export default function AirportSearch(props) {
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="space-y-4 relative">
-        <div className="relative">
-          <label htmlFor="airport-search" className="block text-sm font-bold text-gray-700 mb-2">
-            Add route
-          </label>
-          <div className="relative">
-            <input
-              id="airport-search"
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onClick={() => setIsDropdownOpen(true)}
-              placeholder="Search airports..."
-              className="w-full p-2 pr-10 border border-gray-300 rounded-md"
-            />
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
-            >
-              {isDropdownOpen ? (
-                <ChevronUpIcon className="w-5 h-5" />
-              ) : (
-                <ChevronDownIcon className="w-5 h-5" />
-              )}
-            </button>
-          </div>
-
-          {/* Dropdown */}
-          {isDropdownOpen && (
-            <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-              {Object.keys(groupedAirports).length > 0 ? (
-                Object.entries(groupedAirports).map(([region, airports]) => (
-                  <div key={region}>
-                    {/* Region Header */}
-                    <div className="sticky top-0 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-100">
-                      {region}
-                    </div>
-                    {/* Airports in Region */}
-                    {airports.map(airport => (
-                      <button
-                        key={airport.code}
-                        onClick={() => handleAirportSelect(airport)}
-                        className="w-full text-left p-3 hover:bg-gray-50 border-b border-gray-100 last:border-0"
-                      >
-                        <h3 className="text-lg font-medium text-gray-900">{airport.code}</h3>
-                        <p className="text-sm text-gray-500">{airport.city}, {airport.country}</p>
-                      </button>
-                    ))}
-                  </div>
-                ))
-              ) : (
-                <div className="p-3 text-gray-500 text-center">
-                  {searchTerm ? 'No airports found' : 'All airports have been selected'}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Route Cards */}
-        <div className="relative">
-          {/* Single Continuous Line */}
-          {routes.length > 1 && (
-            <div 
-              className="absolute w-0.5 bg-gray-200 z-0"
-              style={{
-                left: '11.5px',
-                top: '32px',
-                bottom: '32px'
-              }}
-            />
-          )}
-          
-          {/* Cards */}
-          <div className="space-y-4">
-            {routes.map((route, index) => (
-              <DraggableRouteCard
-                key={route.id}
-                route={route}
-                onRemove={() => onRemoveRoute(index)}
-                isFirst={index === 0}
-                isLast={index === routes.length - 1}
-                index={index}
-                moveCard={moveCard}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
+      <AirportSearchCore {...props} />
     </DndProvider>
   );
 }
