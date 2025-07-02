@@ -1,5 +1,44 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+
+// Festival data - applies to all years
+const festivalsData = {
+  "october": [
+    {
+      "name": "Oktoberfest",
+      "location": "Munich 🇩🇪",
+      "startDay": 1,
+      "endDay": 6,
+      "color": "#FCD34D",
+      "type": "festival"
+    },
+    {
+      "name": "Nuit Blanche",
+      "location": "Paris 🇫🇷",
+      "startDay": 5,
+      "endDay": 5,
+      "color": "#581C87",
+      "type": "night_event"
+    },
+    {
+      "name": "Amsterdam Dance Event",
+      "location": "Amsterdam 🇳🇱",
+      "startDay": 16,
+      "endDay": 20,
+      "color": "#EF4444",
+      "type": "music"
+    },
+    {
+      "name": "Rome Film Festival",
+      "location": "Rome 🇮🇹",
+      "startDay": 17,
+      "endDay": 27,
+      "color": "#8B5CF6",
+      "type": "film"
+    }
+  ]
+};
 
 const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const MONTHS = [
@@ -21,6 +60,90 @@ const DatePicker = ({
   showAirportSearch
 }) => {
   const [inputError, setInputError] = useState('');
+  const [tooltip, setTooltip] = useState({
+    show: false,
+    content: [],
+    position: { x: 0, y: 0 },
+    showBelow: false
+  });
+
+  // Function to get festivals for a specific date
+  const getFestivalsForDate = (date) => {
+    const month = date.toLocaleDateString('en-US', { month: 'long' }).toLowerCase();
+    const dayOfMonth = date.getDate();
+    
+    // Debug logging
+    if (month === 'october') {
+      console.log('Checking date:', dayOfMonth, 'of', month, date.getFullYear());
+    }
+    
+    const monthData = festivalsData[month];
+    if (!monthData) {
+      return [];
+    }
+    
+    const festivals = monthData.filter(festival => {
+      const isInRange = dayOfMonth >= festival.startDay && dayOfMonth <= festival.endDay;
+      
+      if (month === 'october' && isInRange) {
+        console.log('Found festival:', festival.name, 'for day:', dayOfMonth);
+      }
+      
+      return isInRange;
+    });
+    
+    return festivals;
+  };
+
+  // Tooltip handlers
+  const handleMouseEnter = (event, festivals) => {
+    if (festivals.length === 0) return;
+    
+    const rect = event.currentTarget.getBoundingClientRect();
+    const scrollY = window.scrollY || document.documentElement.scrollTop;
+    const scrollX = window.scrollX || document.documentElement.scrollLeft;
+    
+    // Calculate tooltip dimensions (approximate)
+    const tooltipWidth = 320; // max-width we set in CSS
+    const tooltipHeight = 120; // approximate height
+    
+    // Get viewport dimensions
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // Calculate initial position (centered above the date)
+    let x = rect.left + scrollX + rect.width / 2;
+    let y = rect.top + scrollY - 10;
+    
+    // Adjust horizontal position if tooltip would overflow
+    const tooltipLeft = x - tooltipWidth / 2;
+    const tooltipRight = x + tooltipWidth / 2;
+    
+    if (tooltipLeft < 10) {
+      // Too far left, align to left edge with padding
+      x = tooltipWidth / 2 + 15;
+    } else if (tooltipRight > viewportWidth - 10) {
+      // Too far right, align to right edge with padding
+      x = viewportWidth - tooltipWidth / 2 - 15;
+    }
+    
+    // Adjust vertical position if tooltip would overflow top
+    if (y - tooltipHeight < 10) {
+      // Show below the date instead of above
+      y = rect.bottom + scrollY + 10;
+    }
+    
+    setTooltip({
+      show: true,
+      content: festivals,
+      position: { x, y },
+      showBelow: y > rect.bottom + scrollY // Track if showing below
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setTooltip(prev => ({ ...prev, show: false, showBelow: false }));
+  };
 
   // Helper function to convert Date to YYYY-MM-DD string without timezone issues
   const dateToString = (date) => {
@@ -126,7 +249,7 @@ const DatePicker = ({
   };
 
   // Handle input changes from the main input field
-  React.useEffect(() => {
+  useEffect(() => {
     // Only run this effect when there's actual input value
     if (!inputValue || inputValue === '' || inputValue === null || inputValue === undefined) {
       return; // Don't interfere with navigation when no input
@@ -390,6 +513,22 @@ const DatePicker = ({
             }
           }
 
+          const dayFestivals = getFestivalsForDate(day.date);
+
+          // Create comprehensive tooltip content for festivals
+          const createTooltipContent = (festivals) => {
+            if (festivals.length === 0) return '';
+            
+            return festivals.map(festival => 
+              `• ${festival.name} - ${festival.location}`
+            ).join('\n');
+          };
+
+          // Debug logging for tooltip
+          if (dayFestivals.length > 0) {
+            console.log('Date has festivals:', day.day, 'festivals:', dayFestivals.map(f => f.name));
+          }
+
           return (
             <button
               key={i}
@@ -404,9 +543,12 @@ const DatePicker = ({
                   }
                 }
               }}
+              onMouseEnter={(e) => handleMouseEnter(e, dayFestivals)}
+              onMouseLeave={handleMouseLeave}
               disabled={!isInRange}
+              title={dayFestivals.length > 0 ? createTooltipContent(dayFestivals) : ''}
               className={`
-                w-full h-10 text-sm flex items-center justify-center relative
+                w-full h-10 text-sm flex flex-col items-center justify-center relative
                 ${day.isCurrentMonth ? (isInRange ? 'text-gray-900' : 'text-gray-300') : (isInRange ? 'text-gray-600' : 'text-gray-400')}
                 ${isSelected && selectedDates.length === 1 ? `bg-indigo-600/50 text-gray-900 ${borderRadiusClass}` : 
                   isInSelectedRange ? `bg-indigo-600/50 text-gray-900 ${borderRadiusClass}` :
@@ -415,7 +557,26 @@ const DatePicker = ({
                 ${!isInRange ? 'cursor-not-allowed' : 'cursor-pointer'}
               `}
             >
-              {day.day}
+              <span className={dayFestivals.length > 0 ? 'mb-0.5' : ''}>{day.day}</span>
+              {dayFestivals.length > 0 && (
+                <div className="flex items-end justify-center h-2 -space-x-1">
+                  {dayFestivals.slice(0, 3).map((festival, idx) => (
+                    <div
+                      key={`${festival.name}-${idx}`}
+                      className="w-2 h-2 rounded-full border border-white"
+                      style={{ 
+                        backgroundColor: festival.color,
+                        zIndex: dayFestivals.length - idx
+                      }}
+                    />
+                  ))}
+                  {dayFestivals.length > 3 && (
+                    <div
+                      className="w-2 h-2 rounded-full border border-white bg-gray-400"
+                    />
+                  )}
+                </div>
+              )}
             </button>
           );
         })}
@@ -425,6 +586,71 @@ const DatePicker = ({
       <div className="mt-4 flex justify-center">
         {/* Create theme button removed - date selection is handled by input interaction */}
       </div>
+
+      {/* Portal Tooltip - renders outside sidebar */}
+      {tooltip.show && tooltip.content.length > 0 && createPortal(
+        <div 
+          className="fixed bg-white rounded-xl shadow-2xl border border-gray-100 min-w-max pointer-events-none transition-all duration-300 ease-out backdrop-blur-sm"
+          style={{
+            left: tooltip.position.x,
+            top: tooltip.position.y,
+            transform: tooltip.showBelow ? 'translateX(-50%)' : 'translateX(-50%) translateY(-100%)',
+            zIndex: 999999,
+            maxWidth: '320px'
+          }}
+        >
+          {/* Header */}
+          <div className="px-4 py-3 border-b border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-900 leading-tight">
+              {tooltip.content.length === 1 ? 'Festival' : `${tooltip.content.length} Festivals`}
+            </h3>
+          </div>
+          
+          {/* Content */}
+          <div className="px-4 py-3">
+            <div className="space-y-3">
+              {tooltip.content.map((festival, idx) => (
+                <div key={`portal-tooltip-${festival.name}-${idx}`} className="flex items-start space-x-3 group">
+                  <div className="flex-shrink-0 pt-0.5">
+                    <div 
+                      className="w-3 h-3 rounded-full ring-2 ring-white shadow-sm"
+                      style={{ backgroundColor: festival.color }}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium text-gray-900 truncate">
+                        {festival.name}
+                      </h4>
+                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                        {festival.type}
+                      </span>
+                    </div>
+                                         <p className="text-xs text-gray-500 mt-0.5">
+                       {festival.location.replace(/🇩🇪|🇫🇷|🇳🇱|🇮🇹/g, '').trim()}
+                     </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Arrow */}
+          <div 
+            className="absolute left-1/2 transform -translate-x-1/2"
+            style={{
+              [tooltip.showBelow ? 'bottom' : 'top']: '100%',
+              width: 0,
+              height: 0,
+              borderLeft: '8px solid transparent',
+              borderRight: '8px solid transparent',
+              [tooltip.showBelow ? 'borderBottom' : 'borderTop']: '8px solid white',
+              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.05))'
+            }}
+          ></div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

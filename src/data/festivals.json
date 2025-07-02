@@ -1,0 +1,36 @@
+{
+  "october": [
+    {
+      "name": "Oktoberfest",
+      "location": "Munich 🇩🇪",
+      "startDay": 1,
+      "endDay": 6,
+      "color": "#FCD34D",
+      "type": "festival"
+    },
+    {
+      "name": "Nuit Blanche",
+      "location": "Paris 🇫🇷",
+      "startDay": 5,
+      "endDay": 5,
+      "color": "#581C87",
+      "type": "night_event"
+    },
+    {
+      "name": "Amsterdam Dance Event",
+      "location": "Amsterdam 🇳🇱",
+      "startDay": 16,
+      "endDay": 20,
+      "color": "#EF4444",
+      "type": "music"
+    },
+    {
+      "name": "Rome Film Festival",
+      "location": "Rome 🇮🇹",
+      "startDay": 17,
+      "endDay": 27,
+      "color": "#8B5CF6",
+      "type": "film"
+    }
+  ]
+} 

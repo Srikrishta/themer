@@ -170,12 +170,8 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [] }) {
   // Separate drag handle from the preview
   const opacity = isDragging ? 0.5 : 1;
 
-  // Create separate refs for drag and drop
-  const dragRef = useRef(null);
-  
-  // Combine refs properly
-  drop(ref);
-  drag(dragRef);
+  // Combine drop and preview refs
+  drop(preview(ref));
 
 
 
@@ -241,9 +237,7 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [] }) {
         opacity,
         // Ensure consistent layout during drag
         paddingLeft: '24px',
-        position: 'relative',
-        // Ensure consistent height for better drag zones
-        minHeight: '120px'
+        position: 'relative'
       }}
       data-handler-id={handlerId}
     >
@@ -274,9 +268,8 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [] }) {
 
       {/* Card Content - Entire card is draggable */}
       <div 
-        ref={dragRef}
-        className="w-full cursor-grab active:cursor-grabbing pl-4 h-full"
-        style={{ minHeight: 'inherit' }}
+        ref={drag}
+        className="w-full cursor-grab active:cursor-grabbing pl-4"
       >
         <div className={`bg-white p-4 rounded-lg border shadow-sm transition-all ${
           isDragging ? 'border-indigo-300 shadow-lg' : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
@@ -288,9 +281,9 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [] }) {
                 <Bars3Icon className="w-5 h-5 text-gray-400" />
               </div>
               <div>
-                <div className="flex flex-wrap items-center gap-2 mb-2" style={{ minHeight: '24px' }}>
-                  {routeFestivals.length > 0 ? (
-                    routeFestivals.map((festival, idx) => (
+                {routeFestivals.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    {routeFestivals.map((festival, idx) => (
                       <span 
                         key={festival.name}
                         className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white"
@@ -298,14 +291,10 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [] }) {
                       >
                         {festival.name}
                       </span>
-                    ))
-                  ) : (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                      Default
-                    </span>
-                  )}
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 truncate">
+                    ))}
+                  </div>
+                )}
+                <h3 className={`text-lg font-medium text-gray-900 truncate ${routeFestivals.length > 0 ? 'mt-0' : ''}`}>
                   {route.airport.city} ({route.airport.code})
                 </h3>
                 <p className="text-xs text-gray-400 mt-1 flex items-center gap-3">

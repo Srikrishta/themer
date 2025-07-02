@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { PlusIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, ChevronDownIcon, MapPinIcon, ClockIcon } from '@heroicons/react/24/outline';
 import AirportSearch from './AirportSearch';
 import DatePicker from './DatePicker';
 
@@ -12,9 +12,14 @@ export default function Sidebar() {
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  
+  // Region selection state
+  const [selectedRegion, setSelectedRegion] = useState('Europe');
+  const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
 
   // Ref for datepicker container to detect clicks outside
   const datePickerRef = useRef(null);
+  const regionDropdownRef = useRef(null);
 
   // Handle clicks outside datepicker to close it
   useEffect(() => {
@@ -30,10 +35,15 @@ export default function Sidebar() {
         setInputValue(''); // Clear any temporary input value
         setIsTyping(false); // Reset typing state
       }
+
+      // Handle clicks outside region dropdown
+      if (regionDropdownRef.current && !regionDropdownRef.current.contains(event.target)) {
+        setIsRegionDropdownOpen(false);
+      }
     };
 
-    // Only add event listener when datepicker is open
-    if (isDatePickerOpen) {
+    // Only add event listener when either dropdown is open
+    if (isDatePickerOpen || isRegionDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
@@ -41,7 +51,7 @@ export default function Sidebar() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isDatePickerOpen]);
+  }, [isDatePickerOpen, isRegionDropdownOpen]);
 
   // Route management
   const handleRoutesUpdate = (newRoutes) => {
@@ -191,11 +201,51 @@ export default function Sidebar() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="px-4 pt-4">
+      <div className="px-4 pt-4 relative">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <h2 className="text-lg font-semibold text-gray-900">{getThemeTitle()}</h2>
-            <ChevronDownIcon className="w-5 h-5 text-gray-500" />
+          <div className="relative" ref={regionDropdownRef}>
+            <button
+              onClick={() => setIsRegionDropdownOpen(!isRegionDropdownOpen)}
+              className="flex items-center space-x-2 hover:bg-gray-50 px-2 py-1 rounded-md transition-colors"
+            >
+              <h2 className="text-lg font-semibold text-gray-900">{getThemeTitle()}</h2>
+              <ChevronDownIcon className={`w-5 h-5 text-gray-500 transition-transform ${isRegionDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {/* Region Selection Dropdown */}
+            {isRegionDropdownOpen && (
+              <div className="absolute top-full left-0 mt-2 w-56 bg-white border-2 border-red-500 rounded-lg shadow-xl z-[9999]">
+                <div className="py-2">
+                  <button
+                    onClick={() => {
+                      setSelectedRegion('Europe');
+                      setIsRegionDropdownOpen(false);
+                      // Reset routes when changing regions
+                      setRoutes([]);
+                    }}
+                    className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors border-b border-blue-200 ${
+                      selectedRegion === 'Europe' ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-900'
+                    }`}
+                  >
+                    Europe
+                  </button>
+                  <div className="border-t border-gray-100"></div>
+                  <button
+                    onClick={() => {
+                      setSelectedRegion('South-East Asia');
+                      setIsRegionDropdownOpen(false);
+                      // Reset routes when changing regions
+                      setRoutes([]);
+                    }}
+                    className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors border-b border-green-200 ${
+                      selectedRegion === 'South-East Asia' ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-900'
+                    }`}
+                  >
+                    South-East Asia
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           <button
             className="p-1 rounded-full hover:bg-gray-100 opacity-50 cursor-not-allowed"
@@ -294,6 +344,8 @@ export default function Sidebar() {
               routes={routes}
               setRoutes={handleRoutesUpdate}
               usedAirports={routes.map(r => r.airport.code)}
+              selectedRegion={selectedRegion}
+              selectedDates={dates}
               onRemoveRoute={(index) => {
                 const newRoutes = [...routes];
                 newRoutes.splice(index, 1);
@@ -306,7 +358,7 @@ export default function Sidebar() {
 
       {/* Create Themes Button - Sticky */}
       {routes.length > 0 && (
-        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 mt-auto">
+        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 mt-auto z-10">
           <button
             className={`w-full px-4 py-2 rounded-md transition-colors
               ${routes.length >= 2 
