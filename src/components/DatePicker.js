@@ -1,44 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
-
-// Festival data - applies to all years
-const festivalsData = {
-  "october": [
-    {
-      "name": "Oktoberfest",
-      "location": "Munich 🇩🇪",
-      "startDay": 1,
-      "endDay": 6,
-      "color": "#FCD34D",
-      "type": "festival"
-    },
-    {
-      "name": "Nuit Blanche",
-      "location": "Paris 🇫🇷",
-      "startDay": 5,
-      "endDay": 5,
-      "color": "#581C87",
-      "type": "night_event"
-    },
-    {
-      "name": "Amsterdam Dance Event",
-      "location": "Amsterdam 🇳🇱",
-      "startDay": 16,
-      "endDay": 20,
-      "color": "#EF4444",
-      "type": "music"
-    },
-    {
-      "name": "Rome Film Festival",
-      "location": "Rome 🇮🇹",
-      "startDay": 17,
-      "endDay": 27,
-      "color": "#8B5CF6",
-      "type": "film"
-    }
-  ]
-};
+import festivalsData from '../data/festivals.json';
 
 const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const MONTHS = [
@@ -56,8 +19,7 @@ const DatePicker = ({
   inputValue,
   onInputChange,
   setCurrentDate,
-  berlinToday,
-  showAirportSearch
+  berlinToday
 }) => {
   const [inputError, setInputError] = useState('');
   const [tooltip, setTooltip] = useState({
@@ -253,6 +215,11 @@ const DatePicker = ({
     // Only run this effect when there's actual input value
     if (!inputValue || inputValue === '' || inputValue === null || inputValue === undefined) {
       return; // Don't interfere with navigation when no input
+    }
+    
+    // Don't process if the input contains formatted date range (with arrow)
+    if (inputValue.includes('→')) {
+      return; // Don't interfere with navigation when showing formatted dates
     }
       const formatted = formatDateInput(inputValue);
       const nearestDate = findNearestDate(inputValue);

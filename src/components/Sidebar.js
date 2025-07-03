@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { PlusIcon, ChevronDownIcon, MapPinIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, ChevronDownIcon, MapPinIcon, ClockIcon, XMarkIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import AirportSearch from './AirportSearch';
 import DatePicker from './DatePicker';
 
@@ -7,7 +7,6 @@ export default function Sidebar() {
   // Direct state management (no tabs)
   const [dates, setDates] = useState([]);
   const [routes, setRoutes] = useState([]);
-  const [showAirportSearch, setShowAirportSearch] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -127,14 +126,24 @@ export default function Sidebar() {
   };
 
   const handleCreateTheme = () => {
-    setShowAirportSearch(true);
     setIsDatePickerOpen(false);
     setInputValue('');
   };
 
   const handleEditDates = () => {
-    setShowAirportSearch(false);
     setIsDatePickerOpen(true);
+  };
+
+  const handleRemoveDate = (dateIndex) => {
+    const newDates = [...dates];
+    newDates.splice(dateIndex, 1);
+    setDates(newDates);
+  };
+
+  // Format single date for badge display
+  const formatSingleDateForBadge = (dateString) => {
+    const [year, month, day] = dateString.split('-');
+    return `${day}/${month}/${year}`;
   };
 
   const navigateMonth = (direction) => {
@@ -162,11 +171,11 @@ export default function Sidebar() {
     };
     
     if (dates.length === 1) {
-      return formatSingleDate(dates[0]);
+      return `${formatSingleDate(dates[0])} →`;
     } else if (dates.length === 2) {
       const startFormatted = formatSingleDate(dates[0]);
       const endFormatted = formatSingleDate(dates[1]);
-      return `${startFormatted} to ${endFormatted}`;
+      return `${startFormatted} → ${endFormatted}`;
     }
     
     return '';
@@ -199,9 +208,10 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="px-4 pt-4 relative">
+    <div className="h-full p-4">
+      <div className="h-full flex flex-col bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* Header */}
+        <div className="px-6 pt-6 pb-6 relative">
         <div className="flex items-center justify-between mb-4">
           <div className="relative" ref={regionDropdownRef}>
             <button
@@ -229,20 +239,6 @@ export default function Sidebar() {
                   >
                     Europe
                   </button>
-                  <div className="border-t border-gray-100"></div>
-                  <button
-                    onClick={() => {
-                      setSelectedRegion('South-East Asia');
-                      setIsRegionDropdownOpen(false);
-                      // Reset routes when changing regions
-                      setRoutes([]);
-                    }}
-                    className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors border-b border-green-200 ${
-                      selectedRegion === 'South-East Asia' ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-900'
-                    }`}
-                  >
-                    South-East Asia
-                  </button>
                 </div>
               </div>
             )}
@@ -256,52 +252,93 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Content Area */}
-      <div className="flex-1 overflow-y-auto p-4">
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto px-6 pb-4">
+        {/* Airport Search and Routes - Show when dates are selected */}
+        {dates.length > 0 && (
+          <div className="mt-4">
+            <AirportSearch
+              routes={routes}
+              setRoutes={handleRoutesUpdate}
+              usedAirports={routes.map(r => r.airport.code)}
+              selectedRegion={selectedRegion}
+              selectedDates={dates}
+              onRemoveRoute={(index) => {
+                const newRoutes = [...routes];
+                newRoutes.splice(index, 1);
+                handleRoutesUpdate(newRoutes);
+              }}
+            />
+          </div>
+        )}
+
         {/* Date Picker Container - includes both input and dropdown */}
-        <div className="relative mb-4" ref={datePickerRef}>
+        <div className="relative mb-4 mt-6" ref={datePickerRef}>
           {/* Date Picker Input */}
           <div className="relative">
-            <label htmlFor="date-input" className="block text-sm font-bold text-gray-700 mb-2">
-              Add date(s)
-            </label>
             <div className="relative">
-              <input
-                id="date-input"
-                type="text"
-                className="w-full p-2 pr-10 border border-gray-300 rounded-md bg-white focus:outline-none focus:border-indigo-500"
-                placeholder="DD/MM/YYYY"
-                value={inputValue || (dates.length > 0 ? formatDateForDisplay(dates) : '')}
-                onChange={(e) => {
-                  // Allow full editing of the input field
-                  handleInputChange(e.target.value);
-                  if (!isDatePickerOpen) {
-                    setIsDatePickerOpen(true);
-                  }
-                }}
-                onFocus={() => {
-                  // When focusing, if there's a selected date, show it in the input for editing
-                  if (dates.length > 0 && !inputValue) {
-                    setInputValue(formatDateForDisplay(dates));
-                  }
-                  if (!isDatePickerOpen) {
-                    setIsDatePickerOpen(true);
-                  }
-                  setIsTyping(false); // Reset typing flag when focusing to edit existing date
-                }}
-                onClick={() => {
-                  if (!isDatePickerOpen) {
-                    setIsDatePickerOpen(true);
-                  }
-                  setIsTyping(false); // Reset typing flag when clicking
-                }}
-              />
-              <button
-                onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded"
+              {/* Custom input container with date badges */}
+              <div className="relative w-full min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-0">
+                {/* Date badges */}
+                <div className="flex flex-wrap gap-2 items-center">
+                  {/* Calendar icon */}
+                  <CalendarIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                  {dates.map((date, index) => (
+                    <span key={date} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                      {formatSingleDateForBadge(date)}
+                      <button
+                        onClick={() => handleRemoveDate(index)}
+                        className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-gray-200 transition-colors"
+                      >
+                        <XMarkIcon className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                  
+                  {/* Input field */}
+                  <input
+                    id="date-input"
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => {
+                      handleInputChange(e.target.value);
+                      if (!isDatePickerOpen) {
+                        setIsDatePickerOpen(true);
+                      }
+                    }}
+                    onFocus={() => {
+                      if (!isDatePickerOpen) {
+                        setIsDatePickerOpen(true);
+                      }
+                      setIsTyping(false);
+                    }}
+                    onClick={() => {
+                      if (!isDatePickerOpen) {
+                        setIsDatePickerOpen(true);
+                      }
+                      setIsTyping(false);
+                    }}
+                    placeholder={dates.length === 0 ? "DD/MM/YYYY" : ""}
+                    className="flex-1 min-w-[120px] outline-none bg-transparent text-gray-900 placeholder-gray-400"
+                  />
+                </div>
+                
+                {/* Dropdown button */}
+                <button
+                  onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded"
+                >
+                  <ChevronDownIcon className={`w-5 h-5 text-gray-500 transition-transform ${isDatePickerOpen ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+              
+              {/* Label */}
+              <label 
+                htmlFor="date-input" 
+                className="absolute -top-2.5 left-3 bg-white px-2 text-sm font-medium text-gray-600"
               >
-                <ChevronDownIcon className={`w-4 h-4 text-gray-500 transition-transform ${isDatePickerOpen ? 'rotate-180' : ''}`} />
-              </button>
+                Add dates
+              </label>
             </div>
           </div>
 
@@ -319,61 +356,31 @@ export default function Sidebar() {
                 onInputChange={handleInputChange}
                 setCurrentDate={setCurrentDate}
                 berlinToday={getBerlinToday()}
-                showAirportSearch={showAirportSearch}
               />
             </div>
           )}
         </div>
+        </div>
 
-        {/* Create Theme Button */}
-        {dates.length > 0 && !showAirportSearch && (
-          <div className="mb-4">
+        {/* Create Themes Button - Sticky */}
+        {routes.length > 0 && (
+          <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 mt-auto z-10 rounded-b-2xl">
             <button
-              onClick={handleCreateTheme}
-              className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+              className={`w-full px-4 py-2 rounded-md transition-colors
+                ${routes.length >= 2 
+                  ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+              disabled={routes.length < 2}
+              onClick={() => {
+                // Handle create themes logic here
+                console.log('Creating themes...');
+              }}
             >
-              Create theme
+              Create themes
             </button>
           </div>
         )}
-
-        {/* Airport Search and Routes */}
-        {showAirportSearch && (
-          <div className="mt-6">
-            <AirportSearch
-              routes={routes}
-              setRoutes={handleRoutesUpdate}
-              usedAirports={routes.map(r => r.airport.code)}
-              selectedRegion={selectedRegion}
-              selectedDates={dates}
-              onRemoveRoute={(index) => {
-                const newRoutes = [...routes];
-                newRoutes.splice(index, 1);
-                handleRoutesUpdate(newRoutes);
-              }}
-            />
-          </div>
-        )}
       </div>
-
-      {/* Create Themes Button - Sticky */}
-      {routes.length > 0 && (
-        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 mt-auto z-10">
-          <button
-            className={`w-full px-4 py-2 rounded-md transition-colors
-              ${routes.length >= 2 
-                ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
-            disabled={routes.length < 2}
-            onClick={() => {
-              // Handle create themes logic here
-              console.log('Creating themes...');
-            }}
-          >
-            Create themes
-          </button>
-        </div>
-      )}
     </div>
   );
 } 

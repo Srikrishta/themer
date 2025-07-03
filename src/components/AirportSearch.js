@@ -2,48 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { XMarkIcon, ChevronDownIcon, ChevronUpIcon, Bars3Icon, MapPinIcon, ClockIcon } from '@heroicons/react/24/outline';
-
-// Festival data - same as in DatePicker
-const festivalsData = {
-  "october": [
-    {
-      "name": "Oktoberfest",
-      "location": "Munich 🇩🇪",
-      "city": "Munich",
-      "startDay": 1,
-      "endDay": 6,
-      "color": "#FCD34D",
-      "type": "festival"
-    },
-    {
-      "name": "Nuit Blanche",
-      "location": "Paris 🇫🇷",
-      "city": "Paris",
-      "startDay": 5,
-      "endDay": 5,
-      "color": "#581C87",
-      "type": "night_event"
-    },
-    {
-      "name": "Amsterdam Dance Event",
-      "location": "Amsterdam 🇳🇱",
-      "city": "Amsterdam",
-      "startDay": 16,
-      "endDay": 20,
-      "color": "#EF4444",
-      "type": "music"
-    },
-    {
-      "name": "Rome Film Festival",
-      "location": "Rome 🇮🇹",
-      "city": "Rome",
-      "startDay": 17,
-      "endDay": 27,
-      "color": "#8B5CF6",
-      "type": "film"
-    }
-  ]
-};
+import festivalsData from '../data/festivals.json';
 
 // Airport data
 const AIRPORTS = [
@@ -52,14 +11,7 @@ const AIRPORTS = [
   { code: 'MXP', name: 'Milan Malpensa Airport', city: 'Milan', country: 'Italy' },
   { code: 'MUC', name: 'Munich Airport', city: 'Munich', country: 'Germany' },
   { code: 'AMS', name: 'Amsterdam Airport Schiphol', city: 'Amsterdam', country: 'Netherlands' },
-  { code: 'FCO', name: 'Leonardo da Vinci International Airport', city: 'Rome', country: 'Italy' },
-  
-  // Southeast Asian Airports
-  { code: 'SIN', name: 'Singapore Changi Airport', city: 'Singapore', country: 'Singapore' },
-  { code: 'BKK', name: 'Suvarnabhumi Airport', city: 'Bangkok', country: 'Thailand' },
-  { code: 'KUL', name: 'Kuala Lumpur International Airport', city: 'Kuala Lumpur', country: 'Malaysia' },
-  { code: 'CGK', name: 'Soekarno-Hatta International Airport', city: 'Jakarta', country: 'Indonesia' },
-  { code: 'MNL', name: 'Ninoy Aquino International Airport', city: 'Manila', country: 'Philippines' }
+  { code: 'FCO', name: 'Leonardo da Vinci International Airport', city: 'Rome', country: 'Italy' }
 ];
 
 const ITEM_TYPE = 'ROUTE_CARD';
@@ -80,8 +32,11 @@ const getFestivalsForCityAndDates = (city, selectedDates) => {
     if (!monthData) return;
     
     monthData.forEach(festival => {
+      // Extract city name from location (remove flag emoji and trim)
+      const festivalCity = festival.location.replace(/🇩🇪|🇫🇷|🇳🇱|🇮🇹/g, '').trim();
+      
       // Check if festival is in this city and overlaps with this date
-      if (festival.city === city && 
+      if (festivalCity === city && 
           dayOfMonth >= festival.startDay && 
           dayOfMonth <= festival.endDay) {
         // Only add if not already in the list
@@ -239,16 +194,12 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [] }) {
       className="relative w-full mb-4"
       style={{ 
         opacity,
-        // Ensure consistent layout during drag
-        paddingLeft: '24px',
-        position: 'relative',
-        // Ensure consistent height for better drag zones
-        minHeight: '120px'
+        position: 'relative'
       }}
       data-handler-id={handlerId}
     >
-      {/* Dot - moves with the card */}
-      <div className="absolute" style={{ left: '6px', top: '50%', transform: 'translateY(-50%)' }}>
+      {/* Dot - moves with the card - DISABLED */}
+      {/* <div className="absolute" style={{ left: '6px', top: '50%', transform: 'translateY(-50%)' }}>
         {routeFestivals.length > 0 ? (
           <div className="relative">
             {routeFestivals.slice(0, 3).map((festival, idx) => (
@@ -270,46 +221,39 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [] }) {
         ) : (
           <div className="w-3 h-3 rounded-full border-2 border-white bg-gray-500 relative z-10" />
         )}
-      </div>
+      </div> */}
 
-      {/* Card Content - Entire card is draggable */}
+      {/* Card Content */}
       <div 
-        ref={dragRef}
-        className="w-full cursor-grab active:cursor-grabbing pl-4 h-full"
+        className="w-full h-full"
         style={{ minHeight: 'inherit' }}
       >
-        <div className={`bg-white p-4 rounded-lg border shadow-sm transition-all ${
-          isDragging ? 'border-indigo-300 shadow-lg' : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
-        }`}>
+        {/* Full height drag handle - outside the card - DISABLED */}
+        {/* <div 
+          ref={dragRef}
+          className="absolute w-1 rounded-md cursor-grab active:cursor-grabbing opacity-40"
+          style={{ 
+            backgroundColor: routeFestivals.length > 0 ? routeFestivals[0].color : '#6B7280',
+            left: '11px',
+            top: '8px',
+            bottom: '8px'
+          }}
+        /> */}
+        
+        <div 
+          ref={dragRef}
+          className={`bg-white p-4 rounded-lg border shadow-sm transition-all cursor-grab active:cursor-grabbing ${
+            isDragging ? 'border-indigo-300 shadow-lg' : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+          }`}
+        >
           <div className="flex justify-between items-start">
             <div className="flex items-start space-x-3">
-              {/* Visual Drag Indicator */}
-              <div className="p-1 rounded">
-                <Bars3Icon className="w-5 h-5 text-gray-400" />
-              </div>
               <div>
-                <div className="flex flex-wrap items-center gap-2 mb-2" style={{ minHeight: '24px' }}>
-                  {routeFestivals.length > 0 ? (
-                    routeFestivals.map((festival, idx) => (
-                      <span 
-                        key={festival.name}
-                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white"
-                        style={{ backgroundColor: festival.color }}
-                      >
-                        {festival.name}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                      Default
-                    </span>
-                  )}
-                </div>
                 <h3 className="text-lg font-medium text-gray-900 truncate">
                   {route.airport.city} ({route.airport.code})
                 </h3>
-                <p className="text-xs text-gray-400 mt-1 flex items-center gap-3">
-                <span className="flex items-center gap-1 font-semibold">
+                <div className="text-xs text-gray-400 mt-1 flex items-center gap-3 flex-wrap">
+                  <span className="flex items-center gap-1 font-semibold">
                     <MapPinIcon className="w-3 h-3" />
                     {route.type.charAt(0).toUpperCase() + route.type.slice(1)}
                   </span>
@@ -317,7 +261,27 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [] }) {
                     <ClockIcon className="w-3 h-3" />
                     {getScheduledTime(index, route.type)}
                   </span>
-                </p>
+                  {/* Festival indicators with theme dots */}
+                  {routeFestivals.length > 0 ? (
+                    routeFestivals.map((festival, idx) => (
+                      <span 
+                        key={festival.name}
+                        className="inline-flex items-center gap-1 text-xs font-medium text-gray-600"
+                      >
+                        <div 
+                          className="w-2 h-2 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: festival.color }}
+                        />
+                        {festival.name}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-600">
+                      <div className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0" />
+                      Default
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             <button
@@ -353,8 +317,8 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [] }) {
 
   return (
     <div className="relative">
-      {/* Static Line - connects from first dot to last dot */}
-      {routes.length > 1 && (
+      {/* Static Line - connects from first dot to last dot - DISABLED */}
+      {/* {routes.length > 1 && (
         <div 
           className="absolute w-0.5 bg-gray-200 z-0"
           style={{
@@ -365,7 +329,7 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [] }) {
             bottom: `${50 / routes.length}%`
           }}
         />
-      )}
+      )} */}
       
       {/* Route Cards */}
       <div className="relative z-10">
@@ -388,17 +352,8 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Filter airports by region first, then by search term
-  const regionFilteredAirports = AIRPORTS.filter(airport => {
-    const isEuropean = ['France', 'Italy', 'Germany', 'Netherlands'].includes(airport.country);
-    if (selectedRegion === 'Europe') {
-      return isEuropean;
-    } else {
-      return !isEuropean; // South-East Asia
-    }
-  });
-
-  const filteredAirports = regionFilteredAirports.filter(airport => {
+  // Filter airports by search term (all airports are European now)
+  const filteredAirports = AIRPORTS.filter(airport => {
     const matchesSearch = (
       airport.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
       airport.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -408,16 +363,14 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     return matchesSearch && isNotUsed;
   });
 
-  // Group airports by region (now will only contain one region)
+  // Group airports by country for better organization
   const groupedAirports = filteredAirports.reduce((groups, airport) => {
-    const region = ['France', 'Italy', 'Germany', 'Netherlands'].includes(airport.country) 
-      ? 'Europe' 
-      : 'Southeast Asia';
+    const country = airport.country;
     
-    if (!groups[region]) {
-      groups[region] = [];
+    if (!groups[country]) {
+      groups[country] = [];
     }
-    groups[region].push(airport);
+    groups[country].push(airport);
     return groups;
   }, {});
 
@@ -434,74 +387,118 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     }
   };
 
+  const handleRemoveRoute = (routeIndex) => {
+    // Call the parent's remove function to keep data in sync
+    if (onRemoveRoute) {
+      onRemoveRoute(routeIndex);
+    }
+  };
+
   return (
     <div className="space-y-4 relative">
+      {/* Route Cards with Drag and Drop - wrapped in background */}
+      {routes.length > 0 && (
+        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+          <RouteList 
+            routes={routes} 
+            setRoutes={setRoutes} 
+            onRemoveRoute={onRemoveRoute}
+            selectedDates={selectedDates}
+          />
+        </div>
+      )}
+
       <div className="relative">
-        <label htmlFor="airport-search" className="block text-sm font-bold text-gray-700 mb-2">
+        {/* Custom input container with badges */}
+        <div className="relative w-full min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-0">
+                       {/* Airport badges */}
+           <div className="flex flex-wrap gap-2 items-center">
+             {routes.map((route, index) => {
+               // Get festivals for this route's city and dates
+               const routeFestivals = getFestivalsForCityAndDates(route.airport.city, selectedDates);
+               const themeColor = routeFestivals.length > 0 ? routeFestivals[0].color : '#9CA3AF'; // Default to gray-400
+               
+               return (
+                 <span key={route.id} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                   {/* Colored dot */}
+                   <div 
+                     className="w-2 h-2 rounded-full mr-1.5 flex-shrink-0"
+                     style={{ backgroundColor: themeColor }}
+                   />
+                   {route.airport.code}
+                   <button
+                     onClick={() => handleRemoveRoute(index)}
+                     className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-gray-200 transition-colors"
+                   >
+                     <XMarkIcon className="w-3 h-3" />
+                   </button>
+                 </span>
+               );
+             })}
+            
+            {/* Input field */}
+        <input
+          id="airport-search"
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onClick={() => setIsDropdownOpen(true)}
+              placeholder={routes.length === 0 ? "Search airports..." : ""}
+              className="flex-1 min-w-[120px] outline-none bg-transparent text-gray-900 placeholder-gray-400"
+            />
+          </div>
+          
+          {/* Dropdown button */}
+        <button
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+        >
+          {isDropdownOpen ? (
+            <ChevronUpIcon className="w-5 h-5" />
+          ) : (
+            <ChevronDownIcon className="w-5 h-5" />
+          )}
+        </button>
+        </div>
+        
+        {/* Label */}
+        <label 
+          htmlFor="airport-search" 
+          className="absolute -top-2.5 left-3 bg-white px-2 text-sm font-medium text-gray-600"
+        >
           Add route
         </label>
-        <div className="relative">
-          <input
-            id="airport-search"
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onClick={() => setIsDropdownOpen(true)}
-            placeholder="Search airports..."
-            className="w-full p-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:border-indigo-500"
-          />
-          <button
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
-          >
-            {isDropdownOpen ? (
-              <ChevronUpIcon className="w-5 h-5" />
-            ) : (
-              <ChevronDownIcon className="w-5 h-5" />
-            )}
-          </button>
-        </div>
-
-        {/* Dropdown */}
-        {isDropdownOpen && (
-          <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-            {Object.keys(groupedAirports).length > 0 ? (
-              Object.entries(groupedAirports).map(([region, airports]) => (
-                <div key={region}>
-                  {/* Region Header */}
-                  <div className="sticky top-0 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-100">
-                    {region}
-                  </div>
-                  {/* Airports in Region */}
-                  {airports.map(airport => (
-                    <button
-                      key={airport.code}
-                      onClick={() => handleAirportSelect(airport)}
-                      className="w-full text-left p-3 hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors"
-                    >
-                      <h3 className="text-lg font-medium text-gray-900">{airport.code}</h3>
-                      <p className="text-sm text-gray-500">{airport.city}, {airport.country}</p>
-                    </button>
-                  ))}
-                </div>
-              ))
-            ) : (
-              <div className="p-3 text-gray-500 text-center">
-                {searchTerm ? 'No airports found' : 'All airports have been selected'}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Route Cards with Drag and Drop */}
-      {routes.length > 0 && (
-        <RouteList 
-          routes={routes} 
-          setRoutes={setRoutes} 
-          onRemoveRoute={onRemoveRoute}
-          selectedDates={selectedDates}
-        />
+      {/* Dropdown */}
+      {isDropdownOpen && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto scrollbar-thin">
+          {Object.keys(groupedAirports).length > 0 ? (
+            Object.entries(groupedAirports).map(([country, airports]) => (
+              <div key={country}>
+                {/* Country Header */}
+                <div className="sticky top-0 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-100">
+                  {country}
+                </div>
+                {/* Airports in Country */}
+                {airports.map(airport => (
+                  <button
+                    key={airport.code}
+                    onClick={() => handleAirportSelect(airport)}
+                    className="w-full text-left p-3 hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors"
+                  >
+                    <h3 className="text-lg font-medium text-gray-900">{airport.code}</h3>
+                    <p className="text-sm text-gray-500">{airport.city}, {airport.country}</p>
+                  </button>
+                ))}
+              </div>
+            ))
+          ) : (
+            <div className="p-3 text-gray-500 text-center">
+              {searchTerm ? 'No airports found' : 'All airports have been selected'}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

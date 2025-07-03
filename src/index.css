@@ -4,6 +4,10 @@
 
 /* Custom styles can go here */
 
+html {
+  background-color: #f3f4f6; /* bg-gray-100 in Tailwind */
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -11,9 +15,57 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #f3f4f6; /* bg-gray-100 in Tailwind */
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+/* Custom Scrollbar Styles */
+/* Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9; /* bg-slate-100 */
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1; /* bg-slate-300 */
+  border-radius: 8px;
+  border: 2px solid #f1f5f9; /* Creates padding effect */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; /* bg-slate-400 */
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: #64748b; /* bg-slate-500 */
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9; /* thumb track */
+}
+
+/* Custom scrollbar class for specific elements */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #e2e8f0; /* bg-slate-200 */
+  border-radius: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1; /* bg-slate-300 */
 }

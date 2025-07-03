@@ -1,4 +1,182 @@
 {
+  "january": [
+    {
+      "name": "Amsterdam Light Festival",
+      "location": "Amsterdam 🇳🇱",
+      "startDay": 1,
+      "endDay": 21,
+      "color": "#3B82F6",
+      "type": "art"
+    },
+    {
+      "name": "Christmas in Rome",
+      "location": "Rome 🇮🇹",
+      "startDay": 1,
+      "endDay": 6,
+      "color": "#10B981",
+      "type": "cultural"
+    }
+  ],
+  "february": [
+    {
+      "name": "Rome Carnival",
+      "location": "Rome 🇮🇹",
+      "startDay": 8,
+      "endDay": 13,
+      "color": "#F59E0B",
+      "type": "festival"
+    },
+    {
+      "name": "Carnevale Ambrosiano",
+      "location": "Milan 🇮🇹",
+      "startDay": 17,
+      "endDay": 25,
+      "color": "#14B8A6",
+      "type": "festival"
+    },
+    {
+      "name": "Milan Fashion Week (Winter)",
+      "location": "Milan 🇮🇹",
+      "startDay": 20,
+      "endDay": 26,
+      "color": "#EC4899",
+      "type": "fashion"
+    },
+    {
+      "name": "Paris Fashion Week (Winter)",
+      "location": "Paris 🇫🇷",
+      "startDay": 26,
+      "endDay": 28,
+      "color": "#6366F1",
+      "type": "fashion"
+    }
+  ],
+  "march": [
+    {
+      "name": "Paris Fashion Week (Winter)",
+      "location": "Paris 🇫🇷",
+      "startDay": 1,
+      "endDay": 5,
+      "color": "#6366F1",
+      "type": "fashion"
+    }
+  ],
+  "april": [
+    {
+      "name": "Milan Furniture Fair",
+      "location": "Milan 🇮🇹",
+      "startDay": 16,
+      "endDay": 21,
+      "color": "#F43F5E",
+      "type": "festival"
+    },
+    {
+      "name": "Natale di Roma",
+      "location": "Rome 🇮🇹",
+      "startDay": 21,
+      "endDay": 21,
+      "color": "#F59E0B",
+      "type": "cultural"
+    },
+    {
+      "name": "King's Day",
+      "location": "Amsterdam 🇳🇱",
+      "startDay": 27,
+      "endDay": 27,
+      "color": "#F97316",
+      "type": "cultural"
+    },
+    {
+      "name": "Frühlingsfest",
+      "location": "Munich 🇩🇪",
+      "startDay": 26,
+      "endDay": 30,
+      "color": "#059669",
+      "type": "festival"
+    }
+  ],
+  "may": [
+    {
+      "name": "Frühlingsfest",
+      "location": "Munich 🇩🇪",
+      "startDay": 1,
+      "endDay": 12,
+      "color": "#059669",
+      "type": "festival"
+    }
+  ],
+  "june": [
+    {
+      "name": "Tollwood Festival (Summer)",
+      "location": "Munich 🇩🇪",
+      "startDay": 16,
+      "endDay": 30,
+      "color": "#7C3AED",
+      "type": "festival"
+    }
+  ],
+  "july": [
+    {
+      "name": "Tollwood Festival (Summer)",
+      "location": "Munich 🇩🇪",
+      "startDay": 1,
+      "endDay": 16,
+      "color": "#7C3AED",
+      "type": "festival"
+    },
+    {
+      "name": "Bastille Day",
+      "location": "Paris 🇫🇷",
+      "startDay": 14,
+      "endDay": 14,
+      "color": "#06B6D4",
+      "type": "cultural"
+    },
+    {
+      "name": "Pride Amsterdam",
+      "location": "Amsterdam 🇳🇱",
+      "startDay": 27,
+      "endDay": 31,
+      "color": "#65A30D",
+      "type": "cultural"
+    }
+  ],
+  "august": [
+    {
+      "name": "Pride Amsterdam",
+      "location": "Amsterdam 🇳🇱",
+      "startDay": 1,
+      "endDay": 4,
+      "color": "#65A30D",
+      "type": "cultural"
+    }
+  ],
+  "september": [
+    {
+      "name": "Oktoberfest",
+      "location": "Munich 🇩🇪",
+      "startDay": 21,
+      "endDay": 30,
+      "color": "#FCD34D",
+      "type": "festival"
+    },
+    {
+      "name": "Milan Fashion Week (Autumn)",
+      "location": "Milan 🇮🇹",
+      "startDay": 17,
+      "endDay": 23,
+      "color": "#EC4899",
+      "type": "fashion"
+    },
+    {
+      "name": "Paris Fashion Week (Autumn)",
+      "location": "Paris 🇫🇷",
+      "startDay": 23,
+      "endDay": 30,
+      "color": "#6366F1",
+      "type": "fashion"
+    }
+  ],
   "october": [
     {
       "name": "Oktoberfest",
@@ -31,6 +209,82 @@
       "endDay": 27,
       "color": "#8B5CF6",
       "type": "film"
+    },
+    {
+      "name": "Paris Fashion Week (Autumn)",
+      "location": "Paris 🇫🇷",
+      "startDay": 1,
+      "endDay": 1,
+      "color": "#6366F1",
+      "type": "fashion"
+    }
+  ],
+  "november": [
+    {
+      "name": "Tollwood Festival (Winter)",
+      "location": "Munich 🇩🇪",
+      "startDay": 25,
+      "endDay": 30,
+      "color": "#7C3AED",
+      "type": "festival"
+    },
+    {
+      "name": "Christmas Market",
+      "location": "Munich 🇩🇪",
+      "startDay": 25,
+      "endDay": 30,
+      "color": "#EF4444",
+      "type": "market"
+    }
+  ],
+  "december": [
+    {
+      "name": "Amsterdam Light Festival",
+      "location": "Amsterdam 🇳🇱",
+      "startDay": 1,
+      "endDay": 31,
+      "color": "#3B82F6",
+      "type": "art"
+    },
+    {
+      "name": "Christmas Market",
+      "location": "Paris 🇫🇷",
+      "startDay": 1,
+      "endDay": 31,
+      "color": "#F43F5E",
+      "type": "market"
+    },
+    {
+      "name": "Festa di Sant'Ambrogio",
+      "location": "Milan 🇮🇹",
+      "startDay": 7,
+      "endDay": 7,
+      "color": "#10B981",
+      "type": "cultural"
+    },
+    {
+      "name": "Christmas in Rome",
+      "location": "Rome 🇮🇹",
+      "startDay": 8,
+      "endDay": 31,
+      "color": "#10B981",
+      "type": "cultural"
+    },
+    {
+      "name": "Tollwood Festival (Winter)",
+      "location": "Munich 🇩🇪",
+      "startDay": 1,
+      "endDay": 23,
+      "color": "#7C3AED",
+      "type": "festival"
+    },
+    {
+      "name": "Christmas Market",
+      "location": "Munich 🇩🇪",
+      "startDay": 1,
+      "endDay": 24,
+      "color": "#EF4444",
+      "type": "market"
     }
   ]
 } 
