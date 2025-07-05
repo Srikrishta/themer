@@ -19,7 +19,8 @@ const DatePicker = ({
   inputValue,
   onInputChange,
   setCurrentDate,
-  berlinToday
+  berlinToday,
+  onInputSubmit
 }) => {
   const [inputError, setInputError] = useState('');
   const [tooltip, setTooltip] = useState({
@@ -130,21 +131,56 @@ const DatePicker = ({
   };
 
   const formatDateInput = (value) => {
-    // Remove any non-numeric characters
+    // Handle "to" keyword for date ranges
+    if (value.toLowerCase().includes(' to ')) {
+      const parts = value.toLowerCase().split(' to ');
+      const startPart = parts[0].trim();
+      const endPart = parts[1].trim();
+      
+      // Format start date
+      const startNumbers = startPart.replace(/\D/g, '');
+      let formattedStart = '';
+      if (startNumbers.length <= 2) {
+        formattedStart = startNumbers;
+      } else if (startNumbers.length <= 4) {
+        formattedStart = startNumbers.slice(0, 2) + '.' + startNumbers.slice(2);
+      } else {
+        formattedStart = startNumbers.slice(0, 2) + '.' + startNumbers.slice(2, 4) + '.' + startNumbers.slice(4, 8);
+      }
+      
+      // Format end date if it exists
+      if (endPart) {
+        const endNumbers = endPart.replace(/\D/g, '');
+        let formattedEnd = '';
+        if (endNumbers.length <= 2) {
+          formattedEnd = endNumbers;
+        } else if (endNumbers.length <= 4) {
+          formattedEnd = endNumbers.slice(0, 2) + '.' + endNumbers.slice(2);
+        } else {
+          formattedEnd = endNumbers.slice(0, 2) + '.' + endNumbers.slice(2, 4) + '.' + endNumbers.slice(4, 8);
+        }
+        return formattedStart + ' to ' + formattedEnd;
+      } else {
+        return formattedStart + ' to ';
+      }
+    }
+    
+    // Regular single date formatting
     const numbers = value.replace(/\D/g, '');
     
-    // Format as DD/MM/YYYY
+    // Format as DD.MM.YYYY
     if (numbers.length <= 2) {
       return numbers;
     } else if (numbers.length <= 4) {
-      return numbers.slice(0, 2) + '/' + numbers.slice(2);
+      return numbers.slice(0, 2) + '.' + numbers.slice(2);
     } else {
-      return numbers.slice(0, 2) + '/' + numbers.slice(2, 4) + '/' + numbers.slice(4, 8);
+      return numbers.slice(0, 2) + '.' + numbers.slice(2, 4) + '.' + numbers.slice(4, 8);
     }
   };
 
   const findNearestDate = (input) => {
-    const numbers = input.replace(/\D/g, '');
+    // Accept both dots and slashes as separators
+    const numbers = input.replace(/[^\d]/g, '');
     
     if (numbers.length === 0) return null;
     
@@ -221,8 +257,45 @@ const DatePicker = ({
     if (inputValue.includes('→')) {
       return; // Don't interfere with navigation when showing formatted dates
     }
-      const formatted = formatDateInput(inputValue);
-      const nearestDate = findNearestDate(inputValue);
+    
+    // Format the input value
+    const formatted = formatDateInput(inputValue);
+    
+    // Update the input field with formatted value if it's different
+    if (formatted !== inputValue && onInputChange) {
+      onInputChange(formatted);
+      return;
+    }
+    
+    // Handle date range input
+    if (inputValue.toLowerCase().includes(' to ')) {
+      const parts = inputValue.toLowerCase().split(' to ');
+      const startPart = parts[0].trim();
+      const endPart = parts[1].trim();
+      
+      const startDate = findNearestDate(startPart);
+      if (startDate && setCurrentDate) {
+        const targetMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+        if (currentDate.getTime() !== targetMonth.getTime()) {
+          setCurrentDate(targetMonth);
+        }
+      }
+      
+      if (endPart) {
+        const endDate = findNearestDate(endPart);
+        if (endDate && setCurrentDate) {
+          const targetMonth = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+          if (currentDate.getTime() !== targetMonth.getTime()) {
+            setCurrentDate(targetMonth);
+          }
+        }
+      }
+      
+      return;
+    }
+    
+    // Handle single date input
+    const nearestDate = findNearestDate(inputValue);
       
       if (nearestDate && setCurrentDate) {
         // Navigate to the month of the nearest date
@@ -310,12 +383,54 @@ const DatePicker = ({
         if (!selectedDates.includes(dateString)) {
           // Pass true to indicate this is from typing
           onDateClick(nearestDate, true);
+        }
       }
-    }
   }, [inputValue, onDateClick, selectedDates, today, maxDate]);
 
   const handleInputSubmit = (e) => {
     if (e.key === 'Enter') {
+      // Use the parent's onInputSubmit if provided, otherwise handle locally
+      if (onInputSubmit) {
+        onInputSubmit(inputValue);
+        return;
+      }
+      
+      // Handle date range input (with "to")
+      if (inputValue.toLowerCase().includes(' to ')) {
+        const parts = inputValue.toLowerCase().split(' to ');
+        const startPart = parts[0].trim();
+        const endPart = parts[1].trim();
+        
+        const startDate = findNearestDate(startPart);
+        
+        if (startDate) {
+          if (!endPart) {
+            // Only start date provided, create single date
+            onDateClick(startDate, true);
+            onInputChange('');
+            return;
+          }
+          
+          const endDate = findNearestDate(endPart);
+          if (endDate) {
+            // Both dates provided, create range
+            const startDateString = dateToString(startDate);
+            const endDateString = dateToString(endDate);
+            
+            // Sort dates to ensure start comes before end
+            const sortedDates = [startDate, endDate].sort((a, b) => a - b);
+            onDateClick(sortedDates[0], true);
+            onDateClick(sortedDates[1], true);
+            onInputChange('');
+            return;
+          }
+        }
+        
+        setInputError('Invalid date range');
+        return;
+      }
+      
+      // Handle single date input
       const nearestDate = findNearestDate(inputValue);
       if (nearestDate) {
         onDateClick(nearestDate, true); // Pass true to indicate this is from typing
@@ -371,11 +486,11 @@ const DatePicker = ({
           }}
           disabled={false}
           data-navigation="true"
-          className="hover:bg-gray-100 p-2 rounded border border-gray-300 bg-white cursor-pointer"
+          className="hover:bg-gray-100 p-2 rounded bg-white cursor-pointer"
         >
           <ChevronLeftIcon className="w-5 h-5 text-gray-500" />
         </button>
-        <span className="text-sm font-bold">
+        <span className="text-xs font-medium">
           {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
         </span>
         <button 
@@ -385,7 +500,7 @@ const DatePicker = ({
           }}
           disabled={false}
           data-navigation="true"
-          className="hover:bg-gray-100 p-2 rounded border border-gray-300 bg-white cursor-pointer"
+          className="hover:bg-gray-100 p-2 rounded bg-white cursor-pointer"
         >
           <ChevronRightIcon className="w-5 h-5 text-gray-500" />
         </button>
@@ -394,7 +509,7 @@ const DatePicker = ({
       {/* Calendar Grid */}
       <div className="grid grid-cols-7 gap-y-2 gap-x-0">
         {DAYS.map((day, i) => (
-          <div key={i} className="text-center text-sm font-medium text-gray-500 py-2">
+          <div key={i} className="text-center text-xs text-gray-500 py-2">
             {day}
           </div>
         ))}
@@ -515,7 +630,7 @@ const DatePicker = ({
               disabled={!isInRange}
               title={dayFestivals.length > 0 ? createTooltipContent(dayFestivals) : ''}
               className={`
-                w-full h-10 text-sm flex flex-col items-center justify-center relative
+                w-full h-10 text-xs flex flex-col items-center justify-center relative
                 ${day.isCurrentMonth ? (isInRange ? 'text-gray-900' : 'text-gray-300') : (isInRange ? 'text-gray-600' : 'text-gray-400')}
                 ${isSelected && selectedDates.length === 1 ? `bg-indigo-600/50 text-gray-900 ${borderRadiusClass}` : 
                   isInSelectedRange ? `bg-indigo-600/50 text-gray-900 ${borderRadiusClass}` :
@@ -568,7 +683,7 @@ const DatePicker = ({
         >
           {/* Header */}
           <div className="px-4 py-3 border-b border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-900 leading-tight">
+            <h3 className="text-xs font-medium text-gray-900 leading-tight">
               {tooltip.content.length === 1 ? 'Festival' : `${tooltip.content.length} Festivals`}
             </h3>
           </div>
@@ -586,10 +701,10 @@ const DatePicker = ({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium text-gray-900 truncate">
+                      <h4 className="text-sm text-gray-900 truncate">
                         {festival.name}
                       </h4>
-                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">
                         {festival.type}
                       </span>
                     </div>

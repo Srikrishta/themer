@@ -69,3 +69,36 @@ code {
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background: #cbd5e1; /* bg-slate-300 */
 }
+
+/* Color cycling animation for the theme dot */
+@keyframes colorPulse {
+  0% { background-color: #3b82f6; } /* blue-500 */
+  20% { background-color: #8b5cf6; } /* purple-500 */
+  40% { background-color: #ec4899; } /* pink-500 */
+  60% { background-color: #f59e0b; } /* amber-500 */
+  80% { background-color: #10b981; } /* emerald-500 */
+  100% { background-color: #3b82f6; } /* back to blue-500 */
+}
+
+/* Themer logo gradient */
+.themer-gradient {
+  background: linear-gradient(135deg, 
+    #3b82f6 0%,     /* blue-500 */
+    #8b5cf6 25%,    /* purple-500 */
+    #ec4899 50%,    /* pink-500 */
+    #f59e0b 75%,    /* amber-500 */
+    #10b981 100%    /* emerald-500 */
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 200%;
+  animation: gradientSweep 3s ease-in-out infinite;
+}
+
+/* Gradient animation */
+@keyframes gradientSweep {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
