@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { XMarkIcon, ChevronDownIcon, ChevronUpIcon, Bars3Icon, MapPinIcon, ClockIcon, PlusIcon, MinusIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, ChevronDownIcon, ChevronUpIcon, Bars3Icon, MapPinIcon, ClockIcon, PlusIcon } from '@heroicons/react/24/outline';
 import festivalsData from '../data/festivals.json';
 
 // Airport data
@@ -266,7 +266,9 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [] }) {
               className="p-1 rounded-full hover:bg-gray-100 transition-colors z-10 relative"
               title="Remove from route"
             >
-              <MinusIcon className="w-5 h-5 text-gray-400" />
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon" className="w-5 h-5 text-gray-400">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14"></path>
+              </svg>
             </button>
           </div>
         </div>
@@ -485,7 +487,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
 
             <div className="relative" ref={dropdownRef}>
         {/* Custom input container with badges - offset to avoid timeline overlap */}
-        <div ref={inputFieldRef} className="relative w-[calc(100%-2rem)] min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-0 ml-8">
+        <div ref={inputFieldRef} className={`relative min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-0 ${routes.length > 0 ? 'w-[calc(100%-2rem)] ml-8' : 'w-full'}`}>
           {/* Airport badges - showing only available airports (not in routes) */}
           <div className="flex flex-wrap gap-2 items-center">
             {AIRPORTS.filter(airport => !routes.some(route => route.airport.code === airport.code))
@@ -542,7 +544,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
         {/* Label - adjusted for offset container */}
         <label 
           htmlFor="airport-search" 
-          className="absolute -top-2.5 left-11 bg-gray-50 px-2 text-sm font-medium text-gray-600"
+          className={`absolute -top-2.5 bg-gray-50 px-2 text-sm font-medium text-gray-600 ${routes.length > 0 ? 'left-11' : 'left-3'}`}
         >
           Add route
         </label>

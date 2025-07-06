@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { CalendarIcon, ChevronUpIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { CalendarIcon, ArrowLeftIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import AirportSearch from './AirportSearch';
 import DatePicker from './DatePicker';
 
@@ -30,10 +30,14 @@ export default function ThemeCreator() {
 
   // NEW: Theme creation state
   const [isCreatingThemes, setIsCreatingThemes] = useState(false);
+  
+  // Minimize/maximize state
+  const [isMinimized, setIsMinimized] = useState(false);
 
   // Refs
   const datePickerRef = useRef(null);
   const containerRef = useRef(null);
+  const flightCardsRef = useRef(null);
 
   // Function to calculate dropdown position
   const calculateDropdownPosition = () => {
@@ -196,6 +200,152 @@ export default function ThemeCreator() {
     setIsCreatingThemes(false);
   };
 
+  // Generate flight segments from routes
+  const generateFlightSegments = () => {
+    if (routes.length < 2) return [];
+    
+    const segments = [];
+    for (let i = 0; i < routes.length - 1; i++) {
+      segments.push({
+        id: `flight-${i + 1}`,
+        flightNumber: i + 1,
+        origin: routes[i],
+        destination: routes[i + 1],
+        selectedTheme: null
+      });
+    }
+    return segments;
+  };
+
+  // State for flight segments and theme selections
+  const [flightSegments, setFlightSegments] = useState([]);
+  const [selectedThemes, setSelectedThemes] = useState({});
+  const [timelineHeight, setTimelineHeight] = useState('calc(100% + 80px)');
+
+  // Update flight segments when routes change or when entering theme creation mode
+  useEffect(() => {
+    if (isCreatingThemes) {
+      const segments = generateFlightSegments();
+      setFlightSegments(segments);
+      // Initialize selected themes
+      const initialThemes = {};
+      segments.forEach(segment => {
+        initialThemes[segment.id] = null;
+      });
+      setSelectedThemes(initialThemes);
+    }
+  }, [isCreatingThemes, routes]);
+
+  // Calculate timeline height for flight cards
+  useEffect(() => {
+    const calculateTimelineHeight = () => {
+      if (flightCardsRef.current && flightSegments.length > 1) {
+        const flightCardsRect = flightCardsRef.current.getBoundingClientRect();
+        const containerHeight = flightCardsRect.height;
+        const calculatedHeight = Math.max(containerHeight - 40, 60); // Minimum 60px height
+        setTimelineHeight(`${calculatedHeight}px`);
+      }
+    };
+
+    if (isCreatingThemes && flightSegments.length > 0) {
+      // Small delay to ensure DOM is updated
+      setTimeout(calculateTimelineHeight, 100);
+      
+      // Recalculate on window resize
+      window.addEventListener('resize', calculateTimelineHeight);
+      return () => window.removeEventListener('resize', calculateTimelineHeight);
+    }
+  }, [isCreatingThemes, flightSegments.length, selectedThemes]); // Re-calculate when themes change (affects card height)
+
+  // Handle theme selection for a flight
+  const handleThemeSelection = (flightId, themeIndex) => {
+    setSelectedThemes(prev => ({
+      ...prev,
+      [flightId]: themeIndex
+    }));
+  };
+
+  // Flight Card Component
+  const FlightCard = ({ segment, index }) => {
+    const themeOptions = [
+      { id: 0, name: 'Theme 1', color: '#3B82F6' },
+      { id: 1, name: 'Theme 2', color: '#EF4444' },
+      { id: 2, name: 'Theme 3', color: '#10B981' },
+      { id: 3, name: 'Theme 4', color: '#F59E0B' }
+    ];
+
+    return (
+      <div className="relative w-full mb-4 flex items-start max-w-full">
+        {/* Flight number dot */}
+        <div className="flex-shrink-0 mr-3 flex justify-center items-center" style={{ width: '24px' }}>
+          <div 
+            className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold relative z-10"
+            style={{ backgroundColor: '#6B7280' }}
+          >
+            {segment.flightNumber}
+          </div>
+        </div>
+
+        {/* Flight Card Content */}
+        <div className="flex-1 min-w-0 max-w-full">
+          <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm hover:border-gray-300 hover:shadow-md transition-all w-full">
+            <div className="mb-3">
+              <div className="min-w-0">
+                <div className="text-base text-gray-900 flex items-center gap-2 flex-wrap">
+                  <span className="font-medium">{segment.origin.airport.code}</span>
+                  <span className="text-gray-400">→</span>
+                  <span className="font-medium">{segment.destination.airport.code}</span>
+                </div>
+                <div className="text-xs text-gray-400 mt-1 truncate">
+                  {segment.origin.airport.city} to {segment.destination.airport.city}
+                </div>
+              </div>
+            </div>
+
+            {/* Theme Selection */}
+            <div className="space-y-2">
+              <div className="flex gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pb-2 -mx-1 px-1">
+                {themeOptions.map((theme) => (
+                  <label
+                    key={theme.id}
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all cursor-pointer whitespace-nowrap flex-shrink-0 ${
+                      selectedThemes[segment.id] === theme.id
+                        ? 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 hover:text-blue-700'
+                        : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 hover:text-gray-600'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name={`theme-${segment.id}`}
+                      value={theme.id}
+                      checked={selectedThemes[segment.id] === theme.id}
+                      onChange={() => handleThemeSelection(segment.id, theme.id)}
+                      className="sr-only"
+                    />
+                    <div 
+                      className={`w-2 h-2 rounded-full mr-1.5 flex-shrink-0 border-2 ${
+                        selectedThemes[segment.id] === theme.id 
+                          ? 'border-white' 
+                          : 'border-gray-300'
+                      }`}
+                      style={{ 
+                        backgroundColor: theme.color,
+                        boxShadow: selectedThemes[segment.id] === theme.id 
+                          ? `0 0 0 1px ${theme.color}` 
+                          : 'none'
+                      }}
+                    />
+                    {theme.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // NEW: Format dates for "Flights of" header
   const formatDatesForHeader = () => {
     if (dates.length === 0) return '';
@@ -298,7 +448,7 @@ export default function ThemeCreator() {
   return (
     <div 
       ref={containerRef}
-      className="bg-gray-50 rounded-lg p-4 border border-gray-200 min-h-[600px] shadow-lg w-96"
+      className={`bg-gray-50 rounded-lg p-4 border border-gray-200 shadow-lg w-[480px] ${isMinimized ? 'min-h-0' : 'min-h-[600px]'}`}
       style={{
         position: 'fixed',
         left: `${position.x}px`,
@@ -309,8 +459,7 @@ export default function ThemeCreator() {
     >
       {/* Header - Changes based on state */}
       <div 
-        className="mb-4 flex items-center justify-between cursor-grab active:cursor-grabbing select-none"
-        onMouseDown={handleMouseDown}
+        className="mb-4 flex items-center justify-between select-none"
       >
         {isCreatingThemes ? (
           // Themes Creation Header
@@ -321,9 +470,20 @@ export default function ThemeCreator() {
             >
               <ArrowLeftIcon className="w-5 h-5 text-gray-500" />
             </button>
-            <div>
+            <div className="flex items-center gap-2">
               <h3 className="text-lg font-semibold text-gray-900">Flights of</h3>
-              <p className="text-sm text-gray-600">{formatDatesForHeader()}</p>
+              <button className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-bold bg-gray-100 border border-gray-300 text-gray-900 hover:bg-gray-200 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon" className="w-3 h-3 mr-1.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"></path>
+                </svg>
+                {dates.length === 2 ? (
+                  `${formatSingleDateForBadge(dates[0])} to ${formatSingleDateForBadge(dates[1])}`
+                ) : dates.length === 1 ? (
+                  formatSingleDateForBadge(dates[0])
+                ) : (
+                  'Select dates'
+                )}
+              </button>
             </div>
           </div>
         ) : (
@@ -348,28 +508,67 @@ export default function ThemeCreator() {
         
         <button
           className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-          onClick={() => {
-            // Handle collapse action here
-            console.log('Collapsing widget...');
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent triggering drag when clicking chevron
+            setIsMinimized(!isMinimized);
+            // Close date picker when minimizing
+            if (!isMinimized) {
+              setIsDatePickerOpen(false);
+              setInputValue('');
+              setIsTyping(false);
+            }
           }}
         >
-          <ChevronUpIcon className="w-5 h-5 text-gray-500" />
+          {isMinimized ? (
+            <ChevronUpIcon className="w-5 h-5 text-gray-500" />
+          ) : (
+            <ChevronDownIcon className="w-5 h-5 text-gray-500" />
+          )}
         </button>
       </div>
+
+      {/* Drag Handle - Only visible when not minimized */}
+      {!isMinimized && (
+        <div 
+          className="w-full h-2 mb-2 cursor-grab active:cursor-grabbing flex justify-center items-center"
+          onMouseDown={handleMouseDown}
+        >
+          <div className="w-8 h-1 bg-gray-300 rounded-full"></div>
+        </div>
+      )}
       
       {/* Content - Changes based on state */}
-      {isCreatingThemes ? (
+      {!isMinimized && (isCreatingThemes ? (
         // Theme Creation Content
-        <div className="mt-4">
-          <div className="text-center py-8">
-            <h4 className="text-lg font-medium text-gray-900 mb-2">Creating Flight Themes</h4>
-            <p className="text-sm text-gray-600 mb-4">
-              Generating personalized themes for your selected route and dates...
-            </p>
-            <div className="flex justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            </div>
+        <div className="mt-4 relative">
+          {/* Flight Cards */}
+          <div ref={flightCardsRef} className="space-y-4 relative z-10">
+            {flightSegments.map((segment, index) => (
+              <FlightCard 
+                key={segment.id} 
+                segment={segment} 
+                index={index}
+              />
+            ))}
           </div>
+
+          {/* Timeline connecting flight cards */}
+          {flightSegments.length > 1 && (
+            <div 
+              className="absolute z-0"
+              style={{
+                left: '12px',
+                top: '20px',
+                width: '12px',
+                height: timelineHeight, // Dynamic height based on flight cards container
+                borderLeft: '1px solid rgb(209, 213, 219)', // gray-300
+                borderTop: '1px solid rgb(209, 213, 219)', // gray-300  
+                borderBottom: '1px solid rgb(209, 213, 219)', // gray-300
+                borderTopLeftRadius: '6px',
+                borderBottomLeftRadius: '6px'
+              }}
+            />
+          )}
         </div>
       ) : (
         // Route Creation Content
@@ -441,7 +640,7 @@ export default function ThemeCreator() {
             </div>
           )}
         </>
-      )}
+      ))}
     </div>
   );
 } 
