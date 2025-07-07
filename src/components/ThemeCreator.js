@@ -4,7 +4,7 @@ import AirportSearch from './AirportSearch';
 import DatePicker from './DatePicker';
 import festivalsData from '../data/festivals.json';
 
-export default function ThemeCreator({ routes, setRoutes, initialPosition }) {
+export default function ThemeCreator({ routes, setRoutes }) {
   // Get current date in Berlin timezone for initial state
   const getBerlinTodayString = () => {
     const now = new Date();
@@ -25,7 +25,7 @@ export default function ThemeCreator({ routes, setRoutes, initialPosition }) {
 
   // Dragging state
   const [isDragging, setIsDragging] = useState(false);
-  const [position, setPosition] = useState(initialPosition || { x: 50, y: 50 }); // Use prop if provided
+  const [position, setPosition] = useState({ x: 50, y: 50 }); // Initial position
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
   // NEW: Theme creation state
@@ -278,7 +278,8 @@ export default function ThemeCreator({ routes, setRoutes, initialPosition }) {
       if (flightCardsRef.current && flightSegments.length > 1) {
         const flightCardsRect = flightCardsRef.current.getBoundingClientRect();
         const containerHeight = flightCardsRect.height;
-        const calculatedHeight = Math.max(containerHeight - 40, 60); // Minimum 60px height
+        // Subtract 24px (dot height) so the line ends at the center of the last dot
+        const calculatedHeight = Math.max(containerHeight - 40 - 24, 36); // Minimum 36px height
         setTimelineHeight(`${calculatedHeight}px`);
       }
     };
@@ -348,7 +349,7 @@ export default function ThemeCreator({ routes, setRoutes, initialPosition }) {
     return (
       <div className="relative w-full mb-4 flex items-start max-w-full">
         {/* Flight number dot */}
-        <div className="flex-shrink-0 mr-3 flex justify-center items-center" style={{ width: '24px' }}>
+        <div className="flex-shrink-0 mr-3 flex justify-center items-center" style={{ width: '24px', position: 'relative', zIndex: 2 }}>
           <div 
             className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold relative z-10"
             style={{ backgroundColor: '#6B7280' }}
@@ -356,7 +357,6 @@ export default function ThemeCreator({ routes, setRoutes, initialPosition }) {
             {segment.flightNumber}
           </div>
         </div>
-
         {/* Flight Card Content */}
         <div className="flex-1 min-w-0 max-w-full">
           <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm hover:border-gray-300 hover:shadow-md transition-all w-full">
@@ -701,8 +701,9 @@ export default function ThemeCreator({ routes, setRoutes, initialPosition }) {
                 </div>
               </div>
             ) : (
+              // Route Creation Header
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold text-gray-900">Flights of</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Route for</h3>
                 <button
                   onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
                   className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-bold bg-gray-100 border border-gray-300 text-gray-900 hover:bg-gray-200 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md"
@@ -718,11 +719,163 @@ export default function ThemeCreator({ routes, setRoutes, initialPosition }) {
                 </button>
               </div>
             )}
+            <button
+              className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsMinimized(!isMinimized);
+                if (!isMinimized) {
+                  setIsDatePickerOpen(false);
+                  setInputValue('');
+                  setIsTyping(false);
+                  setContainerWidth(minWidth); // Always set to minWidth (318px) when minimizing
+                }
+              }}
+            >
+              {isMinimized ? (
+                <ChevronUpIcon className="w-5 h-5 text-gray-500" />
+              ) : (
+                <ChevronDownIcon className="w-5 h-5 text-gray-500" />
+              )}
+            </button>
           </>
         )}
       </div>
-      {/* Rest of the component content */}
-      {/* ... (rest of the existing code) */}
+
+      {/* Content - Changes based on state */}
+      {!isMinimized && (isCreatingThemes ? (
+        // Theme Creation Content
+        <>
+          {/* Date Picker Dropdown for Flights of view */}
+          <div className="relative" ref={datePickerRef}>
+            {isDatePickerOpen && (
+              <div className={`absolute left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 ${
+                dropdownPosition === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'
+              }`}>
+                <DatePicker
+                  currentDate={currentDate}
+                  onNavigateMonth={navigateMonth}
+                  selectedDates={dates}
+                  onDateClick={handleDateClick}
+                  onCreateTheme={handleCreateTheme}
+                  onEditDates={handleEditDates}
+                  inputValue={inputValue}
+                  onInputChange={handleInputChange}
+                  setCurrentDate={setCurrentDate}
+                  berlinToday={getBerlinToday()}
+                />
+              </div>
+            )}
+          </div>
+          {/* Flight Cards */}
+          <div ref={flightCardsRef} className="space-y-4 relative z-10">
+            {flightSegments.map((segment, index) => (
+              <FlightCard 
+                key={segment.id} 
+                segment={segment} 
+                index={index}
+              />
+            ))}
+          </div>
+
+          {/* Timeline connecting flight cards */}
+          {flightSegments.length > 1 && (
+            <div 
+              className="absolute z-0"
+              style={{
+                left: '12px',
+                top: '32px', // 20px + 12px (half dot height)
+                width: '12px',
+                height: timelineHeight, // Now already subtracted 24px
+                borderLeft: '1px solid rgb(209, 213, 219)', // gray-300
+                borderTop: '1px solid rgb(209, 213, 219)', // gray-300  
+                borderBottom: '1px solid rgb(209, 213, 219)', // gray-300
+                borderTopLeftRadius: '6px',
+                borderBottomLeftRadius: '6px'
+              }}
+            />
+          )}
+
+          {/* Create Theme Button below flight cards */}
+          <div className="flex justify-end mt-6">
+            <button
+              className="px-6 py-2 rounded-md bg-black text-white text-base font-semibold hover:bg-gray-800 transition-colors shadow"
+              onClick={handleCreateTheme}
+            >
+              Create Theme
+            </button>
+          </div>
+        </>
+      ) : (
+        // Route Creation Content
+        <>
+          {/* Date Picker Dropdown */}
+          <div className="relative" ref={datePickerRef}>
+            {isDatePickerOpen && (
+              <div className={`absolute left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 ${
+                dropdownPosition === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'
+              }`}>
+                <DatePicker
+                  currentDate={currentDate}
+                  onNavigateMonth={navigateMonth}
+                  selectedDates={dates}
+                  onDateClick={handleDateClick}
+                  onCreateTheme={handleCreateTheme}
+                  onEditDates={handleEditDates}
+                  inputValue={inputValue}
+                  onInputChange={handleInputChange}
+                  setCurrentDate={setCurrentDate}
+                  berlinToday={getBerlinToday()}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Add Route Label and Input */}
+          {dates.length > 0 && (
+            <div className="mt-4 relative">
+              <AirportSearch
+                routes={routes}
+                setRoutes={handleRoutesUpdate}
+                usedAirports={routes.map(r => r.airport.code)}
+                selectedRegion={selectedRegion}
+                selectedDates={dates}
+                onRemoveRoute={(index) => {
+                  const newRoutes = [...routes];
+                  newRoutes.splice(index, 1);
+                  handleRoutesUpdate(newRoutes);
+                }}
+              />
+            </div>
+          )}
+
+          {/* Create Themes Button */}
+          {routes.length > 0 && (
+            <div className="mt-8 space-y-3">
+              <button
+                className={`w-full px-4 py-2 rounded-md transition-colors
+                  ${routes.length >= 2 
+                    ? 'bg-black text-white hover:bg-gray-800' 
+                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                disabled={routes.length < 2}
+                onClick={handleCreateFlightThemes}
+              >
+                Create flights from route
+              </button>
+              {/* Add New Route Button - Secondary */}
+              <button
+                className="w-full px-4 py-2 rounded-md transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+                onClick={() => {
+                  // Handle add new route logic here
+                  console.log('Adding new route...');
+                }}
+              >
+                Add new route
+              </button>
+            </div>
+          )}
+        </>
+      ))}
     </div>
   );
-}
+} 

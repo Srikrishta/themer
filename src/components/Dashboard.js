@@ -32,19 +32,6 @@ export default function Dashboard() {
   const timerRef = useRef();
   const [dragging, setDragging] = useState(false);
 
-  // Calculate initial position for ThemeCreator (bottom center)
-  const [initialThemeCreatorPosition, setInitialThemeCreatorPosition] = useState(null);
-  useEffect(() => {
-    // Only set on first render
-    if (initialThemeCreatorPosition === null) {
-      const containerWidth = 480; // px, should match ThemeCreator default
-      const containerHeight = 600; // px, min height
-      const x = Math.max(0, (window.innerWidth - containerWidth) / 2);
-      const y = Math.max(0, window.innerHeight - containerHeight - 32); // 32px margin from bottom
-      setInitialThemeCreatorPosition({ x, y });
-    }
-  }, [initialThemeCreatorPosition]);
-
   useEffect(() => {
     setMinutesLeft(maxFlightMinutes);
   }, [maxFlightMinutes]);
@@ -104,9 +91,7 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="p-8">
         {/* ThemeCreator is now positioned absolutely and draggable */}
-        {initialThemeCreatorPosition && (
-          <ThemeCreator routes={routes} setRoutes={setRoutes} initialPosition={initialThemeCreatorPosition} />
-        )}
+        <ThemeCreator routes={routes} setRoutes={setRoutes} />
       </div>
     </div>
   );
