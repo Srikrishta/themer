@@ -481,9 +481,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
       )}
 
       {/* Divider between route cards and input field - shortened to avoid timeline overlap */}
-      {routes.length > 0 && (
-        <div className="border-t border-gray-200 my-4 ml-8"></div>
-      )}
+      {/* Removed divider as per request */}
 
             <div className="relative" ref={dropdownRef}>
         {/* Custom input container with badges - offset to avoid timeline overlap */}

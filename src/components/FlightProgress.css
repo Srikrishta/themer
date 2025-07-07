@@ -1,0 +1,50 @@
+.flight-progress-bar-container {
+  position: relative;
+  width: 1302px;
+  height: 32px;
+  margin: 0 auto;
+}
+
+.flight-path {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: #e5e7eb; /* light gray for the path */
+  border-radius: 2px;
+}
+
+.flight-progress {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  width: 642px; /* Adjust for progress */
+  height: 4px;
+  background: #000; /* black for progress */
+  border-radius: 2px;
+  z-index: 1;
+}
+
+.flight-progress-icon {
+  position: absolute;
+  top: 8px;
+  left: 626px; /* Adjust to match progress end */
+  width: 32px;
+  height: 32px;
+  background: #000;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #000;
+  z-index: 2;
+}
+
+.flight-progress-icon .icon {
+  width: 22px;
+  height: 21px;
+  background: #fff;
+  border-radius: 4px;
+  /* You can use a background-image or a simple shape here */
+} 

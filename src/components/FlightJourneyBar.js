@@ -6,7 +6,13 @@ const img4 = "http://localhost:3845/assets/12ff138a200ba4f26363bc8b4c9c314031978
 const img5 = "http://localhost:3845/assets/5b430c457bb1a36eac34c8197e3558b70a889106.svg";
 const img6 = "http://localhost:3845/assets/29fa6c4c59170f1b8aade086622c24fdce89c35a.svg";
 
-export default function FlightJourneyBar() {
+export default function FlightJourneyBar({ origin, destination, minutesLeft }) {
+  function formatTime(minutes) {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
+  }
+
   return (
     <div className="w-full flex justify-center">
       <div
@@ -35,7 +41,7 @@ export default function FlightJourneyBar() {
                   id="node-77_5578"
                 >
                   <p className="adjustLetterSpacing block leading-[32px] text-nowrap whitespace-pre">
-                    FRANKFURT
+                    {origin?.airport.city || 'Origin'}
                   </p>
                 </div>
                 <div
@@ -43,7 +49,7 @@ export default function FlightJourneyBar() {
                   id="node-77_5579"
                 >
                   <p className="block leading-[32px] text-nowrap whitespace-pre">
-                    FRA
+                    {origin?.airport.code || 'Origin'}
                   </p>
                 </div>
               </div>
@@ -119,7 +125,7 @@ export default function FlightJourneyBar() {
                 id="node-77_5603"
               >
                 <p className="adjustLetterSpacing block leading-[32px] text-nowrap whitespace-pre">
-                  LANDING IN 2H 55M
+                  {formatTime(typeof minutesLeft === 'number' ? minutesLeft : 175)}
                 </p>
               </div>
               <div
@@ -153,7 +159,7 @@ export default function FlightJourneyBar() {
                 >
                   <p className="leading-[32px] text-[20px] text-nowrap whitespace-pre">
                     <span className="font-['Lufthansa_Text:Bold',_sans-serif] not-italic tracking-[0.8px]">
-                      MÁLAGA
+                      {destination?.airport.city || 'Destination'}
                     </span>
                     <span className="adjustLetterSpacing"> </span>
                   </p>
@@ -163,7 +169,7 @@ export default function FlightJourneyBar() {
                   id="node-77_5608"
                 >
                   <p className="block leading-[32px] text-nowrap whitespace-pre">
-                    AGP
+                    {destination?.airport.code || 'Destination'}
                   </p>
                 </div>
               </div>

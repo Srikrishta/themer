@@ -4,7 +4,7 @@ import AirportSearch from './AirportSearch';
 import DatePicker from './DatePicker';
 import festivalsData from '../data/festivals.json';
 
-export default function ThemeCreator() {
+export default function ThemeCreator({ routes, setRoutes }) {
   // Get current date in Berlin timezone for initial state
   const getBerlinTodayString = () => {
     const now = new Date();
@@ -14,7 +14,6 @@ export default function ThemeCreator() {
 
   // Direct state management (no tabs) - initialize with today's date
   const [dates, setDates] = useState([getBerlinTodayString()]);
-  const [routes, setRoutes] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -42,6 +41,12 @@ export default function ThemeCreator() {
 
   // NEW: Badge hover state
   const [isBadgeHovered, setIsBadgeHovered] = useState(false);
+
+  // Add after isMinimized state
+  const [containerWidth, setContainerWidth] = useState(480); // px
+  const minWidth = 244;
+  const maxWidth = 480;
+  const [isResizing, setIsResizing] = useState(false);
 
   // Function to calculate dropdown position
   const calculateDropdownPosition = () => {
@@ -128,7 +133,6 @@ export default function ThemeCreator() {
       }
       return { ...route, type };
     });
-
     setRoutes(updatedRoutes);
   };
 
@@ -356,12 +360,9 @@ export default function ThemeCreator() {
             <div className="mb-3">
               <div className="min-w-0">
                 <div className="text-base text-gray-900 flex items-center gap-2 flex-wrap">
-                  <span className="font-medium">{segment.origin.airport.code}</span>
+                  <span className="font-medium">{segment.origin.airport.city} ({segment.origin.airport.code})</span>
                   <span className="text-gray-400">→</span>
-                  <span className="font-medium">{segment.destination.airport.code}</span>
-                </div>
-                <div className="text-xs text-gray-400 mt-1 truncate">
-                  {segment.origin.airport.city} to {segment.destination.airport.city}
+                  <span className="font-medium">{segment.destination.airport.city} ({segment.destination.airport.code})</span>
                 </div>
               </div>
             </div>
@@ -554,6 +555,23 @@ export default function ThemeCreator() {
     setIsDragging(false);
   };
 
+  // Handle mouse events for resizing
+  useEffect(() => {
+    if (!isResizing) return;
+    const handleMouseMove = (e) => {
+      // Only allow horizontal resizing
+      const newWidth = Math.max(minWidth, Math.min(maxWidth, e.clientX - position.x));
+      setContainerWidth(newWidth);
+    };
+    const handleMouseUp = () => setIsResizing(false);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, position.x]);
+
   // Add this at the end of the file for local CSS
   if (typeof document !== 'undefined' && !document.getElementById('hide-scrollbar-style')) {
     const style = document.createElement('style');
@@ -568,54 +586,48 @@ export default function ThemeCreator() {
   return (
     <div 
       ref={containerRef}
-      className={`bg-gray-50 rounded-lg p-4 border border-gray-200 shadow-lg w-[480px] max-h-screen overflow-y-auto hide-scrollbar ${isMinimized ? 'min-h-0' : ''}`}
+      className={`bg-gray-50 rounded-lg p-4 border border-gray-200 shadow-lg max-h-screen overflow-y-auto hide-scrollbar ${isMinimized ? 'min-h-0' : ''}`}
       style={{
         position: 'fixed',
         left: `${position.x}px`,
         top: `${position.y}px`,
         zIndex: 1000,
-        cursor: isDragging ? 'grabbing' : 'grab'
+        cursor: isDragging ? 'grabbing' : 'grab',
+        width: `${containerWidth}px`,
+        minWidth: `${minWidth}px`,
+        maxWidth: `${maxWidth}px`,
+        transition: isResizing ? 'none' : 'width 0.2s',
+        padding: isMinimized && containerWidth === minWidth ? '8px 12px' : undefined,
       }}
       onMouseDown={handleMouseDown}
     >
+      {/* Resizer handle - show in all modes */}
+      <div
+        style={{
+          position: 'absolute',
+          right: 0,
+          top: 0,
+          height: '100%',
+          width: '8px',
+          cursor: 'ew-resize',
+          zIndex: 1100,
+        }}
+        onMouseDown={e => {
+          e.stopPropagation();
+          setIsResizing(true);
+        }}
+        title="Resize"
+      />
       {/* Header - Changes based on state */}
       <div 
         className="mb-4 flex items-center justify-between select-none"
+        style={isMinimized && containerWidth === minWidth ? {marginBottom: 0} : {}}
       >
-        {isCreatingThemes ? (
-          // Themes Creation Header
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleBackToRouteCreation}
-              className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-            >
-              <ArrowLeftIcon className="w-5 h-5 text-gray-500" />
-            </button>
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold text-gray-900">Flights of</h3>
-              <button className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-bold bg-gray-100 border border-gray-300 text-gray-900 hover:bg-gray-200 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon" className="w-3 h-3 mr-1.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"></path>
-                </svg>
-                {dates.length === 2 ? (
-                  `${formatSingleDateForBadge(dates[0])} to ${formatSingleDateForBadge(dates[1])}`
-                ) : dates.length === 1 ? (
-                  formatSingleDateForBadge(dates[0])
-                ) : (
-                  'Select dates'
-                )}
-              </button>
-            </div>
-          </div>
-        ) : (
-          // Route Creation Header
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold text-gray-900">Create route for</h3>
-            <button
-              onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
-              className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-bold bg-gray-100 border border-gray-300 text-gray-900 hover:bg-gray-200 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md"
-            >
-              <CalendarIcon className="w-3 h-3 mr-1.5" />
+        {/* Collapsed + min width: show only 'edit for', date, chevron */}
+        {isMinimized && containerWidth === minWidth ? (
+          <div className="flex items-center gap-2 w-full justify-between">
+            <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">edit for</span>
+            <span className="text-xs text-gray-600 font-mono">
               {dates.length === 2 ? (
                 `${formatSingleDateForBadge(dates[0])} to ${formatSingleDateForBadge(dates[1])}`
               ) : dates.length === 1 ? (
@@ -623,29 +635,87 @@ export default function ThemeCreator() {
               ) : (
                 'Select dates'
               )}
+            </span>
+            <button
+              className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+              style={{marginLeft: 4}}
+              onClick={e => {
+                e.stopPropagation();
+                setIsMinimized(false);
+                setContainerWidth(maxWidth);
+              }}
+              title="Expand"
+            >
+              <ChevronUpIcon className="w-5 h-5 text-gray-500" />
             </button>
           </div>
+        ) : (
+          <>
+            {isCreatingThemes ? (
+              // Themes Creation Header
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleBackToRouteCreation}
+                  className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                >
+                  <ArrowLeftIcon className="w-5 h-5 text-gray-500" />
+                </button>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-gray-900">Flights of</h3>
+                  <button className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-bold bg-gray-100 border border-gray-300 text-gray-900 hover:bg-gray-200 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon" className="w-3 h-3 mr-1.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"></path>
+                    </svg>
+                    {dates.length === 2 ? (
+                      `${formatSingleDateForBadge(dates[0])} to ${formatSingleDateForBadge(dates[1])}`
+                    ) : dates.length === 1 ? (
+                      formatSingleDateForBadge(dates[0])
+                    ) : (
+                      'Select dates'
+                    )}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              // Route Creation Header
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900">Route for</h3>
+                <button
+                  onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+                  className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-bold bg-gray-100 border border-gray-300 text-gray-900 hover:bg-gray-200 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                  <CalendarIcon className="w-3 h-3 mr-1.5" />
+                  {dates.length === 2 ? (
+                    `${formatSingleDateForBadge(dates[0])} to ${formatSingleDateForBadge(dates[1])}`
+                  ) : dates.length === 1 ? (
+                    formatSingleDateForBadge(dates[0])
+                  ) : (
+                    'Select dates'
+                  )}
+                </button>
+              </div>
+            )}
+            <button
+              className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent triggering drag when clicking chevron
+                setIsMinimized(!isMinimized);
+                // Close date picker when minimizing
+                if (!isMinimized) {
+                  setIsDatePickerOpen(false);
+                  setInputValue('');
+                  setIsTyping(false);
+                }
+              }}
+            >
+              {isMinimized ? (
+                <ChevronUpIcon className="w-5 h-5 text-gray-500" />
+              ) : (
+                <ChevronDownIcon className="w-5 h-5 text-gray-500" />
+              )}
+            </button>
+          </>
         )}
-        
-        <button
-          className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent triggering drag when clicking chevron
-            setIsMinimized(!isMinimized);
-            // Close date picker when minimizing
-            if (!isMinimized) {
-              setIsDatePickerOpen(false);
-              setInputValue('');
-              setIsTyping(false);
-            }
-          }}
-        >
-          {isMinimized ? (
-            <ChevronUpIcon className="w-5 h-5 text-gray-500" />
-          ) : (
-            <ChevronDownIcon className="w-5 h-5 text-gray-500" />
-          )}
-        </button>
       </div>
 
       {/* Content - Changes based on state */}
@@ -709,7 +779,6 @@ export default function ThemeCreator() {
           {/* Add Route Label and Input */}
           {dates.length > 0 && (
             <div className="mt-4 relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Add route</label>
               <AirportSearch
                 routes={routes}
                 setRoutes={handleRoutesUpdate}
@@ -722,27 +791,6 @@ export default function ThemeCreator() {
                   handleRoutesUpdate(newRoutes);
                 }}
               />
-              {/* Timeline line and dots for route cards */}
-              {routes.length > 0 && (
-                <div className="relative flex">
-                  {/* Vertical line */}
-                  <div className="absolute left-3 top-8 bottom-0 w-0.5 bg-gray-300 z-0" style={{height: `calc(100% - 2rem)`}} />
-                  <div className="flex flex-col flex-1 ml-8 space-y-4 mt-4">
-                    {routes.map((route, idx) => (
-                      <div key={route.airport.code + idx} className="relative flex items-center">
-                        {/* Dot */}
-                        <div className="absolute -left-8 w-6 flex justify-center items-center" style={{top: '50%', transform: 'translateY(-50%)'}}>
-                          <div className="w-4 h-4 rounded-full border-2 border-gray-300 bg-white z-10" />
-                        </div>
-                        <div className="flex-1 bg-white p-3 rounded-lg border border-gray-200 shadow-sm w-full">
-                          <div className="text-base text-gray-900 font-medium">{route.airport.city} ({route.airport.code})</div>
-                          <div className="text-xs text-gray-400 mt-1 truncate">{route.airport.name}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
@@ -757,7 +805,7 @@ export default function ThemeCreator() {
                 disabled={routes.length < 2}
                 onClick={handleCreateFlightThemes}
               >
-                Create flight themes
+                Create flights from route
               </button>
               {/* Add New Route Button - Secondary */}
               <button
