@@ -12,7 +12,7 @@ function formatTime(minutes) {
 
 function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange }) {
   return (
-    <div style={{ position: 'relative', zIndex: 2, width: 1302, margin: '40px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
+    <div style={{ position: 'relative', zIndex: 2, width: 1302, margin: '140px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
       <FlightJourneyBar origin={origin} destination={destination} minutesLeft={minutesLeft} />
       <FlightProgress landingIn={landingIn} maxFlightMinutes={maxFlightMinutes} minutesLeft={minutesLeft} onProgressChange={handleProgressChange} />
       <Component3Cards />
@@ -61,7 +61,7 @@ export default function Dashboard() {
   }, [dragging]);
 
   return (
-    <div className="h-screen overflow-auto">
+    <div className="h-screen overflow-hidden">
       {/* Dashboard Header */}
       <header className="bg-white border-b border-gray-200 px-8 py-4">
         <div className="flex items-center justify-between">
@@ -71,12 +71,12 @@ export default function Dashboard() {
         </div>
       </header>
       {/* Mobile Frame Wrapper */}
-      <div className="w-full flex justify-center" style={{ marginTop: -40 }}>
+      <div className="w-full flex justify-center" style={{ marginTop: -56 }}>
         <div style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
           <img
-            src={process.env.PUBLIC_URL + '/ife frame.svg'}
+            src={process.env.PUBLIC_URL + '/ife-frame.svg'}
             alt="Mobile Frame"
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none' }}
+            style={{ position: 'absolute', top: -40, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none' }}
           />
           <FrameContent
             origin={origin}

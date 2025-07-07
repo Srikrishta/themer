@@ -44,7 +44,7 @@ export default function ThemeCreator({ routes, setRoutes }) {
 
   // Add after isMinimized state
   const [containerWidth, setContainerWidth] = useState(480); // px
-  const minWidth = 244;
+  const minWidth = 318;
   const maxWidth = 480;
   const [isResizing, setIsResizing] = useState(false);
 
@@ -229,20 +229,48 @@ export default function ThemeCreator({ routes, setRoutes }) {
   const [flightSegments, setFlightSegments] = useState([]);
   const [selectedThemes, setSelectedThemes] = useState({});
   const [timelineHeight, setTimelineHeight] = useState('calc(100% + 80px)');
+  const hasInitializedThemes = useRef(false);
 
-  // Update flight segments when routes change or when entering theme creation mode
+  // Update flight segments and selected themes only when entering theme creation mode for the first time
   useEffect(() => {
-    if (isCreatingThemes) {
+    if (isCreatingThemes && !hasInitializedThemes.current && Object.keys(selectedThemes).length === 0) {
       const segments = generateFlightSegments();
       setFlightSegments(segments);
       // Initialize selected themes
       const initialThemes = {};
       segments.forEach(segment => {
-        initialThemes[segment.id] = null;
+        // Determine if a festival is present for this segment
+        const destinationCity = segment.destination.airport.city;
+        const festival = (() => {
+          if (!dates || dates.length === 0) return null;
+          const results = [];
+          dates.forEach(dateString => {
+            const [year, month, day] = dateString.split('-');
+            const monthName = new Date(year, month - 1, day).toLocaleString('en-US', { month: 'long' }).toLowerCase();
+            const dayOfMonth = parseInt(day, 10);
+            const monthFestivals = festivalsData[monthName];
+            if (monthFestivals) {
+              monthFestivals.forEach(festival => {
+                if (festival.location.toLowerCase().includes(destinationCity.toLowerCase())) {
+                  if (dayOfMonth >= festival.startDay && dayOfMonth <= festival.endDay) {
+                    results.push(festival);
+                  }
+                }
+              });
+            }
+          });
+          return results.length > 0 ? results[0] : null;
+        })();
+        // If festival exists, select festival theme (id: 2), else select Default (id: 0)
+        initialThemes[segment.id] = festival ? 2 : 0;
       });
       setSelectedThemes(initialThemes);
+      hasInitializedThemes.current = true;
     }
-  }, [isCreatingThemes, routes]);
+    if (!isCreatingThemes) {
+      hasInitializedThemes.current = false;
+    }
+  }, [isCreatingThemes]);
 
   // Calculate timeline height for flight cards
   useEffect(() => {
@@ -264,14 +292,6 @@ export default function ThemeCreator({ routes, setRoutes }) {
       return () => window.removeEventListener('resize', calculateTimelineHeight);
     }
   }, [isCreatingThemes, flightSegments.length, selectedThemes]); // Re-calculate when themes change (affects card height)
-
-  // Handle theme selection for a flight
-  const handleThemeSelection = (flightId, themeIndex) => {
-    setSelectedThemes(prev => ({
-      ...prev,
-      [flightId]: themeIndex
-    }));
-  };
 
   // Flight Card Component
   const FlightCard = ({ segment, index }) => {
@@ -300,46 +320,29 @@ export default function ThemeCreator({ routes, setRoutes }) {
       return results.length > 0 ? results[0] : null;
     };
 
-    // Prepare theme options
+    // Prepare theme options with stable ids
     const destinationCity = segment.destination.airport.city;
     const festival = getFestivalForCityAndDate(destinationCity, dates);
     const themeOptions = [
-      { id: 0, name: 'Default', color: '#3B82F6' },
+      { id: 0, name: 'Default', color: '#1E1E1E' },
       { id: 1, name: `${destinationCity} Theme`, color: '#EF4444' },
-      // Only include festival badge if a festival exists
+      // Festival always id: 2, but only included if present
       ...(festival ? [{ id: 2, name: festival.name, color: festival.color || '#10B981' }] : []),
       { id: 3, name: 'Time of the Day', color: '#F59E0B' }
     ];
 
+    // Debug log for selection and theme options
+    console.log('segment.id:', segment.id, 'selected:', selectedThemes[segment.id], 'themeOptions:', themeOptions.map(t => t.id + ':' + t.name));
+
     const badgeRowRef = useRef(null);
-    const [canScrollLeft, setCanScrollLeft] = useState(false);
-    const [canScrollRight, setCanScrollRight] = useState(false);
 
-    // Check scroll position
-    const updateScrollChevrons = () => {
-      const el = badgeRowRef.current;
-      if (!el) return;
-      setCanScrollLeft(el.scrollLeft > 0);
-      setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
-    };
-
-    useEffect(() => {
-      updateScrollChevrons();
-      const el = badgeRowRef.current;
-      if (!el) return;
-      el.addEventListener('scroll', updateScrollChevrons);
-      window.addEventListener('resize', updateScrollChevrons);
-      return () => {
-        el.removeEventListener('scroll', updateScrollChevrons);
-        window.removeEventListener('resize', updateScrollChevrons);
-      };
-    }, [themeOptions.length]);
-
-    const scrollBadges = (dir) => {
-      const el = badgeRowRef.current;
-      if (!el) return;
-      const scrollAmount = el.clientWidth * 0.7;
-      el.scrollBy({ left: dir * scrollAmount, behavior: 'smooth' });
+    // Move handleThemeSelection inside FlightCard for latest closure
+    const handleThemeSelection = (flightId, themeIndex) => {
+      setSelectedThemes(prev => {
+        const updated = { ...prev, [flightId]: themeIndex };
+        console.log('handleThemeSelection called:', flightId, themeIndex, 'updated selectedThemes:', updated);
+        return updated;
+      });
     };
 
     return (
@@ -369,74 +372,49 @@ export default function ThemeCreator({ routes, setRoutes }) {
 
             {/* Theme Selection */}
             <div className="space-y-2 relative">
-              {/* Left Chevron */}
-              {canScrollLeft && isBadgeHovered && (
-                <button
-                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full shadow p-1"
-                  style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
-                  onClick={() => scrollBadges(-1)}
-                  tabIndex={-1}
-                  aria-label="Scroll badges left"
-                >
-                  <ChevronLeftIcon className="w-4 h-4 text-gray-400" />
-                </button>
-              )}
-              {/* Right Chevron */}
-              {canScrollRight && isBadgeHovered && (
-                <button
-                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full shadow p-1"
-                  style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
-                  onClick={() => scrollBadges(1)}
-                  tabIndex={-1}
-                  aria-label="Scroll badges right"
-                >
-                  <ChevronRightIcon className="w-4 h-4 text-gray-400" />
-                </button>
-              )}
+              {/* Remove chevrons and make theme options vertical */}
               <div
                 ref={badgeRowRef}
-                className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 hide-scrollbar"
+                className="grid grid-cols-2 gap-2"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 onMouseEnter={() => setIsBadgeHovered(true)}
                 onMouseLeave={() => setIsBadgeHovered(false)}
               >
                 {themeOptions.map((theme) => (
-                  <label
+                  <div
                     key={theme.id}
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all cursor-pointer whitespace-nowrap flex-shrink-0 ${
+                    className={`flex items-center gap-3 cursor-pointer px-2 py-1 rounded transition-all flex-shrink-0 ${
                       selectedThemes[segment.id] === theme.id
-                        ? 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 hover:text-blue-700'
-                        : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 hover:text-gray-600'
+                        ? 'bg-gray-200/60 border border-black/30'
+                        : 'bg-gray-50/60 border border-gray-200/60 hover:bg-gray-100/60'
                     }`}
+                    style={{ minWidth: 0 }}
+                    onClick={() => handleThemeSelection(segment.id, theme.id)}
+                    tabIndex={0}
+                    role="button"
+                    aria-pressed={selectedThemes[segment.id] === theme.id}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') handleThemeSelection(segment.id, theme.id);
+                    }}
                   >
-                    <input
-                      type="radio"
-                      name={`theme-${segment.id}`}
-                      value={theme.id}
-                      checked={selectedThemes[segment.id] === theme.id}
-                      onChange={() => handleThemeSelection(segment.id, theme.id)}
-                      className="sr-only"
-                    />
-                    <span
-                      className={`w-3 h-3 flex items-center justify-center rounded-full border-2 mr-1 flex-shrink-0 transition-colors duration-150 ${
-                        selectedThemes[segment.id] === theme.id
-                          ? ''
-                          : 'bg-transparent'
-                      }`}
+                    <div
+                      className="w-7 h-7 rounded-md border"
                       style={{
-                        borderColor: theme.color,
-                        backgroundColor: 'transparent',
+                        backgroundColor: theme.color,
+                        borderColor: '#888',
+                        boxShadow: 'none',
+                        transition: 'box-shadow 0.15s, border-color 0.15s',
                       }}
-                    >
-                      {selectedThemes[segment.id] === theme.id && (
-                        <span
-                          className="w-1.5 h-1.5 rounded-full"
-                          style={{ backgroundColor: theme.color, display: 'block' }}
-                        />
-                      )}
-                    </span>
-                    {theme.name}
-                  </label>
+                    />
+                    <div className="flex flex-col min-w-0">
+                      <span
+                        className={["text-sm text-gray-900 truncate", selectedThemes[segment.id] === theme.id ? "font-semibold" : ""].join(" ")}
+                        style={{ maxWidth: 140 }}
+                      >
+                        {theme.name}
+                      </span>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -522,6 +500,43 @@ export default function ThemeCreator({ routes, setRoutes }) {
 
   // Drag handlers
   const handleMouseDown = (e) => {
+    // Prevent drag if clicking on an interactive element or a RouteCard
+    const interactiveTags = ['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA'];
+    if (
+      interactiveTags.includes(e.target.tagName) ||
+      e.target.isContentEditable ||
+      e.target.closest('button, input, select, textarea, [contenteditable="true"]')
+    ) {
+      return;
+    }
+    // Prevent drag if inside a RouteCard (AirportSearch RouteCard root has 'flex items-center' and 'mb-2')
+    if (e.target.closest('.mb-2.flex.items-center')) {
+      return;
+    }
+    // Prevent drag if inside add route input field
+    if (e.target.closest('.border-gray-300.rounded-lg.bg-white')) {
+      return;
+    }
+    // Prevent drag if inside create flights button
+    if (e.target.closest('.w-full.px-4.py-2.rounded-md.bg-black')) {
+      return;
+    }
+    // Prevent drag if inside add new route button
+    if (e.target.closest('.w-full.px-4.py-2.rounded-md.bg-white')) {
+      return;
+    }
+    // Prevent drag if inside DatePicker calendar
+    if (e.target.closest('.bg-white.border.border-gray-200.rounded-lg.shadow-lg')) {
+      return;
+    }
+    // Prevent drag if inside a Flight Card (theme selection)
+    if (e.target.closest('.bg-white.p-3.rounded-lg.border')) {
+      return;
+    }
+    // Prevent drag if inside Create Theme button
+    if (e.target.closest('.px-6.py-2.rounded-md.bg-black')) {
+      return;
+    }
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       setDragOffset({
@@ -626,8 +641,16 @@ export default function ThemeCreator({ routes, setRoutes }) {
         {/* Collapsed + min width: show only 'edit for', date, chevron */}
         {isMinimized && containerWidth === minWidth ? (
           <div className="flex items-center gap-2 w-full justify-between">
-            <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">edit for</span>
-            <span className="text-xs text-gray-600 font-mono">
+            <h3 className="text-lg font-semibold text-gray-900">{isCreatingThemes ? 'Flights of' : 'Route for'}</h3>
+            <button
+              onClick={() => {
+                setIsMinimized(false);
+                setContainerWidth(minWidth);
+                setIsDatePickerOpen(true);
+              }}
+              className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-bold bg-gray-100 border border-gray-300 text-gray-900 hover:bg-gray-200 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md"
+            >
+              <CalendarIcon className="w-3 h-3 mr-1.5" />
               {dates.length === 2 ? (
                 `${formatSingleDateForBadge(dates[0])} to ${formatSingleDateForBadge(dates[1])}`
               ) : dates.length === 1 ? (
@@ -635,14 +658,14 @@ export default function ThemeCreator({ routes, setRoutes }) {
               ) : (
                 'Select dates'
               )}
-            </span>
+            </button>
             <button
               className="p-1 rounded-full hover:bg-gray-100 transition-colors"
               style={{marginLeft: 4}}
               onClick={e => {
                 e.stopPropagation();
                 setIsMinimized(false);
-                setContainerWidth(maxWidth);
+                setContainerWidth(minWidth);
               }}
               title="Expand"
             >
@@ -662,10 +685,11 @@ export default function ThemeCreator({ routes, setRoutes }) {
                 </button>
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-semibold text-gray-900">Flights of</h3>
-                  <button className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-bold bg-gray-100 border border-gray-300 text-gray-900 hover:bg-gray-200 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon" className="w-3 h-3 mr-1.5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"></path>
-                    </svg>
+                  <button
+                    onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+                    className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-bold bg-gray-100 border border-gray-300 text-gray-900 hover:bg-gray-200 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md"
+                  >
+                    <CalendarIcon className="w-3 h-3 mr-1.5" />
                     {dates.length === 2 ? (
                       `${formatSingleDateForBadge(dates[0])} to ${formatSingleDateForBadge(dates[1])}`
                     ) : dates.length === 1 ? (
@@ -698,13 +722,13 @@ export default function ThemeCreator({ routes, setRoutes }) {
             <button
               className="p-1 rounded-full hover:bg-gray-100 transition-colors"
               onClick={(e) => {
-                e.stopPropagation(); // Prevent triggering drag when clicking chevron
+                e.stopPropagation();
                 setIsMinimized(!isMinimized);
-                // Close date picker when minimizing
                 if (!isMinimized) {
                   setIsDatePickerOpen(false);
                   setInputValue('');
                   setIsTyping(false);
+                  setContainerWidth(minWidth); // Always set to minWidth (318px) when minimizing
                 }
               }}
             >
@@ -721,7 +745,28 @@ export default function ThemeCreator({ routes, setRoutes }) {
       {/* Content - Changes based on state */}
       {!isMinimized && (isCreatingThemes ? (
         // Theme Creation Content
-        <div className="mt-4 relative">
+        <>
+          {/* Date Picker Dropdown for Flights of view */}
+          <div className="relative" ref={datePickerRef}>
+            {isDatePickerOpen && (
+              <div className={`absolute left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 ${
+                dropdownPosition === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'
+              }`}>
+                <DatePicker
+                  currentDate={currentDate}
+                  onNavigateMonth={navigateMonth}
+                  selectedDates={dates}
+                  onDateClick={handleDateClick}
+                  onCreateTheme={handleCreateTheme}
+                  onEditDates={handleEditDates}
+                  inputValue={inputValue}
+                  onInputChange={handleInputChange}
+                  setCurrentDate={setCurrentDate}
+                  berlinToday={getBerlinToday()}
+                />
+              </div>
+            )}
+          </div>
           {/* Flight Cards */}
           <div ref={flightCardsRef} className="space-y-4 relative z-10">
             {flightSegments.map((segment, index) => (
@@ -750,7 +795,17 @@ export default function ThemeCreator({ routes, setRoutes }) {
               }}
             />
           )}
-        </div>
+
+          {/* Create Theme Button below flight cards */}
+          <div className="flex justify-end mt-6">
+            <button
+              className="px-6 py-2 rounded-md bg-black text-white text-base font-semibold hover:bg-gray-800 transition-colors shadow"
+              onClick={handleCreateTheme}
+            >
+              Create Theme
+            </button>
+          </div>
+        </>
       ) : (
         // Route Creation Content
         <>

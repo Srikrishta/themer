@@ -1,4 +1,7 @@
 import { useNavigate } from 'react-router-dom';
+import FlightJourneyBar from './FlightJourneyBar';
+import FlightProgress from './FlightProgress';
+import Component3Cards from './Component3Cards';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -19,10 +22,10 @@ export default function LandingPage() {
       <main className="relative isolate">
         {/* Hero section */}
         <div className="overflow-hidden">
-          <div className="mx-auto max-w-7xl px-6 pb-32 pt-36 sm:pt-60 lg:px-8 lg:pt-32">
+          <div className="mx-auto max-w-7xl px-0 pb-32 pt-36 sm:pt-60 lg:px-1 lg:pt-32">
             <div className="mx-auto max-w-2xl gap-x-14 lg:mx-0 lg:flex lg:max-w-none lg:items-center">
-              <div className="w-full max-w-xl lg:shrink-0 xl:max-w-2xl">
-                <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+              <div className="w-full max-w-xl lg:basis-1/3 xl:basis-1/3 lg:shrink-0 xl:max-w-2xl">
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-4xl">
                   Craft Personalized In-flight Experiences
                 </h1>
                 <p className="relative mt-6 text-lg leading-8 text-gray-600 sm:max-w-md lg:max-w-none">
@@ -39,14 +42,22 @@ export default function LandingPage() {
                 </div>
               </div>
               <div className="mt-14 flex justify-end gap-8 sm:-mt-44 sm:justify-start sm:pl-20 lg:mt-0 lg:pl-0">
-                <div className="ml-auto w-44 flex-none space-y-8 pt-32 sm:ml-0 sm:pt-80 lg:order-last lg:pt-36 xl:order-none xl:pt-80">
-                  <div className="relative">
+                <div className="flex-1 lg:basis-2/3 flex items-center justify-center h-full">
+                  <div className="relative w-full h-[550px] max-w-2xl flex items-center justify-center">
+                    {/* Scaled-down IFE frame SVG */}
                     <img
-                      src="https://images.unsplash.com/photo-1517479149777-5f3b1511d5ad?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80"
-                      alt="Airplane window view"
-                      className="aspect-[2/3] w-full rounded-xl bg-gray-900/5 object-cover shadow-lg"
+                      src={process.env.PUBLIC_URL + '/ife-frame.svg'}
+                      alt="IFE Frame"
+                      style={{ position: 'absolute', top: -36, left: -16, width: '732px', height: '582px', zIndex: 1, pointerEvents: 'none' }}
                     />
-                    <div className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-inset ring-gray-900/10" />
+                    {/* Scaled-down frame content */}
+                    <div style={{ position: 'relative', zIndex: 2, width: 683, margin: '86px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, transform: 'scale(0.5)', transformOrigin: 'top left' }}>
+                      <div style={{ width: 651, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+                        <FlightJourneyBar />
+                        <FlightProgress />
+                      </div>
+                      <Component3Cards />
+                    </div>
                   </div>
                 </div>
               </div>
