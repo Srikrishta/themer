@@ -1,4 +1,5 @@
 import ThemeCreator from './ThemeCreator';
+import FlightJourneyBar from './FlightJourneyBar';
 
 export default function Dashboard() {
   return (
@@ -11,7 +12,10 @@ export default function Dashboard() {
           </div>
         </div>
       </header>
-      
+      {/* Figma Flight Journey Bar */}
+      <div className="w-full flex justify-center py-6">
+        <FlightJourneyBar />
+      </div>
       {/* Main Content */}
       <div className="p-8">
         {/* ThemeCreator is now positioned absolutely and draggable */}

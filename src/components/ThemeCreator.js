@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { CalendarIcon, ArrowLeftIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
+import { CalendarIcon, ArrowLeftIcon, ChevronDownIcon, ChevronUpIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import AirportSearch from './AirportSearch';
 import DatePicker from './DatePicker';
+import festivalsData from '../data/festivals.json';
 
 export default function ThemeCreator() {
   // Get current date in Berlin timezone for initial state
@@ -38,6 +39,9 @@ export default function ThemeCreator() {
   const datePickerRef = useRef(null);
   const containerRef = useRef(null);
   const flightCardsRef = useRef(null);
+
+  // NEW: Badge hover state
+  const [isBadgeHovered, setIsBadgeHovered] = useState(false);
 
   // Function to calculate dropdown position
   const calculateDropdownPosition = () => {
@@ -267,12 +271,72 @@ export default function ThemeCreator() {
 
   // Flight Card Component
   const FlightCard = ({ segment, index }) => {
+    // Helper to get festival for a city and date
+    const getFestivalForCityAndDate = (city, dates) => {
+      if (!dates || dates.length === 0) return null;
+      // Use the first date for single, or all dates for range
+      const results = [];
+      dates.forEach(dateString => {
+        const [year, month, day] = dateString.split('-');
+        const monthName = new Date(year, month - 1, day).toLocaleString('en-US', { month: 'long' }).toLowerCase();
+        const dayOfMonth = parseInt(day, 10);
+        const monthFestivals = festivalsData[monthName];
+        if (monthFestivals) {
+          monthFestivals.forEach(festival => {
+            // Match city (case-insensitive, ignore emoji/flag)
+            if (festival.location.toLowerCase().includes(city.toLowerCase())) {
+              if (dayOfMonth >= festival.startDay && dayOfMonth <= festival.endDay) {
+                results.push(festival);
+              }
+            }
+          });
+        }
+      });
+      // Return the first festival found (or null)
+      return results.length > 0 ? results[0] : null;
+    };
+
+    // Prepare theme options
+    const destinationCity = segment.destination.airport.city;
+    const festival = getFestivalForCityAndDate(destinationCity, dates);
     const themeOptions = [
-      { id: 0, name: 'Theme 1', color: '#3B82F6' },
-      { id: 1, name: 'Theme 2', color: '#EF4444' },
-      { id: 2, name: 'Theme 3', color: '#10B981' },
-      { id: 3, name: 'Theme 4', color: '#F59E0B' }
+      { id: 0, name: 'Default', color: '#3B82F6' },
+      { id: 1, name: `${destinationCity} Theme`, color: '#EF4444' },
+      // Only include festival badge if a festival exists
+      ...(festival ? [{ id: 2, name: festival.name, color: festival.color || '#10B981' }] : []),
+      { id: 3, name: 'Time of the Day', color: '#F59E0B' }
     ];
+
+    const badgeRowRef = useRef(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(false);
+
+    // Check scroll position
+    const updateScrollChevrons = () => {
+      const el = badgeRowRef.current;
+      if (!el) return;
+      setCanScrollLeft(el.scrollLeft > 0);
+      setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+    };
+
+    useEffect(() => {
+      updateScrollChevrons();
+      const el = badgeRowRef.current;
+      if (!el) return;
+      el.addEventListener('scroll', updateScrollChevrons);
+      window.addEventListener('resize', updateScrollChevrons);
+      return () => {
+        el.removeEventListener('scroll', updateScrollChevrons);
+        window.removeEventListener('resize', updateScrollChevrons);
+      };
+    }, [themeOptions.length]);
+
+    const scrollBadges = (dir) => {
+      const el = badgeRowRef.current;
+      if (!el) return;
+      const scrollAmount = el.clientWidth * 0.7;
+      el.scrollBy({ left: dir * scrollAmount, behavior: 'smooth' });
+    };
 
     return (
       <div className="relative w-full mb-4 flex items-start max-w-full">
@@ -303,8 +367,38 @@ export default function ThemeCreator() {
             </div>
 
             {/* Theme Selection */}
-            <div className="space-y-2">
-              <div className="flex gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pb-2 -mx-1 px-1">
+            <div className="space-y-2 relative">
+              {/* Left Chevron */}
+              {canScrollLeft && isBadgeHovered && (
+                <button
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full shadow p-1"
+                  style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
+                  onClick={() => scrollBadges(-1)}
+                  tabIndex={-1}
+                  aria-label="Scroll badges left"
+                >
+                  <ChevronLeftIcon className="w-4 h-4 text-gray-400" />
+                </button>
+              )}
+              {/* Right Chevron */}
+              {canScrollRight && isBadgeHovered && (
+                <button
+                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full shadow p-1"
+                  style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
+                  onClick={() => scrollBadges(1)}
+                  tabIndex={-1}
+                  aria-label="Scroll badges right"
+                >
+                  <ChevronRightIcon className="w-4 h-4 text-gray-400" />
+                </button>
+              )}
+              <div
+                ref={badgeRowRef}
+                className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 hide-scrollbar"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                onMouseEnter={() => setIsBadgeHovered(true)}
+                onMouseLeave={() => setIsBadgeHovered(false)}
+              >
                 {themeOptions.map((theme) => (
                   <label
                     key={theme.id}
@@ -322,19 +416,24 @@ export default function ThemeCreator() {
                       onChange={() => handleThemeSelection(segment.id, theme.id)}
                       className="sr-only"
                     />
-                    <div 
-                      className={`w-2 h-2 rounded-full mr-1.5 flex-shrink-0 border-2 ${
-                        selectedThemes[segment.id] === theme.id 
-                          ? 'border-white' 
-                          : 'border-gray-300'
+                    <span
+                      className={`w-3 h-3 flex items-center justify-center rounded-full border-2 mr-1 flex-shrink-0 transition-colors duration-150 ${
+                        selectedThemes[segment.id] === theme.id
+                          ? ''
+                          : 'bg-transparent'
                       }`}
-                      style={{ 
-                        backgroundColor: theme.color,
-                        boxShadow: selectedThemes[segment.id] === theme.id 
-                          ? `0 0 0 1px ${theme.color}` 
-                          : 'none'
+                      style={{
+                        borderColor: theme.color,
+                        backgroundColor: 'transparent',
                       }}
-                    />
+                    >
+                      {selectedThemes[segment.id] === theme.id && (
+                        <span
+                          className="w-1.5 h-1.5 rounded-full"
+                          style={{ backgroundColor: theme.color, display: 'block' }}
+                        />
+                      )}
+                    </span>
                     {theme.name}
                   </label>
                 ))}
@@ -408,6 +507,18 @@ export default function ThemeCreator() {
     return berlinDate;
   };
 
+  // Add global mouse event listeners
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, dragOffset]);
+
   // Drag handlers
   const handleMouseDown = (e) => {
     if (containerRef.current) {
@@ -422,9 +533,19 @@ export default function ThemeCreator() {
 
   const handleMouseMove = (e) => {
     if (isDragging) {
+      const container = containerRef.current;
+      if (!container) return;
+      const containerRect = container.getBoundingClientRect();
+      const width = containerRect.width;
+      const height = containerRect.height;
+      let newX = e.clientX - dragOffset.x;
+      let newY = e.clientY - dragOffset.y;
+      // Clamp to viewport
+      newX = Math.max(0, Math.min(newX, window.innerWidth - width));
+      newY = Math.max(0, Math.min(newY, window.innerHeight - height));
       setPosition({
-        x: e.clientX - dragOffset.x,
-        y: e.clientY - dragOffset.y
+        x: newX,
+        y: newY
       });
     }
   };
@@ -433,29 +554,29 @@ export default function ThemeCreator() {
     setIsDragging(false);
   };
 
-  // Add global mouse event listeners
-  useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isDragging, dragOffset]);
+  // Add this at the end of the file for local CSS
+  if (typeof document !== 'undefined' && !document.getElementById('hide-scrollbar-style')) {
+    const style = document.createElement('style');
+    style.id = 'hide-scrollbar-style';
+    style.innerHTML = `
+      .hide-scrollbar::-webkit-scrollbar { display: none; }
+      .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+    `;
+    document.head.appendChild(style);
+  }
 
   return (
     <div 
       ref={containerRef}
-      className={`bg-gray-50 rounded-lg p-4 border border-gray-200 shadow-lg w-[480px] ${isMinimized ? 'min-h-0' : 'min-h-[600px]'}`}
+      className={`bg-gray-50 rounded-lg p-4 border border-gray-200 shadow-lg w-[480px] max-h-screen overflow-y-auto hide-scrollbar ${isMinimized ? 'min-h-0' : ''}`}
       style={{
         position: 'fixed',
         left: `${position.x}px`,
         top: `${position.y}px`,
         zIndex: 1000,
-        cursor: isDragging ? 'grabbing' : 'default'
+        cursor: isDragging ? 'grabbing' : 'grab'
       }}
+      onMouseDown={handleMouseDown}
     >
       {/* Header - Changes based on state */}
       <div 
@@ -527,16 +648,6 @@ export default function ThemeCreator() {
         </button>
       </div>
 
-      {/* Drag Handle - Only visible when not minimized */}
-      {!isMinimized && (
-        <div 
-          className="w-full h-2 mb-2 cursor-grab active:cursor-grabbing flex justify-center items-center"
-          onMouseDown={handleMouseDown}
-        >
-          <div className="w-8 h-1 bg-gray-300 rounded-full"></div>
-        </div>
-      )}
-      
       {/* Content - Changes based on state */}
       {!isMinimized && (isCreatingThemes ? (
         // Theme Creation Content
@@ -595,9 +706,10 @@ export default function ThemeCreator() {
             )}
           </div>
 
-          {/* Airport Search and Routes - Show when dates are selected */}
+          {/* Add Route Label and Input */}
           {dates.length > 0 && (
-            <div className="mt-4">
+            <div className="mt-4 relative">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Add route</label>
               <AirportSearch
                 routes={routes}
                 setRoutes={handleRoutesUpdate}
@@ -610,6 +722,27 @@ export default function ThemeCreator() {
                   handleRoutesUpdate(newRoutes);
                 }}
               />
+              {/* Timeline line and dots for route cards */}
+              {routes.length > 0 && (
+                <div className="relative flex">
+                  {/* Vertical line */}
+                  <div className="absolute left-3 top-8 bottom-0 w-0.5 bg-gray-300 z-0" style={{height: `calc(100% - 2rem)`}} />
+                  <div className="flex flex-col flex-1 ml-8 space-y-4 mt-4">
+                    {routes.map((route, idx) => (
+                      <div key={route.airport.code + idx} className="relative flex items-center">
+                        {/* Dot */}
+                        <div className="absolute -left-8 w-6 flex justify-center items-center" style={{top: '50%', transform: 'translateY(-50%)'}}>
+                          <div className="w-4 h-4 rounded-full border-2 border-gray-300 bg-white z-10" />
+                        </div>
+                        <div className="flex-1 bg-white p-3 rounded-lg border border-gray-200 shadow-sm w-full">
+                          <div className="text-base text-gray-900 font-medium">{route.airport.city} ({route.airport.code})</div>
+                          <div className="text-xs text-gray-400 mt-1 truncate">{route.airport.name}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -626,7 +759,6 @@ export default function ThemeCreator() {
               >
                 Create flight themes
               </button>
-              
               {/* Add New Route Button - Secondary */}
               <button
                 className="w-full px-4 py-2 rounded-md transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
