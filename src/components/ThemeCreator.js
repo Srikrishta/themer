@@ -4,7 +4,7 @@ import AirportSearch from './AirportSearch';
 import DatePicker from './DatePicker';
 import festivalsData from '../data/festivals.json';
 
-export default function ThemeCreator({ routes, setRoutes }) {
+export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFlightCardSelect }) {
   // Get current date in Berlin timezone for initial state
   const getBerlinTodayString = () => {
     const now = new Date();
@@ -32,7 +32,7 @@ export default function ThemeCreator({ routes, setRoutes }) {
   const [isCreatingThemes, setIsCreatingThemes] = useState(false);
   
   // Minimize/maximize state
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(initialMinimized || false);
 
   // Refs
   const datePickerRef = useRef(null);
@@ -371,7 +371,12 @@ export default function ThemeCreator({ routes, setRoutes }) {
     return (
       <div
         className="relative w-full mb-4 flex items-center max-w-full gap-x-3"
-        onClick={() => setActiveFlightIndex(index)}
+        onClick={() => {
+          setActiveFlightIndex(index);
+          if (typeof onFlightCardSelect === 'function') {
+            onFlightCardSelect(segment);
+          }
+        }}
         style={{ cursor: 'pointer' }}
       >
         {/* Flight number dot */}
@@ -388,7 +393,7 @@ export default function ThemeCreator({ routes, setRoutes }) {
         </div>
         {/* Flight Card Content */}
         <div className="flex-1 min-w-0 max-w-full">
-          <div className={`p-3 rounded-lg border shadow-sm transition-all w-full ${active ? 'bg-gray-200/60 border border-black/30' : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-md'}` }>
+          <div className="p-3 rounded-lg border shadow-sm transition-all w-full bg-white border-gray-200 hover:border-gray-300 hover:shadow-md">
             <div className="mb-3">
               <div className="min-w-0">
                 <div
@@ -401,54 +406,67 @@ export default function ThemeCreator({ routes, setRoutes }) {
                 </div>
               </div>
             </div>
-            {/* Theme Selection */}
-            <div className="space-y-2 relative">
-              {/* Remove chevrons and make theme options vertical */}
-              <div
-                ref={badgeRowRef}
-                className="grid grid-cols-2 gap-2"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                onMouseEnter={() => setIsBadgeHovered(true)}
-                onMouseLeave={() => setIsBadgeHovered(false)}
-              >
-                {themeOptions.map((theme) => (
-                  <div
-                    key={theme.id}
-                    className={`flex items-center gap-3 cursor-pointer px-2 py-1 rounded transition-all flex-shrink-0 ${
-                      selectedThemes[segment.id] === theme.id
-                        ? 'bg-gray-200/60 border border-black/30'
-                        : 'bg-gray-50/60 border border-gray-200/60 hover:bg-gray-100/60'
-                    }`}
-                    style={{ minWidth: 0 }}
-                    onClick={() => handleThemeSelection(segment.id, theme.id)}
-                    tabIndex={0}
-                    role="button"
-                    aria-pressed={selectedThemes[segment.id] === theme.id}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' || e.key === ' ') handleThemeSelection(segment.id, theme.id);
-                    }}
-                  >
+            {/* Conditional rendering based on active state */}
+            {active ? (
+              // Active: show theme selection
+              <div className="space-y-2 relative">
+                <div
+                  ref={badgeRowRef}
+                  className="grid grid-cols-2 gap-2"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                  onMouseEnter={() => setIsBadgeHovered(true)}
+                  onMouseLeave={() => setIsBadgeHovered(false)}
+                >
+                  {themeOptions.map((theme) => (
                     <div
-                      className="w-7 h-7 rounded-md border"
-                      style={{
-                        backgroundColor: theme.color,
-                        borderColor: '#888',
-                        boxShadow: 'none',
-                        transition: 'box-shadow 0.15s, border-color 0.15s',
+                      key={theme.id}
+                      className={`flex items-center gap-3 cursor-pointer px-2 py-1 rounded transition-all flex-shrink-0 ${
+                        selectedThemes[segment.id] === theme.id
+                          ? 'bg-gray-200/60 border border-black/30'
+                          : 'bg-gray-50/60 border border-gray-200/60 hover:bg-gray-100/60'
+                      }`}
+                      style={{ minWidth: 0 }}
+                      onClick={e => {
+                        e.stopPropagation();
+                        handleThemeSelection(segment.id, theme.id);
                       }}
-                    />
-                    <div className="flex flex-col min-w-0">
-                      <span
-                        className={["text-sm text-gray-900 truncate", selectedThemes[segment.id] === theme.id ? "font-semibold" : ""].join(" ")}
-                        style={{ maxWidth: 140 }}
-                      >
-                        {theme.name}
-                      </span>
+                      tabIndex={0}
+                      role="button"
+                      aria-pressed={selectedThemes[segment.id] === theme.id}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') handleThemeSelection(segment.id, theme.id);
+                      }}
+                    >
+                      <div
+                        className="w-7 h-7 rounded-md border"
+                        style={{
+                          backgroundColor: theme.color,
+                          borderColor: '#888',
+                          boxShadow: 'none',
+                          transition: 'box-shadow 0.15s, border-color 0.15s',
+                        }}
+                      />
+                      <div className="flex flex-col min-w-0">
+                        <span
+                          className={["text-sm text-gray-900 truncate", selectedThemes[segment.id] === theme.id ? "font-semibold" : ""].join(" ")}
+                          style={{ maxWidth: 140 }}
+                        >
+                          {theme.name}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : (
+              // Inactive: show summary of selected theme
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-xs text-gray-500">Theme:</span>
+                <span className="text-sm font-medium">
+                  {themeOptions.find(t => t.id === selectedThemes[segment.id])?.name || 'Default'}
+                </span>
+              </div>
+            )}
             {/* Last card bottom ref for timeline */}
             {index === flightSegments.length - 1 && <div ref={lastCardBottomRef} style={{ height: 0 }} />}
           </div>

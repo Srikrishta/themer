@@ -3,6 +3,7 @@ import ThemeCreator from './ThemeCreator';
 import FlightJourneyBar from './FlightJourneyBar';
 import FlightProgress from './FlightProgress';
 import Component3Cards from './Component3Cards';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 function formatTime(minutes) {
   const h = Math.floor(minutes / 60);
@@ -21,10 +22,17 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
 }
 
 export default function Dashboard() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const minimizeThemeCreator = location.state?.minimizeThemeCreator;
   // Lifted state for routes
   const [routes, setRoutes] = useState([]);
-  const origin = routes.length > 0 ? routes[0] : null;
-  const destination = routes.length > 1 ? routes[routes.length - 1] : null;
+  // NEW: State for selected segment (flight card)
+  const [selectedSegment, setSelectedSegment] = useState(null);
+
+  // Use selected segment's origin/destination if set, else default to full route
+  const origin = selectedSegment?.origin || (routes.length > 0 ? routes[0] : null);
+  const destination = selectedSegment?.destination || (routes.length > 1 ? routes[routes.length - 1] : null);
 
   // Countdown state
   const maxFlightMinutes = 370; // 6h10m
@@ -66,7 +74,13 @@ export default function Dashboard() {
       <header className="bg-white border-b border-gray-200 px-8 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <span className="text-2xl font-bold themer-gradient">Themer</span>
+            <span
+              className="text-2xl font-bold themer-gradient cursor-pointer"
+              onClick={() => navigate('/')}
+              title="Go to landing page"
+            >
+              Themer
+            </span>
           </div>
         </div>
       </header>
@@ -91,7 +105,12 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="p-8">
         {/* ThemeCreator is now positioned absolutely and draggable */}
-        <ThemeCreator routes={routes} setRoutes={setRoutes} />
+        <ThemeCreator
+          routes={routes}
+          setRoutes={setRoutes}
+          initialMinimized={minimizeThemeCreator}
+          onFlightCardSelect={segment => setSelectedSegment(segment)}
+        />
       </div>
     </div>
   );
