@@ -6,7 +6,7 @@ const img4 = "http://localhost:3845/assets/12ff138a200ba4f26363bc8b4c9c314031978
 const img5 = "http://localhost:3845/assets/5b430c457bb1a36eac34c8197e3558b70a889106.svg";
 const img6 = "http://localhost:3845/assets/29fa6c4c59170f1b8aade086622c24fdce89c35a.svg";
 
-export default function FlightJourneyBar({ origin, destination, minutesLeft }) {
+export default function FlightJourneyBar({ origin, destination, minutesLeft, themeColor = '#1E1E1E' }) {
   function formatTime(minutes) {
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;
@@ -40,16 +40,16 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft }) {
                   className="font-['Lufthansa_Text:Bold',_sans-serif] relative shrink-0 tracking-[0.8px]"
                   id="node-77_5578"
                 >
-                  <p className="adjustLetterSpacing block leading-[32px] text-nowrap whitespace-pre">
-                    {origin?.airport.city || 'Origin'}
+                  <p className="adjustLetterSpacing block leading-[32px] text-nowrap whitespace-pre" style={{ fontWeight: 600 }}>
+                    {(origin?.airport.city || 'Origin').toUpperCase()}
                   </p>
                 </div>
                 <div
                   className="font-['Lufthansa_Text:Regular',_sans-serif] relative shrink-0"
                   id="node-77_5579"
                 >
-                  <p className="block leading-[32px] text-nowrap whitespace-pre">
-                    {origin?.airport.code || 'Origin'}
+                  <p className="block leading-[32px] text-nowrap whitespace-pre" style={{ fontWeight: 600 }}>
+                    {(origin?.airport.code || 'Origin').toUpperCase()}
                   </p>
                 </div>
               </div>
@@ -124,7 +124,7 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft }) {
                 className="font-['Lufthansa_Text:Bold',_sans-serif] relative shrink-0 text-[20px] tracking-[0.8px]"
                 id="node-77_5603"
               >
-                <p className="adjustLetterSpacing block leading-[32px] text-nowrap whitespace-pre">
+                <p className="adjustLetterSpacing block leading-[32px] text-nowrap whitespace-pre" style={{ fontWeight: 600 }}>
                   {formatTime(typeof minutesLeft === 'number' ? minutesLeft : 175)}
                 </p>
               </div>
@@ -157,9 +157,9 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft }) {
                   className="font-['Lufthansa_Text:Bold',_sans-serif] relative shrink-0 text-[0px] tracking-[0.8px]"
                   id="node-77_5607"
                 >
-                  <p className="leading-[32px] text-[20px] text-nowrap whitespace-pre">
-                    <span className="font-['Lufthansa_Text:Bold',_sans-serif] not-italic tracking-[0.8px]">
-                      {destination?.airport.city || 'Destination'}
+                  <p className="leading-[32px] text-[20px] text-nowrap whitespace-pre" style={{ fontWeight: 600 }}>
+                    <span className="font-['Lufthansa_Text:Bold',_sans-serif] not-italic tracking-[0.8px]" style={{ fontWeight: 600 }}>
+                      {(destination?.airport.city || 'Destination').toUpperCase()}
                     </span>
                     <span className="adjustLetterSpacing"> </span>
                   </p>
@@ -168,8 +168,8 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft }) {
                   className="font-['Lufthansa_Text:Regular',_sans-serif] relative shrink-0 text-[20px]"
                   id="node-77_5608"
                 >
-                  <p className="block leading-[32px] text-nowrap whitespace-pre">
-                    {destination?.airport.code || 'Destination'}
+                  <p className="block leading-[32px] text-nowrap whitespace-pre" style={{ fontWeight: 600 }}>
+                    {(destination?.airport.code || 'Destination').toUpperCase()}
                   </p>
                 </div>
               </div>

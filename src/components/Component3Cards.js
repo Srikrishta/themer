@@ -5,7 +5,7 @@ const imgAutumnMeal = "http://localhost:3845/assets/67867be324b149fdbc2f5cc31419
 const imgAddAnAutumnMovie = "http://localhost:3845/assets/8ea70d2052f6ce510170e999f000793ea6f8a1cb.png";
 const img2 = "http://localhost:3845/assets/1bd3170f3986d13a6502916089cd682ffee55e02.svg";
 
-export default function Component3Cards() {
+export default function Component3Cards({ themeColor = '#1E1E1E' }) {
   return (
     <div
       className="flex flex-row gap-8 items-center justify-center mx-auto"
@@ -15,7 +15,7 @@ export default function Component3Cards() {
     >
       <div
         className="bg-black h-[200px] overflow-clip relative rounded-lg shrink-0 flex items-center justify-center"
-        style={{ width: '416px' }}
+        style={{ width: '416px', background: themeColor }}
         data-name="add an image of shopping for autumn"
         id="node-82_35814"
       >
@@ -25,7 +25,7 @@ export default function Component3Cards() {
       </div>
       <div
         className="bg-black h-[200px] overflow-clip relative rounded-lg shrink-0 flex items-center justify-center"
-        style={{ width: '416px' }}
+        style={{ width: '416px', background: themeColor }}
         data-name="autumn meal"
         id="node-82_35815"
       >
@@ -35,7 +35,7 @@ export default function Component3Cards() {
       </div>
       <div
         className="bg-black h-[200px] overflow-clip relative rounded-lg shrink-0 flex items-center justify-center"
-        style={{ width: '416px' }}
+        style={{ width: '416px', background: themeColor }}
         data-name="add an autumn movie"
         id="node-82_35816"
       >

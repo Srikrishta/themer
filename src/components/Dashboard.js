@@ -11,12 +11,16 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor }) {
   return (
-    <div style={{ position: 'relative', zIndex: 2, width: 1302, margin: '140px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
-      <FlightJourneyBar origin={origin} destination={destination} minutesLeft={minutesLeft} />
-      <FlightProgress landingIn={landingIn} maxFlightMinutes={maxFlightMinutes} minutesLeft={minutesLeft} onProgressChange={handleProgressChange} />
-      <Component3Cards />
+    <div style={{ position: 'relative', zIndex: 2, width: 1302, margin: '92px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
+      <div className="fjb-fps-container" style={{ width: 1328, maxWidth: 1328, marginLeft: -2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, background: themeColor + '14', borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 16, paddingTop: 80, paddingBottom: 40, marginTop: 4 }}>
+        <div style={{ width: '100%', marginTop: -32, display: 'flex', flexDirection: 'column', gap: 28 }}>
+          <FlightJourneyBar origin={origin} destination={destination} minutesLeft={minutesLeft} themeColor={themeColor} />
+          <FlightProgress landingIn={landingIn} maxFlightMinutes={maxFlightMinutes} minutesLeft={minutesLeft} onProgressChange={handleProgressChange} themeColor={themeColor} />
+        </div>
+      </div>
+      <Component3Cards themeColor={themeColor} />
     </div>
   );
 }
@@ -29,6 +33,8 @@ export default function Dashboard() {
   const [routes, setRoutes] = useState([]);
   // NEW: State for selected segment (flight card)
   const [selectedSegment, setSelectedSegment] = useState(null);
+  // NEW: State for current theme color
+  const [currentThemeColor, setCurrentThemeColor] = useState('#1E1E1E');
 
   // Use selected segment's origin/destination if set, else default to full route
   const origin = selectedSegment?.origin || (routes.length > 0 ? routes[0] : null);
@@ -99,6 +105,7 @@ export default function Dashboard() {
             landingIn={landingIn}
             maxFlightMinutes={maxFlightMinutes}
             handleProgressChange={handleProgressChange}
+            themeColor={currentThemeColor}
           />
         </div>
       </div>
@@ -110,6 +117,7 @@ export default function Dashboard() {
           setRoutes={setRoutes}
           initialMinimized={minimizeThemeCreator}
           onFlightCardSelect={segment => setSelectedSegment(segment)}
+          onThemeColorChange={color => setCurrentThemeColor(color)}
         />
       </div>
     </div>

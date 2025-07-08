@@ -4,7 +4,7 @@ import AirportSearch from './AirportSearch';
 import DatePicker from './DatePicker';
 import festivalsData from '../data/festivals.json';
 
-export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFlightCardSelect }) {
+export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFlightCardSelect, onThemeColorChange }) {
   // Get current date in Berlin timezone for initial state
   const getBerlinTodayString = () => {
     const now = new Date();
@@ -363,7 +363,13 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
     const handleThemeSelection = (flightId, themeIndex) => {
       setSelectedThemes(prev => {
         const updated = { ...prev, [flightId]: themeIndex };
-        console.log('handleThemeSelection called:', flightId, themeIndex, 'updated selectedThemes:', updated);
+        // If this is the active card, call onThemeColorChange with the selected color
+        if (active && typeof onThemeColorChange === 'function') {
+          const selectedTheme = themeOptions.find(t => t.id === themeIndex);
+          if (selectedTheme) {
+            onThemeColorChange(selectedTheme.color);
+          }
+        }
         return updated;
       });
     };

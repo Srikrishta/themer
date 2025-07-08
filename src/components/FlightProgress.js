@@ -16,7 +16,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFlightMinutes = 370, minutesLeft: externalMinutesLeft, onProgressChange }) {
+export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFlightMinutes = 370, minutesLeft: externalMinutesLeft, onProgressChange, themeColor = '#1E1E1E' }) {
   const barWidth = 1302;
   const [dragging, setDragging] = useState(false);
   const barRef = useRef();
@@ -82,11 +82,11 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
   return (
     <div className="flight-progress-bar-container" ref={barRef} onClick={handleBarClick}>
       <div className="flight-path"></div>
-      <div className="flight-progress" style={{ width: `${progressWidth}px` }}></div>
+      <div className="flight-progress" style={{ width: `${progressWidth}px`, background: themeColor }}></div>
       <div
         className="flight-progress-icon"
         ref={iconRef}
-        style={{ left: `${iconLeft}px`, cursor: 'pointer' }}
+        style={{ left: `${iconLeft}px`, cursor: 'pointer', background: themeColor, borderColor: themeColor }}
         onMouseDown={handleIconMouseDown}
         onMouseLeave={handleIconMouseLeave}
       >
