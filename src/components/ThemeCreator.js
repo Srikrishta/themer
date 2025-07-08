@@ -48,6 +48,14 @@ export default function ThemeCreator({ routes, setRoutes }) {
   const maxWidth = 480;
   const [isResizing, setIsResizing] = useState(false);
 
+  // Refs for first card title and last card bottom
+  const firstTitleRef = useRef(null);
+  const lastCardBottomRef = useRef(null);
+  const [timelineLine, setTimelineLine] = useState({ top: 0, height: 0 });
+
+  // Active flight card state
+  const [activeFlightIndex, setActiveFlightIndex] = useState(null);
+
   // Function to calculate dropdown position
   const calculateDropdownPosition = () => {
     if (!datePickerRef.current) return 'down';
@@ -294,8 +302,22 @@ export default function ThemeCreator({ routes, setRoutes }) {
     }
   }, [isCreatingThemes, flightSegments.length, selectedThemes]); // Re-calculate when themes change (affects card height)
 
+  // Calculate timeline line position and height based on first title and last card bottom
+  useEffect(() => {
+    if (isCreatingThemes && flightSegments.length > 1 && firstTitleRef.current && lastCardBottomRef.current && flightCardsRef.current) {
+      const containerRect = flightCardsRef.current.getBoundingClientRect();
+      const firstTitleRect = firstTitleRef.current.getBoundingClientRect();
+      const lastBottomRect = lastCardBottomRef.current.getBoundingClientRect();
+      const top = firstTitleRect.top - containerRect.top;
+      const height = lastBottomRect.bottom - containerRect.top - top;
+      setTimelineLine({ top, height });
+    }
+  }, [isCreatingThemes, flightSegments.length, selectedThemes]);
+
   // Flight Card Component
-  const FlightCard = ({ segment, index }) => {
+  const FlightCard = ({ segment, index, activeFlightIndex, setActiveFlightIndex }) => {
+    const active = index === activeFlightIndex;
+
     // Helper to get festival for a city and date
     const getFestivalForCityAndDate = (city, dates) => {
       if (!dates || dates.length === 0) return null;
@@ -347,9 +369,16 @@ export default function ThemeCreator({ routes, setRoutes }) {
     };
 
     return (
-      <div className="relative w-full mb-4 flex items-start max-w-full">
+      <div
+        className="relative w-full mb-4 flex items-center max-w-full gap-x-3"
+        onClick={() => setActiveFlightIndex(index)}
+        style={{ cursor: 'pointer' }}
+      >
         {/* Flight number dot */}
-        <div className="flex-shrink-0 mr-3 flex justify-center items-center" style={{ width: '24px', position: 'relative', zIndex: 2 }}>
+        <div
+          className="flex-shrink-0 flex justify-center items-center"
+          style={{ width: '48px', position: 'relative', zIndex: 2 }}
+        >
           <div 
             className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold relative z-10"
             style={{ backgroundColor: '#6B7280' }}
@@ -359,17 +388,19 @@ export default function ThemeCreator({ routes, setRoutes }) {
         </div>
         {/* Flight Card Content */}
         <div className="flex-1 min-w-0 max-w-full">
-          <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm hover:border-gray-300 hover:shadow-md transition-all w-full">
+          <div className={`p-3 rounded-lg border shadow-sm transition-all w-full ${active ? 'bg-gray-200/60 border border-black/30' : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-md'}` }>
             <div className="mb-3">
               <div className="min-w-0">
-                <div className="text-base text-gray-900 flex items-center gap-2 flex-wrap">
+                <div
+                  className="text-base text-gray-900 flex items-center gap-2 flex-wrap"
+                  ref={index === 0 ? firstTitleRef : undefined}
+                >
                   <span className="font-medium">{segment.origin.airport.city} ({segment.origin.airport.code})</span>
                   <span className="text-gray-400">→</span>
                   <span className="font-medium">{segment.destination.airport.city} ({segment.destination.airport.code})</span>
                 </div>
               </div>
             </div>
-
             {/* Theme Selection */}
             <div className="space-y-2 relative">
               {/* Remove chevrons and make theme options vertical */}
@@ -418,6 +449,8 @@ export default function ThemeCreator({ routes, setRoutes }) {
                 ))}
               </div>
             </div>
+            {/* Last card bottom ref for timeline */}
+            {index === flightSegments.length - 1 && <div ref={lastCardBottomRef} style={{ height: 0 }} />}
           </div>
         </div>
       </div>
@@ -769,32 +802,33 @@ export default function ThemeCreator({ routes, setRoutes }) {
           </div>
           {/* Flight Cards */}
           <div ref={flightCardsRef} className="space-y-4 relative z-10">
+            {/* Timeline connecting flight cards */}
+            {flightSegments.length > 1 && (
+              <div 
+                className="absolute z-0"
+                style={{
+                  left: '24px', // center of 48px dot container
+                  top: timelineLine.top,
+                  width: '12px',
+                  height: timelineLine.height,
+                  borderLeft: '1px solid rgb(209, 213, 219)', // gray-300
+                  borderTop: '1px solid rgb(209, 213, 219)', // gray-300  
+                  borderBottom: '1px solid rgb(209, 213, 219)', // gray-300
+                  borderTopLeftRadius: '6px',
+                  borderBottomLeftRadius: '6px'
+                }}
+              />
+            )}
             {flightSegments.map((segment, index) => (
               <FlightCard 
                 key={segment.id} 
                 segment={segment} 
                 index={index}
+                activeFlightIndex={activeFlightIndex}
+                setActiveFlightIndex={setActiveFlightIndex}
               />
             ))}
           </div>
-
-          {/* Timeline connecting flight cards */}
-          {flightSegments.length > 1 && (
-            <div 
-              className="absolute z-0"
-              style={{
-                left: '12px',
-                top: '32px', // 20px + 12px (half dot height)
-                width: '12px',
-                height: timelineHeight, // Now already subtracted 24px
-                borderLeft: '1px solid rgb(209, 213, 219)', // gray-300
-                borderTop: '1px solid rgb(209, 213, 219)', // gray-300  
-                borderBottom: '1px solid rgb(209, 213, 219)', // gray-300
-                borderTopLeftRadius: '6px',
-                borderBottomLeftRadius: '6px'
-              }}
-            />
-          )}
 
           {/* Create Theme Button below flight cards */}
           <div className="flex justify-end mt-6">
