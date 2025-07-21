@@ -19,6 +19,7 @@ function formatTime(minutes) {
 export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFlightMinutes = 370, minutesLeft: externalMinutesLeft, onProgressChange, themeColor = '#1E1E1E' }) {
   const barWidth = 1302;
   const [dragging, setDragging] = useState(false);
+  const [showPlusButton, setShowPlusButton] = useState(false);
   const barRef = useRef();
   const iconRef = useRef();
 
@@ -31,6 +32,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
   // Drag logic (only start drag from icon)
   const handleIconMouseDown = (e) => {
     setDragging(true);
+    setShowPlusButton(false); // Hide plus button when starting to drag
     e.preventDefault();
     e.stopPropagation();
   };
@@ -59,7 +61,10 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
       const newProgress = x / barWidth;
       if (onProgressChange) onProgressChange(newProgress);
     };
-    const handleMouseUp = () => setDragging(false);
+    const handleMouseUp = () => {
+      setDragging(false);
+      setShowPlusButton(true); // Show plus button when dragging ends
+    };
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
     return () => {
@@ -77,6 +82,15 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
     x = Math.max(0, Math.min(x, barWidth));
     const newProgress = x / barWidth;
     if (onProgressChange) onProgressChange(newProgress);
+    setShowPlusButton(true); // Show plus button when clicking to move
+  };
+
+  // Handle plus button click
+  const handlePlusButtonClick = (e) => {
+    e.stopPropagation();
+    // TODO: Add logic to handle adding flight phase
+    console.log('Adding flight phase at position:', progress);
+    setShowPlusButton(false); // Hide the button after clicking
   };
 
   return (
@@ -92,6 +106,19 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
       >
         <span className="icon"></span>
       </div>
+      {showPlusButton && (
+        <div
+          className="plus-button"
+          style={{ 
+            left: `${iconLeft + 8}px`, 
+            background: themeColor,
+            borderColor: themeColor
+          }}
+          onClick={handlePlusButtonClick}
+        >
+          <span className="plus-icon">+</span>
+        </div>
+      )}
     </div>
   );
 } 

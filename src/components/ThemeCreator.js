@@ -3,8 +3,9 @@ import { CalendarIcon, ArrowLeftIcon, ChevronDownIcon, ChevronUpIcon, ChevronLef
 import AirportSearch from './AirportSearch';
 import DatePicker from './DatePicker';
 import festivalsData from '../data/festivals.json';
+import { HexColorPicker } from 'react-colorful';
 
-export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFlightCardSelect, onThemeColorChange }) {
+export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFlightCardSelect, onThemeColorChange, initialWidth }) {
   // Get current date in Berlin timezone for initial state
   const getBerlinTodayString = () => {
     const now = new Date();
@@ -43,10 +44,12 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
   const [isBadgeHovered, setIsBadgeHovered] = useState(false);
 
   // Add after isMinimized state
-  const [containerWidth, setContainerWidth] = useState(480); // px
+  const IFE_FRAME_WIDTH = 1400;
+  const [containerWidth, setContainerWidth] = useState(initialWidth || 480); // px
   const minWidth = 318;
   const maxWidth = 480;
   const [isResizing, setIsResizing] = useState(false);
+  const [resizeSide, setResizeSide] = useState(null); // 'left' | 'right' | null
 
   // Refs for first card title and last card bottom
   const firstTitleRef = useRef(null);
@@ -304,7 +307,13 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
 
   // Calculate timeline line position and height based on first title and last card bottom
   useEffect(() => {
-    if (isCreatingThemes && flightSegments.length > 1 && firstTitleRef.current && lastCardBottomRef.current && flightCardsRef.current) {
+    if (
+      isCreatingThemes &&
+      flightSegments.length > 1 &&
+      firstTitleRef.current &&
+      lastCardBottomRef.current &&
+      flightCardsRef.current
+    ) {
       const containerRect = flightCardsRef.current.getBoundingClientRect();
       const firstTitleRect = firstTitleRef.current.getBoundingClientRect();
       const lastBottomRect = lastCardBottomRef.current.getBoundingClientRect();
@@ -312,11 +321,16 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
       const height = lastBottomRect.bottom - containerRect.top - top;
       setTimelineLine({ top, height });
     }
-  }, [isCreatingThemes, flightSegments.length, selectedThemes]);
+  }, [isCreatingThemes, flightSegments.length, selectedThemes, isMinimized]); // <-- add isMinimized
 
   // Flight Card Component
   const FlightCard = ({ segment, index, activeFlightIndex, setActiveFlightIndex }) => {
     const active = index === activeFlightIndex;
+    const [showColorPickerFor, setShowColorPickerFor] = useState(null); // theme.id or null
+    const [customColors, setCustomColors] = useState({}); // { [themeId]: color }
+    const colorSwatchRefs = useRef({});
+    const [pickerPosition, setPickerPosition] = useState({}); // { [themeId]: {top, left, right, bottom} }
+    const containerNode = containerRef.current;
 
     // Helper to get festival for a city and date
     const getFestivalForCityAndDate = (city, dates) => {
@@ -360,14 +374,14 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
     const badgeRowRef = useRef(null);
 
     // Move handleThemeSelection inside FlightCard for latest closure
-    const handleThemeSelection = (flightId, themeIndex) => {
+    const handleThemeSelection = (flightId, themeIndex, color) => {
       setSelectedThemes(prev => {
         const updated = { ...prev, [flightId]: themeIndex };
         // If this is the active card, call onThemeColorChange with the selected color
         if (active && typeof onThemeColorChange === 'function') {
           const selectedTheme = themeOptions.find(t => t.id === themeIndex);
           if (selectedTheme) {
-            onThemeColorChange(selectedTheme.color);
+            onThemeColorChange(color || customColors[themeIndex] || selectedTheme.color);
           }
         }
         return updated;
@@ -382,6 +396,12 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
           if (typeof onFlightCardSelect === 'function') {
             onFlightCardSelect(segment);
           }
+          // Also update theme color in parent when card is selected
+          if (typeof onThemeColorChange === 'function') {
+            const selectedThemeId = selectedThemes[segment.id];
+            const selectedTheme = themeOptions.find(t => t.id === selectedThemeId);
+            onThemeColorChange(selectedTheme ? selectedTheme.color : '#1E1E1E');
+          }
         }}
         style={{ cursor: 'pointer' }}
       >
@@ -392,7 +412,11 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
         >
           <div 
             className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold relative z-10"
-            style={{ backgroundColor: '#6B7280' }}
+            style={{ backgroundColor: (() => {
+              const selectedThemeId = selectedThemes[segment.id];
+              const selectedTheme = themeOptions.find(t => t.id === selectedThemeId);
+              return selectedTheme ? selectedTheme.color : '#1E1E1E';
+            })() }}
           >
             {segment.flightNumber}
           </div>
@@ -434,23 +458,49 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
                       style={{ minWidth: 0 }}
                       onClick={e => {
                         e.stopPropagation();
-                        handleThemeSelection(segment.id, theme.id);
+                        setShowColorPickerFor(theme.id === showColorPickerFor ? null : theme.id);
+                        handleThemeSelection(segment.id, theme.id, customColors[theme.id]);
                       }}
                       tabIndex={0}
                       role="button"
                       aria-pressed={selectedThemes[segment.id] === theme.id}
                       onKeyDown={e => {
-                        if (e.key === 'Enter' || e.key === ' ') handleThemeSelection(segment.id, theme.id);
+                        if (e.key === 'Enter' || e.key === ' ') handleThemeSelection(segment.id, theme.id, customColors[theme.id]);
                       }}
                     >
                       <div
                         className="w-7 h-7 rounded-md border"
                         style={{
-                          backgroundColor: theme.color,
+                          backgroundColor: customColors[theme.id] || theme.color,
                           borderColor: '#888',
                           boxShadow: 'none',
                           transition: 'box-shadow 0.15s, border-color 0.15s',
                         }}
+                        onClick={e => {
+                          e.stopPropagation();
+                          // Calculate position for color picker
+                          const swatchNode = colorSwatchRefs.current[theme.id];
+                          if (swatchNode && containerNode) {
+                            const swatchRect = swatchNode.getBoundingClientRect();
+                            const containerRect = containerNode.getBoundingClientRect();
+                            // Color picker size: 180x180px (react-colorful default)
+                            const pickerWidth = 180, pickerHeight = 180;
+                            let top = swatchRect.bottom - containerRect.top + 8; // default below
+                            let left = swatchRect.left - containerRect.left;
+                            // If not enough space below, show above
+                            if (top + pickerHeight > containerRect.height) {
+                              top = swatchRect.top - containerRect.top - pickerHeight - 8;
+                            }
+                            // Clamp left to fit in container
+                            if (left + pickerWidth > containerRect.width) {
+                              left = containerRect.width - pickerWidth - 8;
+                            }
+                            if (left < 0) left = 8;
+                            setPickerPosition(pos => ({ ...pos, [theme.id]: { top, left } }));
+                          }
+                          setShowColorPickerFor(theme.id === showColorPickerFor ? null : theme.id);
+                        }}
+                        ref={el => (colorSwatchRefs.current[theme.id] = el)}
                       />
                       <div className="flex flex-col min-w-0">
                         <span
@@ -460,6 +510,8 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
                           {theme.name}
                         </span>
                       </div>
+                      {/* Color Picker for custom color (for any theme) */}
+                      {/* Color Picker temporarily disabled */}
                     </div>
                   ))}
                 </div>
@@ -629,20 +681,53 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
 
   // Handle mouse events for resizing
   useEffect(() => {
-    if (!isResizing) return;
+    if (!isResizing || !resizeSide) {
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('no-select');
+      }
+      return;
+    }
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('no-select');
+    }
     const handleMouseMove = (e) => {
-      // Only allow horizontal resizing
-      const newWidth = Math.max(minWidth, Math.min(maxWidth, e.clientX - position.x));
-      setContainerWidth(newWidth);
+      if (resizeSide === 'right') {
+        // Only allow horizontal resizing from right
+        const newWidth = Math.max(minWidth, Math.min(maxWidth, e.clientX - position.x));
+        setContainerWidth(newWidth);
+      } else if (resizeSide === 'left') {
+        // Calculate new width and new left position
+        const container = containerRef.current;
+        if (!container) return;
+        const containerRect = container.getBoundingClientRect();
+        let newX = e.clientX;
+        let newWidth = containerRect.right - newX;
+        newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+        // Clamp newX so the container doesn't go out of bounds
+        const maxX = containerRect.right - minWidth;
+        const minX = containerRect.right - maxWidth;
+        newX = Math.max(minX, Math.min(maxX, newX));
+        setContainerWidth(newWidth);
+        setPosition(pos => ({ ...pos, x: newX }));
+      }
     };
-    const handleMouseUp = () => setIsResizing(false);
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      setResizeSide(null);
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('no-select');
+      }
+    };
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('no-select');
+      }
     };
-  }, [isResizing, position.x]);
+  }, [isResizing, resizeSide, position.x]);
 
   // Add this at the end of the file for local CSS
   if (typeof document !== 'undefined' && !document.getElementById('hide-scrollbar-style')) {
@@ -654,94 +739,124 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
     `;
     document.head.appendChild(style);
   }
+  // Inject no-select CSS if not present
+  if (typeof document !== 'undefined' && !document.getElementById('no-select-style')) {
+    const style = document.createElement('style');
+    style.id = 'no-select-style';
+    style.innerHTML = `
+      .no-select {
+        user-select: none !important;
+        -webkit-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
 
   return (
     <div 
       ref={containerRef}
-      className={`bg-gray-50 rounded-lg p-4 border border-gray-200 shadow-lg max-h-screen overflow-y-auto hide-scrollbar ${isMinimized ? 'min-h-0' : ''}`}
+      className={`bg-gray-50 rounded-lg p-4 border border-gray-200 shadow-lg ${isMinimized ? 'min-h-0 themer-animated-border' : ''}`}
       style={{
         position: 'fixed',
         left: `${position.x}px`,
         top: `${position.y}px`,
         zIndex: 1000,
         cursor: isDragging ? 'grabbing' : 'grab',
-        width: `${containerWidth}px`,
-        minWidth: `${minWidth}px`,
-        maxWidth: `${maxWidth}px`,
+        width: isMinimized ? `${containerWidth}px` : `${IFE_FRAME_WIDTH}px`,
+        minWidth: isMinimized ? `${minWidth}px` : `${IFE_FRAME_WIDTH}px`,
+        maxWidth: isMinimized ? `${maxWidth}px` : `${IFE_FRAME_WIDTH}px`,
+        height: '300px',
+        maxHeight: '300px',
         transition: isResizing ? 'none' : 'width 0.2s',
-        padding: isMinimized && containerWidth === minWidth ? '8px 12px' : undefined,
+        padding: isMinimized && containerWidth === minWidth ? '8px 20px' : undefined,
+        backgroundColor: isMinimized ? 'white' : undefined, // Solid white fill when minimized
+        borderRadius: isMinimized ? '100px' : undefined, // 100px radius when minimized
       }}
       onMouseDown={handleMouseDown}
     >
-      {/* Resizer handle - show in all modes */}
-      <div
-        style={{
-          position: 'absolute',
-          right: 0,
-          top: 0,
-          height: '100%',
-          width: '8px',
-          cursor: 'ew-resize',
-          zIndex: 1100,
-        }}
-        onMouseDown={e => {
-          e.stopPropagation();
-          setIsResizing(true);
-        }}
-        title="Resize"
-      />
+      {/* Left/Right Resizer handles (only show if minimized) */}
+      {isMinimized && <>
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            height: '100%',
+            width: '8px',
+            cursor: 'ew-resize',
+            zIndex: 1100,
+          }}
+          onMouseDown={e => {
+            e.stopPropagation();
+            setIsResizing(true);
+            setResizeSide('left');
+          }}
+          title="Resize from left"
+        />
+        <div
+          style={{
+            position: 'absolute',
+            right: 0,
+            top: 0,
+            height: '100%',
+            width: '8px',
+            cursor: 'ew-resize',
+            zIndex: 1100,
+          }}
+          onMouseDown={e => {
+            e.stopPropagation();
+            setIsResizing(true);
+            setResizeSide('right');
+          }}
+          title="Resize from right"
+        />
+      </>}
       {/* Header - Changes based on state */}
-      <div 
-        className="mb-4 flex items-center justify-between select-none"
-        style={isMinimized && containerWidth === minWidth ? {marginBottom: 0} : {}}
-      >
-        {/* Collapsed + min width: show only 'edit for', date, chevron */}
-        {isMinimized && containerWidth === minWidth ? (
-          <div className="flex items-center gap-2 w-full justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">{isCreatingThemes ? 'Flights of' : 'Route for'}</h3>
-            <button
-              onClick={() => {
-                setIsMinimized(false);
-                setContainerWidth(minWidth);
-                setIsDatePickerOpen(true);
-              }}
-              className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-bold bg-gray-100 border border-gray-300 text-gray-900 hover:bg-gray-200 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md"
-            >
-              <CalendarIcon className="w-3 h-3 mr-1.5" />
-              {dates.length === 2 ? (
-                `${formatSingleDateForBadge(dates[0])} to ${formatSingleDateForBadge(dates[1])}`
-              ) : dates.length === 1 ? (
-                formatSingleDateForBadge(dates[0])
-              ) : (
-                'Select dates'
-              )}
-            </button>
-            <button
-              className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-              style={{marginLeft: 4}}
-              onClick={e => {
-                e.stopPropagation();
-                setIsMinimized(false);
-                setContainerWidth(minWidth);
-              }}
-              title="Expand"
-            >
-              <ChevronUpIcon className="w-5 h-5 text-gray-500" />
-            </button>
-          </div>
-        ) : (
-          <>
-            {isCreatingThemes ? (
-              // Themes Creation Header
+      <div className="mb-4 flex flex-col items-start select-none w-full">
+        <div style={{ width: isMinimized ? '100%' : 480, maxWidth: '100%' }} className="flex flex-row items-center w-full justify-between">
+          {/* Collapsed + min width: show only 'edit for', date, chevron */}
+          {isMinimized && containerWidth === minWidth ? (
+            <div className="flex items-center gap-2 w-full">
+              <h3 className="text-lg font-semibold text-gray-900">{isCreatingThemes ? 'Flights of' : ''}</h3>
+              <button
+                onClick={() => {
+                  setIsMinimized(false);
+                  setContainerWidth(minWidth);
+                  setIsDatePickerOpen(true);
+                }}
+                className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-bold bg-gray-100 border border-gray-300 text-gray-900 hover:bg-gray-200 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md"
+              >
+                <CalendarIcon className="w-3 h-3 mr-1.5" />
+                {dates.length === 2 ? (
+                  `${formatSingleDateForBadge(dates[0])} to ${formatSingleDateForBadge(dates[1])}`
+                ) : dates.length === 1 ? (
+                  formatSingleDateForBadge(dates[0])
+                ) : (
+                  'Select dates'
+                )}
+              </button>
+            </div>
+          ) : (
+            <>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={handleBackToRouteCreation}
-                  className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                >
-                  <ArrowLeftIcon className="w-5 h-5 text-gray-500" />
-                </button>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-semibold text-gray-900">Flights of</h3>
+                {isCreatingThemes ? (
+                  // Themes Creation Header
+                  <>
+                    <button
+                      onClick={handleBackToRouteCreation}
+                      className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                    >
+                      <ArrowLeftIcon className="w-5 h-5 text-gray-500" />
+                    </button>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-semibold text-gray-900">Flights of</h3>
+                      {/* Date picker button removed as requested */}
+                    </div>
+                  </>
+                ) : (
+                  // Route Creation Header
                   <button
                     onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
                     className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-bold bg-gray-100 border border-gray-300 text-gray-900 hover:bg-gray-200 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md"
@@ -755,48 +870,31 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
                       'Select dates'
                     )}
                   </button>
-                </div>
+                )}
               </div>
-            ) : (
-              // Route Creation Header
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold text-gray-900">Route for</h3>
-                <button
-                  onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
-                  className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-bold bg-gray-100 border border-gray-300 text-gray-900 hover:bg-gray-200 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md"
-                >
-                  <CalendarIcon className="w-3 h-3 mr-1.5" />
-                  {dates.length === 2 ? (
-                    `${formatSingleDateForBadge(dates[0])} to ${formatSingleDateForBadge(dates[1])}`
-                  ) : dates.length === 1 ? (
-                    formatSingleDateForBadge(dates[0])
-                  ) : (
-                    'Select dates'
-                  )}
-                </button>
-              </div>
-            )}
-            <button
-              className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsMinimized(!isMinimized);
-                if (!isMinimized) {
-                  setIsDatePickerOpen(false);
-                  setInputValue('');
-                  setIsTyping(false);
-                  setContainerWidth(minWidth); // Always set to minWidth (318px) when minimizing
-                }
-              }}
-            >
-              {isMinimized ? (
-                <ChevronUpIcon className="w-5 h-5 text-gray-500" />
-              ) : (
-                <ChevronDownIcon className="w-5 h-5 text-gray-500" />
-              )}
-            </button>
-          </>
-        )}
+              <button
+                className="p-1 rounded-full hover:bg-gray-100 transition-colors ml-auto"
+                onClick={e => {
+                  e.stopPropagation();
+                  setIsMinimized(!isMinimized);
+                  if (!isMinimized) {
+                    setIsDatePickerOpen(false);
+                    setInputValue('');
+                    setIsTyping(false);
+                    setContainerWidth(minWidth); // Always set to minWidth (318px) when minimizing
+                  }
+                }}
+                title={isMinimized ? "Expand" : "Collapse"}
+              >
+                {isMinimized ? (
+                  <ChevronUpIcon className="w-5 h-5 text-gray-500" />
+                ) : (
+                  <ChevronDownIcon className="w-5 h-5 text-gray-500" />
+                )}
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Content - Changes based on state */}
@@ -804,7 +902,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
         // Theme Creation Content
         <>
           {/* Date Picker Dropdown for Flights of view */}
-          <div className="relative" ref={datePickerRef}>
+          <div className="relative" ref={datePickerRef} style={{ width: 480 }}>
             {isDatePickerOpen && (
               <div className={`absolute left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 ${
                 dropdownPosition === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'
@@ -825,24 +923,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
             )}
           </div>
           {/* Flight Cards */}
-          <div ref={flightCardsRef} className="space-y-4 relative z-10">
-            {/* Timeline connecting flight cards */}
-            {flightSegments.length > 1 && (
-              <div 
-                className="absolute z-0"
-                style={{
-                  left: '24px', // center of 48px dot container
-                  top: timelineLine.top,
-                  width: '12px',
-                  height: timelineLine.height,
-                  borderLeft: '1px solid rgb(209, 213, 219)', // gray-300
-                  borderTop: '1px solid rgb(209, 213, 219)', // gray-300  
-                  borderBottom: '1px solid rgb(209, 213, 219)', // gray-300
-                  borderTopLeftRadius: '6px',
-                  borderBottomLeftRadius: '6px'
-                }}
-              />
-            )}
+          <div ref={flightCardsRef} className="space-y-4 relative z-10" style={{ width: '100%' }}>
             {flightSegments.map((segment, index) => (
               <FlightCard 
                 key={segment.id} 
@@ -855,9 +936,9 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
           </div>
 
           {/* Create Theme Button below flight cards */}
-          <div className="flex justify-end mt-6">
+          <div className="mt-8 flex flex-row justify-end" style={{ width: 480, marginLeft: 'auto' }}>
             <button
-              className="px-6 py-2 rounded-md bg-black text-white text-base font-semibold hover:bg-gray-800 transition-colors shadow"
+              className="px-4 py-2 rounded-md bg-black text-white text-base font-semibold hover:bg-gray-800 transition-colors shadow"
               onClick={handleCreateTheme}
             >
               Create Theme
@@ -867,31 +948,11 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
       ) : (
         // Route Creation Content
         <>
-          {/* Date Picker Dropdown */}
-          <div className="relative" ref={datePickerRef}>
-            {isDatePickerOpen && (
-              <div className={`absolute left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 ${
-                dropdownPosition === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'
-              }`}>
-                <DatePicker
-                  currentDate={currentDate}
-                  onNavigateMonth={navigateMonth}
-                  selectedDates={dates}
-                  onDateClick={handleDateClick}
-                  onCreateTheme={handleCreateTheme}
-                  onEditDates={handleEditDates}
-                  inputValue={inputValue}
-                  onInputChange={handleInputChange}
-                  setCurrentDate={setCurrentDate}
-                  berlinToday={getBerlinToday()}
-                />
-              </div>
-            )}
-          </div>
+          {/* Date Picker Dropdown removed; now handled in AirportSearch */}
 
           {/* Add Route Label and Input */}
           {dates.length > 0 && (
-            <div className="mt-4 relative">
+            <div className="mt-4 relative" style={{ width: isMinimized ? 480 : '100%' }}>
               <AirportSearch
                 routes={routes}
                 setRoutes={handleRoutesUpdate}
@@ -903,32 +964,33 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
                   newRoutes.splice(index, 1);
                   handleRoutesUpdate(newRoutes);
                 }}
+                defaultLabel="Default Theme"
+                isMinimized={isMinimized} // <-- pass isMinimized
               />
             </div>
           )}
 
           {/* Create Themes Button */}
           {routes.length > 0 && (
-            <div className="mt-8 space-y-3">
+            <div className="mt-8 flex flex-row gap-3 justify-end" style={{ width: 480, marginLeft: 'auto' }}>
               <button
-                className={`w-full px-4 py-2 rounded-md transition-colors
-                  ${routes.length >= 2 
-                    ? 'bg-black text-white hover:bg-gray-800' 
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
-                disabled={routes.length < 2}
-                onClick={handleCreateFlightThemes}
-              >
-                Create flights from route
-              </button>
-              {/* Add New Route Button - Secondary */}
-              <button
-                className="w-full px-4 py-2 rounded-md transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+                className="flex-1 px-4 py-2 rounded-md transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
                 onClick={() => {
                   // Handle add new route logic here
                   console.log('Adding new route...');
                 }}
               >
                 Add new route
+              </button>
+              <button
+                className={`flex-1 px-4 py-2 rounded-md transition-colors
+                  ${routes.length >= 2 
+                    ? 'bg-black text-white hover:bg-gray-800' 
+                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                disabled={routes.length < 2}
+                onClick={handleCreateFlightThemes}
+              >
+                Generate flight plan
               </button>
             </div>
           )}

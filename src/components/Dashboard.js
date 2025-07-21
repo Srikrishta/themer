@@ -75,9 +75,9 @@ export default function Dashboard() {
   }, [dragging]);
 
   return (
-    <div className="h-screen overflow-hidden">
+    <div className="min-h-screen">
       {/* Dashboard Header */}
-      <header className="bg-white border-b border-gray-200 px-8 py-4">
+      <header className="bg-white border-b border-gray-200 px-8 py-3 fixed top-0 left-0 w-full z-50" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <span
@@ -91,7 +91,7 @@ export default function Dashboard() {
         </div>
       </header>
       {/* Mobile Frame Wrapper */}
-      <div className="w-full flex justify-center" style={{ marginTop: -56 }}>
+      <div className="w-full flex justify-center" style={{ marginTop: 180 + 64 + 100 }}>
         <div style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
           <img
             src={process.env.PUBLIC_URL + '/ife-frame.svg'}
@@ -116,6 +116,7 @@ export default function Dashboard() {
           routes={routes}
           setRoutes={setRoutes}
           initialMinimized={minimizeThemeCreator}
+          initialWidth={minimizeThemeCreator ? 318 : undefined}
           onFlightCardSelect={segment => setSelectedSegment(segment)}
           onThemeColorChange={color => setCurrentThemeColor(color)}
         />

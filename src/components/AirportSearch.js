@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { XMarkIcon, ChevronDownIcon, ChevronUpIcon, Bars3Icon, MapPinIcon, ClockIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, ChevronDownIcon, ChevronUpIcon, Bars3Icon, MapPinIcon, ClockIcon, PlusIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import festivalsData from '../data/festivals.json';
+import DatePicker from './DatePicker';
 
 // Airport data
 const AIRPORTS = [
@@ -50,7 +51,7 @@ const getFestivalsForCityAndDates = (city, selectedDates) => {
   return festivals;
 };
 
-function RouteCard({ route, index, moveCard, onRemove, selectedDates = [] }) {
+function RouteCard({ route, index, moveCard, onRemove, selectedDates = [], defaultLabel, dotRef, cardRef }) {
   const ref = useRef(null);
   
   // Get festivals for this route's city
@@ -189,11 +190,11 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [] }) {
   };
 
   // Determine circle color based on festivals
-  const circleColor = routeFestivals.length > 0 ? routeFestivals[0].color : '#6B7280'; // gray-500 default
+  const circleColor = routeFestivals.length > 0 ? routeFestivals[0].color : '#000';
 
   return (
     <div
-      ref={ref}
+      ref={cardRef ? cardRef : ref}
       className="relative w-full mb-2 flex items-center"
       style={{ 
         opacity,
@@ -205,9 +206,8 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [] }) {
       <div className="flex-shrink-0 mr-4 flex justify-center items-center" style={{ width: '24px' }}>
         <div 
           className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold relative z-10"
-          style={{ 
-            backgroundColor: routeFestivals.length > 0 ? routeFestivals[0].color : '#6B7280'
-          }}
+          style={{ backgroundColor: circleColor }}
+          ref={dotRef}
         >
           {index + 1}
         </div>
@@ -243,7 +243,7 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [] }) {
                   {routeFestivals.length > 0 ? (
                     <span className="text-gray-600"> • {routeFestivals[0].name}</span>
                   ) : (
-                    <span className="text-gray-600"> • Default</span>
+                    <span className="text-gray-600"> • {defaultLabel || 'Default'}</span>
                   )}
                 </h3>
                 <div className="text-xs text-gray-400 mt-1 flex items-center gap-3 flex-wrap break-words">
@@ -277,72 +277,23 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [] }) {
   );
 }
 
-function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], inputFieldRef }) {
-  const [timelineHeight, setTimelineHeight] = useState('calc(100% + 80px)');
-  
+function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], inputFieldRef, defaultLabel, lastCardRef }) {
   const moveCard = useCallback((dragIndex, hoverIndex) => {
     const newRoutes = [...routes];
     const [reorderedRoute] = newRoutes.splice(dragIndex, 1);
     newRoutes.splice(hoverIndex, 0, reorderedRoute);
-    
     // Recalculate types after reordering
     const updatedRoutes = newRoutes.map((route, index) => ({
       ...route,
       type: index === 0 ? 'origin' : index === newRoutes.length - 1 ? 'destination' : `leg ${index}`
     }));
-    
     setRoutes(updatedRoutes);
   }, [routes, setRoutes]);
 
-  // Calculate timeline height based on input field position
-  useEffect(() => {
-    const calculateTimelineHeight = () => {
-      if (inputFieldRef?.current) {
-        const inputRect = inputFieldRef.current.getBoundingClientRect();
-        const inputCenter = inputRect.top + (inputRect.height / 2);
-        
-        // Get the route list container position to calculate relative height
-        const routeListElement = inputFieldRef.current.closest('.space-y-4');
-        if (routeListElement) {
-          const routeListRect = routeListElement.getBoundingClientRect();
-          const relativeHeight = inputCenter - routeListRect.top - 20; // Subtract 20px for starting offset
-          setTimelineHeight(`${Math.max(relativeHeight, 60)}px`); // Minimum 60px height
-        }
-      }
-    };
-
-    calculateTimelineHeight();
-    
-    // Recalculate on window resize
-    window.addEventListener('resize', calculateTimelineHeight);
-    return () => window.removeEventListener('resize', calculateTimelineHeight);
-  }, [inputFieldRef, routes.length]); // Re-calculate when routes change
-
   return (
     <div className="relative">
-      {/* Static Line - connects dots in the left margin */}
-      {routes.length > 1 && (
-        <>
-          {/* Combined timeline path - dynamically sized to input field center */}
-          <div 
-            className="absolute z-0"
-            style={{
-              left: '12px',
-              top: '20px',
-              width: '12px',
-              height: timelineHeight, // Dynamic height based on input field position
-              borderLeft: '1px solid rgb(209, 213, 219)', // gray-300
-              borderTop: '1px solid rgb(209, 213, 219)', // gray-300  
-              borderBottom: '1px solid rgb(209, 213, 219)', // gray-300
-              borderTopLeftRadius: '6px',
-              borderBottomLeftRadius: '6px'
-            }}
-          />
-        </>
-      )}
-      
       {/* Route Cards */}
-      <div className="relative z-10">
+      <div className="relative z-10 flex flex-row gap-x-4 items-start">
         {routes.map((route, index) => (
           <RouteCard
             key={route.id}
@@ -351,6 +302,8 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
             moveCard={moveCard}
             onRemove={() => onRemoveRoute(index)}
             selectedDates={selectedDates}
+            defaultLabel={defaultLabel}
+            cardRef={index === routes.length - 1 ? lastCardRef : undefined}
           />
         ))}
       </div>
@@ -358,14 +311,82 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
   );
 }
 
-function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [] }) {
+function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized }) {
+  // Date picker state and logic (moved from ThemeCreator)
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [dates, setDates] = useState(selectedDates || []);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [inputValue, setInputValue] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const datePickerRef = useRef(null);
+  const [dropdownPosition, setDropdownPosition] = useState('down');
+
+  // Airport search dropdown state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [dropdownPosition, setDropdownPosition] = useState('down'); // 'up' or 'down'
-  
+
+  const dateToString = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleDateClick = (date, fromTyping = false) => {
+    const dateString = dateToString(date);
+    const currentDates = dates || [];
+    if (fromTyping || isTyping) {
+      setDates([dateString]);
+      return;
+    }
+    if (currentDates.length === 0 || currentDates.includes(dateString)) {
+      setDates([dateString]);
+      return;
+    }
+    if (currentDates.length === 1) {
+      const existingDate = new Date(currentDates[0] + 'T12:00:00');
+      const newDate = new Date(dateString + 'T12:00:00');
+      const sortedDates = [existingDate, newDate].sort((a, b) => a - b);
+      setDates([
+        dateToString(sortedDates[0]),
+        dateToString(sortedDates[1])
+      ]);
+      return;
+    }
+    setDates([dateString]);
+  };
+
+  const handleInputChange = (value, navigateToDate) => {
+    setInputValue(value);
+    setIsTyping(true);
+    if (!isDatePickerOpen) {
+      setIsDatePickerOpen(true);
+    }
+    if (navigateToDate) {
+      setCurrentDate(navigateToDate);
+    }
+  };
+
+  const handleCreateTheme = () => {
+    setIsDatePickerOpen(false);
+    setInputValue('');
+  };
+
+  const handleEditDates = () => {
+    setIsDatePickerOpen(true);
+  };
+
+  const navigateMonth = (direction) => {
+    const oldDate = currentDate;
+    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1);
+    setCurrentDate(newDate);
+  };
+
   // Refs for positioning
   const dropdownRef = useRef(null);
   const inputFieldRef = useRef(null);
+  const lastCardRef = useRef(null);
+  const [linePos, setLinePos] = useState({ top: 0, height: 0 });
 
   // Function to calculate dropdown position
   const calculateDropdownPosition = () => {
@@ -467,76 +488,108 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     }
   };
 
+  // Calculate line position and height
+  useEffect(() => {
+    const calcLine = () => {
+      if (!inputFieldRef?.current || !lastCardRef.current) return;
+      const inputRect = inputFieldRef.current.getBoundingClientRect();
+      const lastCardRect = lastCardRef.current.getBoundingClientRect();
+      const container = inputFieldRef.current.closest('.space-y-4');
+      if (!container) return;
+      const containerRect = container.getBoundingClientRect();
+      // Center of input field
+      const inputCenter = inputRect.top + inputRect.height / 2 - containerRect.top;
+      // Center of last card
+      const lastCardCenter = lastCardRect.top + lastCardRect.height / 2 - containerRect.top;
+      // Line starts at inputCenter, ends at lastCardCenter
+      const top = inputCenter;
+      const height = lastCardCenter - inputCenter;
+      setLinePos({ top, height });
+      console.log('Timeline line height:', height, 'px'); // <-- log the height
+    };
+    if (routes.length > 0) {
+      calcLine();
+      window.addEventListener('resize', calcLine);
+      return () => window.removeEventListener('resize', calcLine);
+    }
+  }, [routes.length, inputFieldRef, isMinimized]); // <-- add isMinimized
+
   return (
     <div className="space-y-4 relative">
-      {/* Route Cards with Drag and Drop */}
-      {routes.length > 0 && (
-        <RouteList 
-          routes={routes} 
-          setRoutes={setRoutes} 
-          onRemoveRoute={onRemoveRoute}
-          selectedDates={selectedDates}
-          inputFieldRef={inputFieldRef}
-        />
-      )}
-
-      {/* Divider between route cards and input field - shortened to avoid timeline overlap */}
-      {/* Removed divider as per request */}
-
-            <div className="relative" ref={dropdownRef}>
+      {/* Timeline line - from input field center to last card center */}
+      {/* Input field and badges - now above route cards */}
+      <div className="relative" ref={dropdownRef}>
         {/* Custom input container with badges - offset to avoid timeline overlap */}
-        <div ref={inputFieldRef} className={`relative min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-0 ${routes.length > 0 ? 'w-[calc(100%-2rem)] ml-8' : 'w-full'}`}>
-          {/* Airport badges - showing only available airports (not in routes) */}
-          <div className="flex flex-wrap gap-2 items-center">
-            {AIRPORTS.filter(airport => !routes.some(route => route.airport.code === airport.code))
-              .map((airport) => {
-              // Only show airports that aren't already in routes
-              const themeColor = '#D1D5DB'; // Default gray-300 for available badges
-              
-              return (
-                <span 
-                  key={airport.code} 
-                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all cursor-pointer bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 hover:text-gray-600"
-                  onClick={() => handleBadgeClick(airport, false)}
-                >
-                  {/* Colored dot */}
-                  <div 
-                    className="w-2 h-2 rounded-full mr-1.5 flex-shrink-0"
-                    style={{ backgroundColor: themeColor }}
-                  />
-                  {airport.code}
-                  {/* Plus icon */}
-                  <div className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-gray-200 transition-colors">
-                    <PlusIcon className="w-3 h-3" />
-                  </div>
-                </span>
-              );
-            })}
-            
-            {/* Input field - hidden when not searching */}
-            {searchTerm && (
-              <input
-                id="airport-search"
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search airports..."
-                className="flex-1 min-w-[120px] outline-none bg-transparent text-gray-900 placeholder-gray-400"
-              />
-            )}
+        <div ref={inputFieldRef} className={`relative min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-0 ${routes.length > 0 ? 'w-80 ml-8' : 'w-80'}`}>
+          {/* Airport badges and date picker button in a row */}
+          <div className="flex flex-row items-center gap-2">
+            {/* Airport badges - showing only available airports (not in routes) */}
+            <div className="flex flex-wrap gap-2 items-center">
+              {AIRPORTS.filter(airport => !routes.some(route => route.airport.code === airport.code)).map((airport) => {
+                // Only show airports that aren't already in routes
+                const themeColor = '#D1D5DB'; // Default gray-300 for available badges
+                return (
+                  <span 
+                    key={airport.code} 
+                    className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all cursor-pointer bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 hover:text-gray-600"
+                    onClick={() => handleBadgeClick(airport, false)}
+                  >
+                    {/* Colored dot */}
+                    <div 
+                      className="w-2 h-2 rounded-full mr-1.5 flex-shrink-0"
+                      style={{ backgroundColor: themeColor }}
+                    />
+                    {airport.code}
+                    {/* Plus icon */}
+                    <div className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-gray-200 transition-colors">
+                      <PlusIcon className="w-3 h-3" />
+                    </div>
+                  </span>
+                );
+              })}
+              {/* Input field - hidden when not searching */}
+              {searchTerm && (
+                <input
+                  id="airport-search"
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search airports..."
+                  className="flex-1 min-w-[120px] outline-none bg-transparent text-gray-900 placeholder-gray-400"
+                />
+              )}
+              {/* Show message if all airports are selected */}
+              {AIRPORTS.every(airport => routes.some(route => route.airport.code === airport.code)) && !searchTerm && (
+                <span className="text-gray-300 text-sm select-none">All airports have been selected</span>
+              )}
+            </div>
+            {/* Date picker button (moved from ThemeCreator) */}
+            <button
+              type="button"
+              className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-bold bg-gray-100 border border-gray-300 text-gray-900 hover:bg-gray-200 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md ml-2"
+              onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+            >
+              <CalendarIcon className="w-3 h-3 mr-1.5" />
+              {dates.length === 2 ? `${dates[0]} to ${dates[1]}` : dates.length === 1 ? dates[0] : 'Select date'}
+            </button>
           </div>
-          
-          {/* Dropdown button */}
-          <button
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
-          >
-            {isDropdownOpen ? (
-              <ChevronUpIcon className="w-5 h-5" />
-            ) : (
-              <ChevronDownIcon className="w-5 h-5" />
-            )}
-          </button>
+          {/* Date Picker Dropdown */}
+          {isDatePickerOpen && (
+            <div className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 top-full mt-1" style={{ width: '100%', maxHeight: 240, overflowY: 'auto' }}>
+              <DatePicker
+                currentDate={currentDate}
+                onNavigateMonth={navigateMonth}
+                selectedDates={dates}
+                onDateClick={handleDateClick}
+                onCreateTheme={handleCreateTheme}
+                onEditDates={handleEditDates}
+                inputValue={inputValue}
+                onInputChange={handleInputChange}
+                setCurrentDate={setCurrentDate}
+                berlinToday={new Date()}
+              />
+            </div>
+          )}
         </div>
         
         {/* Label - adjusted for offset container */}
@@ -549,49 +602,48 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
 
         {/* Dropdown */}
         {isDropdownOpen && (
-          <div className={`absolute z-[9999] w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto scrollbar-thin ${
-            dropdownPosition === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'
-          }`}>
-          {/* Search input in dropdown */}
-          <div className="p-3 border-b border-gray-100">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search airports..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              autoFocus
-            />
-          </div>
-          
-          {Object.keys(groupedAirports).length > 0 ? (
-            Object.entries(groupedAirports).map(([country, airports]) => (
-              <div key={country}>
-                {/* Country Header */}
-                <div className="sticky top-0 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-100">
-                  {country}
-                </div>
-                {/* Airports in Country */}
-                {airports.map(airport => (
-                  <button
-                    key={airport.code}
-                    onClick={() => handleAirportSelect(airport)}
-                    className="w-full text-left p-3 hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors"
-                  >
-                    <h3 className="text-lg font-medium text-gray-900">{airport.code}</h3>
-                    <p className="text-sm text-gray-500">{airport.city}, {airport.country}</p>
-                  </button>
-                ))}
+          <div className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 top-full mt-1" style={{ width: '100%', maxHeight: 240, overflowY: 'auto' }}>
+            {/* Date picker content goes here (replace with your actual date picker component) */}
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <button data-navigation="true" className="hover:bg-gray-100 p-2 rounded bg-white cursor-pointer">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon" className="w-5 h-5 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"></path></svg>
+                </button>
+                <span className="text-xs font-medium">July 2025</span>
+                <button data-navigation="true" className="hover:bg-gray-100 p-2 rounded bg-white cursor-pointer">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon" className="w-5 h-5 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"></path></svg>
+                </button>
               </div>
-            ))
-          ) : (
-            <div className="p-3 text-gray-500 text-center">
-              {searchTerm ? 'No airports found' : 'All airports have been selected'}
+              <div className="grid grid-cols-7 gap-y-2 gap-x-0">
+                <div className="text-center text-xs text-gray-500 py-2">M</div>
+                <div className="text-center text-xs text-gray-500 py-2">T</div>
+                <div className="text-center text-xs text-gray-500 py-2">W</div>
+                <div className="text-center text-xs text-gray-500 py-2">T</div>
+                <div className="text-center text-xs text-gray-500 py-2">F</div>
+                <div className="text-center text-xs text-gray-500 py-2">S</div>
+                <div className="text-center text-xs text-gray-500 py-2">S</div>
+                {/* ...date buttons here... */}
+                <button disabled title="• Tollwood Festival (Summer) - Munich 🇩🇪" className="w-full h-10 text-xs flex flex-col items-center justify-center relative text-gray-400 cursor-not-allowed"><span className="mb-0.5">30</span><div className="flex items-end justify-center h-2 -space-x-1"><div className="w-2 h-2 rounded-full border border-white" style={{backgroundColor: 'rgb(124, 58, 237)', zIndex: 1}}></div></div></button>
+                {/* ...more date buttons as needed... */}
+              </div>
+              <div className="mt-4 flex justify-center"></div>
             </div>
-          )}
-        </div>
+          </div>
         )}
       </div>
+
+      {/* Route Cards with Drag and Drop - now below input field */}
+      {routes.length > 0 && (
+        <RouteList 
+          routes={routes} 
+          setRoutes={setRoutes} 
+          onRemoveRoute={onRemoveRoute}
+          selectedDates={selectedDates}
+          inputFieldRef={inputFieldRef}
+          defaultLabel={defaultLabel}
+          lastCardRef={lastCardRef}
+        />
+      )}
     </div>
   );
 }
