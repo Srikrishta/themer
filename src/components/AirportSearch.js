@@ -1,9 +1,9 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { XMarkIcon, ChevronDownIcon, ChevronUpIcon, Bars3Icon, MapPinIcon, ClockIcon, PlusIcon, CalendarIcon } from '@heroicons/react/24/outline';
-import festivalsData from '../data/festivals.json';
+import { CalendarIcon, PlusIcon, MapPinIcon, ClockIcon, Bars3Icon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import DatePicker from './DatePicker';
+import festivalsData from '../data/festivals.json';
 
 // Airport data
 const AIRPORTS = [
@@ -287,26 +287,34 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
   return (
     <div className="relative">
       {/* Route Cards */}
-      <div className="relative z-10 flex flex-row gap-x-4 items-start w-full">
+      <div className="relative z-10 flex flex-row items-start w-full">
         {routes.map((route, index) => (
-          <div key={route.id} className="flex-1">
-            <RouteCard
-              route={route}
-              index={index}
-              moveCard={moveCard}
-              onRemove={() => onRemoveRoute(index)}
-              selectedDates={selectedDates}
-              defaultLabel={defaultLabel}
-              cardRef={index === routes.length - 1 ? lastCardRef : undefined}
-            />
-          </div>
+          <React.Fragment key={route.id}>
+            <div className="flex-1">
+              <RouteCard
+                route={route}
+                index={index}
+                moveCard={moveCard}
+                onRemove={() => onRemoveRoute(index)}
+                selectedDates={selectedDates}
+                defaultLabel={defaultLabel}
+                cardRef={index === routes.length - 1 ? lastCardRef : undefined}
+              />
+            </div>
+            {/* Arrow between cards - show for all except the last card */}
+            {index < routes.length - 1 && (
+              <div className="flex items-center justify-center px-3 py-8">
+                <ChevronRightIcon className="w-6 h-6 text-gray-400" />
+              </div>
+            )}
+          </React.Fragment>
         ))}
       </div>
     </div>
   );
 }
 
-function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized }) {
+function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized }) {
   // Date picker state and logic (moved from ThemeCreator)
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [dates, setDates] = useState(selectedDates || []);
@@ -319,6 +327,8 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
   // Airport search dropdown state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Toggle state is now controlled by parent ThemeCreator via isMinimized prop
 
   const dateToString = (date) => {
     const year = date.getFullYear();
@@ -512,119 +522,111 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
   return (
     <div className="space-y-4 relative">
       {/* Timeline line - from input field center to last card center */}
-      {/* Input field and badges - now above route cards */}
-      <div className="relative" ref={dropdownRef}>
-        {/* Custom input container with badges - offset to avoid timeline overlap */}
-        <div ref={inputFieldRef} className="relative min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-0 w-[700px]">
-          {/* Airport badges and date picker button in a row */}
-          <div className="flex flex-row items-center gap-2">
-            {/* Airport badges - showing only available airports (not in routes) */}
-            <div className="flex flex-wrap gap-2 items-center">
-              {AIRPORTS.filter(airport => !routes.some(route => route.airport.code === airport.code)).map((airport) => {
-                // Only show airports that aren't already in routes
-                const themeColor = '#D1D5DB'; // Default gray-300 for available badges
-                return (
-                  <span 
-                    key={airport.code} 
-                    className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all cursor-pointer bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 hover:text-gray-600"
-                    onClick={() => handleBadgeClick(airport, false)}
-                  >
-                    {/* Colored dot */}
-                    <div 
-                      className="w-2 h-2 rounded-full mr-1.5 flex-shrink-0"
-                      style={{ backgroundColor: themeColor }}
-                    />
-                    {airport.code}
-                    {/* Plus icon */}
-                    <div className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-gray-200 transition-colors">
-                      <PlusIcon className="w-3 h-3" />
-                    </div>
-                  </span>
-                );
-              })}
-              {/* Input field - hidden when not searching */}
-              {searchTerm && (
-                <input
-                  id="airport-search"
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search airports..."
-                  className="flex-1 min-w-[120px] outline-none bg-transparent text-gray-900 placeholder-gray-400"
+      {/* Input field and toggle button container */}
+      <div className="flex items-center gap-3">
+        {/* Input field and badges */}
+        <div className="relative flex-1" ref={dropdownRef}>
+          {/* Custom input container with badges - offset to avoid timeline overlap */}
+          <div ref={inputFieldRef} className="relative min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-0 w-full">
+            {/* Airport badges and date picker button in a row */}
+            <div className="flex flex-row items-center justify-between w-full">
+              {/* Airport badges - showing only available airports (not in routes) */}
+              <div className="flex flex-wrap gap-2 items-center flex-1">
+                {AIRPORTS.filter(airport => !routes.some(route => route.airport.code === airport.code)).map((airport) => {
+                  // Only show airports that aren't already in routes
+                  const themeColor = '#D1D5DB'; // Default gray-300 for available badges
+                  return (
+                    <span 
+                      key={airport.code} 
+                      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all cursor-pointer bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 hover:text-gray-600"
+                      onClick={() => handleBadgeClick(airport, false)}
+                    >
+                      {/* Colored dot */}
+                      <div 
+                        className="w-2 h-2 rounded-full mr-1.5 flex-shrink-0"
+                        style={{ backgroundColor: themeColor }}
+                      />
+                      {airport.code}
+                      {/* Plus icon */}
+                      <div className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-gray-200 transition-colors">
+                        <PlusIcon className="w-3 h-3" />
+                      </div>
+                    </span>
+                  );
+                })}
+                {/* Input field - hidden when not searching */}
+                {searchTerm && (
+                  <input
+                    id="airport-search"
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search airports..."
+                    className="flex-1 min-w-[120px] outline-none bg-transparent text-gray-900 placeholder-gray-400"
+                  />
+                )}
+                {/* Show message if all airports are selected */}
+                {AIRPORTS.every(airport => routes.some(route => route.airport.code === airport.code)) && !searchTerm && (
+                  <span className="text-gray-300 text-sm select-none">All airports have been selected</span>
+                )}
+              </div>
+              
+              {/* Date picker button - positioned at right end inside input field */}
+              <button
+                type="button"
+                className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-bold bg-gray-100 border border-gray-300 text-gray-900 hover:bg-gray-200 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md flex-shrink-0"
+                onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+              >
+                <CalendarIcon className="w-3 h-3 mr-1.5" />
+                {dates.length === 2 ? `${dates[0]} to ${dates[1]}` : dates.length === 1 ? dates[0] : 'Select date'}
+              </button>
+            </div>
+            
+            {/* Date Picker Dropdown */}
+            {isDatePickerOpen && (
+              <div className="absolute right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 top-full mt-1" style={{ width: '400px' }}>
+                <DatePicker
+                  currentDate={currentDate}
+                  onNavigateMonth={navigateMonth}
+                  selectedDates={dates}
+                  onDateClick={handleDateClick}
+                  onCreateTheme={handleCreateTheme}
+                  onEditDates={handleEditDates}
+                  inputValue={inputValue}
+                  onInputChange={handleInputChange}
+                  setCurrentDate={setCurrentDate}
+                  berlinToday={new Date()}
                 />
-              )}
-              {/* Show message if all airports are selected */}
-              {AIRPORTS.every(airport => routes.some(route => route.airport.code === airport.code)) && !searchTerm && (
-                <span className="text-gray-300 text-sm select-none">All airports have been selected</span>
-              )}
-            </div>
-            {/* Date picker button (moved from ThemeCreator) */}
-            <button
-              type="button"
-              className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-bold bg-gray-100 border border-gray-300 text-gray-900 hover:bg-gray-200 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md ml-2"
-              onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
-            >
-              <CalendarIcon className="w-3 h-3 mr-1.5" />
-              {dates.length === 2 ? `${dates[0]} to ${dates[1]}` : dates.length === 1 ? dates[0] : 'Select date'}
-            </button>
+              </div>
+            )}
           </div>
-          {/* Date Picker Dropdown */}
-          {isDatePickerOpen && (
-            <div className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 top-full mt-1" style={{ width: '100%', maxHeight: 240, overflowY: 'auto' }}>
-              <DatePicker
-                currentDate={currentDate}
-                onNavigateMonth={navigateMonth}
-                selectedDates={dates}
-                onDateClick={handleDateClick}
-                onCreateTheme={handleCreateTheme}
-                onEditDates={handleEditDates}
-                inputValue={inputValue}
-                onInputChange={handleInputChange}
-                setCurrentDate={setCurrentDate}
-                berlinToday={new Date()}
-              />
-            </div>
-          )}
+          
+          {/* Label - adjusted for offset container */}
+          <label 
+            htmlFor="airport-search" 
+            className="absolute -top-2.5 bg-gray-50 px-2 text-sm font-medium text-gray-600 left-3"
+          >
+            Add route
+          </label>
         </div>
         
-        {/* Label - adjusted for offset container */}
-        <label 
-          htmlFor="airport-search" 
-          className="absolute -top-2.5 bg-gray-50 px-2 text-sm font-medium text-gray-600 left-3"
+        {/* Toggle button - positioned outside and to the right of input field */}
+        <button
+          type="button"
+          className={`inline-flex items-center p-2 rounded-md text-sm font-bold transition-all duration-200 shadow-sm hover:shadow-md flex-shrink-0 ${
+            isMinimized 
+              ? 'bg-gray-100 border border-gray-300 text-gray-900 hover:bg-gray-200 hover:border-gray-400'
+              : 'bg-indigo-100 border border-indigo-300 text-indigo-900 hover:bg-indigo-200' 
+          }`}
+          onClick={() => {
+            if (typeof onToggleMinimized === 'function') {
+              onToggleMinimized();
+            }
+          }}
+          title={isMinimized ? "Expand ThemeCreator" : "Collapse ThemeCreator"}
         >
-          Add route
-        </label>
-
-        {/* Dropdown */}
-        {isDropdownOpen && (
-          <div className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 top-full mt-1" style={{ width: '100%', maxHeight: 240, overflowY: 'auto' }}>
-            {/* Date picker content goes here (replace with your actual date picker component) */}
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <button data-navigation="true" className="hover:bg-gray-100 p-2 rounded bg-white cursor-pointer">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon" className="w-5 h-5 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"></path></svg>
-                </button>
-                <span className="text-xs font-medium">July 2025</span>
-                <button data-navigation="true" className="hover:bg-gray-100 p-2 rounded bg-white cursor-pointer">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon" className="w-5 h-5 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"></path></svg>
-                </button>
-              </div>
-              <div className="grid grid-cols-7 gap-y-2 gap-x-0">
-                <div className="text-center text-xs text-gray-500 py-2">M</div>
-                <div className="text-center text-xs text-gray-500 py-2">T</div>
-                <div className="text-center text-xs text-gray-500 py-2">W</div>
-                <div className="text-center text-xs text-gray-500 py-2">T</div>
-                <div className="text-center text-xs text-gray-500 py-2">F</div>
-                <div className="text-center text-xs text-gray-500 py-2">S</div>
-                <div className="text-center text-xs text-gray-500 py-2">S</div>
-                {/* ...date buttons here... */}
-                <button disabled title="• Tollwood Festival (Summer) - Munich 🇩🇪" className="w-full h-10 text-xs flex flex-col items-center justify-center relative text-gray-400 cursor-not-allowed"><span className="mb-0.5">30</span><div className="flex items-end justify-center h-2 -space-x-1"><div className="w-2 h-2 rounded-full border border-white" style={{backgroundColor: 'rgb(124, 58, 237)', zIndex: 1}}></div></div></button>
-                {/* ...more date buttons as needed... */}
-              </div>
-              <div className="mt-4 flex justify-center"></div>
-            </div>
-          </div>
-        )}
+          <Bars3Icon className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Route Cards with Drag and Drop - now below input field */}

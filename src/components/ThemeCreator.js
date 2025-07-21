@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
-import { CalendarIcon, ArrowLeftIcon, ChevronDownIcon, ChevronUpIcon, ChevronLeftIcon, ChevronRightIcon, ViewColumnsIcon } from '@heroicons/react/24/outline';
+import React, { useState, useEffect, useRef } from 'react';
+import { CalendarIcon, ArrowLeftIcon, ChevronDownIcon, ChevronUpIcon, ChevronLeftIcon, ChevronRightIcon, ViewColumnsIcon, PlusIcon, PencilIcon } from '@heroicons/react/24/outline';
 import AirportSearch from './AirportSearch';
 import DatePicker from './DatePicker';
 import festivalsData from '../data/festivals.json';
 import { HexColorPicker } from 'react-colorful';
 
-export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFlightCardSelect, onThemeColorChange, initialWidth }) {
+export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFlightCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode }) {
   // Get current date in Berlin timezone for initial state
   const getBerlinTodayString = () => {
     const now = new Date();
@@ -27,10 +27,17 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
 
 
   // NEW: Theme creation state
-  const [isCreatingThemes, setIsCreatingThemes] = useState(false);
+  const [isCreatingThemes, setIsCreatingThemes] = useState(initialFlightCreationMode || false);
   
   // Minimize/maximize state
   const [isMinimized, setIsMinimized] = useState(initialMinimized || false);
+
+  // Notify parent when minimized state or flight creation state changes
+  useEffect(() => {
+    if (typeof onStateChange === 'function') {
+      onStateChange(isMinimized, isCreatingThemes);
+    }
+  }, [isMinimized, isCreatingThemes, onStateChange]);
 
   // Refs
   const datePickerRef = useRef(null);
@@ -403,27 +410,22 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
         {/* Flight Card Content */}
         <div className="w-full">
           <div className="p-3 rounded-lg border shadow-sm transition-all w-full bg-white border-gray-200 hover:border-gray-300 hover:shadow-md">
-            {/* Flight number dot at top center */}
-            <div className="flex justify-center mb-3">
+            {/* Route info with numbered dot on left */}
+            <div className="mb-3 flex items-center gap-2">
               <div 
-                className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold"
+                className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
                 style={{ backgroundColor: (() => {
                   const selectedThemeId = selectedThemes[segment.id];
                   const selectedTheme = themeOptions.find(t => t.id === selectedThemeId);
                   return selectedTheme ? selectedTheme.color : '#1E1E1E';
                 })() }}
               >
-                {segment.flightNumber}
+                {index + 1}
               </div>
-            </div>
-            {/* Route info - centered and compact */}
-            <div className="mb-3 text-center">
-              <div className="text-sm text-gray-900 space-y-1">
-                <div className="font-medium">{segment.origin.airport.city}</div>
-                <div className="text-xs text-gray-400">({segment.origin.airport.code})</div>
-                <div className="text-gray-400">↓</div>
-                <div className="font-medium">{segment.destination.airport.city}</div>
-                <div className="text-xs text-gray-400">({segment.destination.airport.code})</div>
+              <div className="text-base text-gray-900">
+                <span className="font-medium">{segment.origin.airport.city}</span>
+                <span className="text-gray-400 mx-2">→</span>
+                <span className="font-medium">{segment.destination.airport.city}</span>
               </div>
             </div>
             {/* Conditional rendering based on active state */}
@@ -515,6 +517,24 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
                 </span>
               </div>
             )}
+            
+            {/* Build Theme Button */}
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <button
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  console.log(`Entering prompt mode for ${segment.origin.airport.city} → ${segment.destination.airport.city}`);
+                  if (typeof onEnterPromptMode === 'function') {
+                    onEnterPromptMode();
+                  }
+                }}
+              >
+                <PencilIcon className="w-4 h-4" />
+                Build theme
+              </button>
+            </div>
+            
             {/* Last card bottom ref for timeline */}
             {index === flightSegments.length - 1 && <div ref={lastCardBottomRef} style={{ height: 0 }} />}
           </div>
@@ -622,10 +642,10 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
         width: isMinimized ? `${containerWidth}px` : `${IFE_FRAME_WIDTH}px`,
         minWidth: isMinimized ? `${minWidth}px` : `${IFE_FRAME_WIDTH}px`,
         maxWidth: isMinimized ? `${maxWidth}px` : `${IFE_FRAME_WIDTH}px`,
-        height: isMinimized ? '72px' : 'auto',
-        maxHeight: isMinimized ? '72px' : 'none',
+        height: isMinimized ? '48px' : 'auto',
+        maxHeight: isMinimized ? '48px' : 'none',
         transition: 'width 0.2s, height 0.2s',
-        padding: isMinimized && containerWidth === minWidth ? '8px 20px' : undefined,
+        padding: isMinimized && containerWidth === minWidth ? '12px 20px' : undefined,
         backgroundColor: isMinimized ? 'white' : undefined, // Solid white fill when minimized
         borderRadius: isMinimized ? '100px' : undefined, // 100px radius when minimized
         marginTop: '24px', // 24px space from header
@@ -633,32 +653,69 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
     >
 
       {/* Toggle Icon - Positioned based on state */}
-      <button
-        className={`absolute top-4 p-1 rounded-full hover:bg-gray-100 transition-colors z-10 ${
-          isMinimized ? 'right-2' : 'right-4'
-        }`}
-        onClick={e => {
-          e.stopPropagation();
-          setIsMinimized(!isMinimized);
-          if (!isMinimized) {
-            setIsDatePickerOpen(false);
-            setInputValue('');
-            setIsTyping(false);
-            setContainerWidth(minWidth); // Always set to minWidth (318px) when minimizing
-          }
-        }}
-        title={isMinimized ? "Expand" : "Collapse"}
-      >
-        <ViewColumnsIcon className="w-5 h-5 text-gray-500" />
-      </button>
+      {!(isMinimized && containerWidth === minWidth) && (
+        <button
+          className={`absolute top-4 p-1 rounded-full hover:bg-gray-100 transition-colors z-10 ${
+            isMinimized ? 'right-2' : 'right-4'
+          }`}
+          onClick={e => {
+            e.stopPropagation();
+            setIsMinimized(!isMinimized);
+            if (!isMinimized) {
+              setIsDatePickerOpen(false);
+              setInputValue('');
+              setIsTyping(false);
+              setContainerWidth(minWidth); // Always set to minWidth (318px) when minimizing
+            }
+          }}
+          title={isMinimized ? "Expand" : "Collapse"}
+        >
+          <ViewColumnsIcon className="w-5 h-5 text-gray-500" />
+        </button>
+      )}
 
       {/* Header - Changes based on state */}
-      <div className="mb-4 flex flex-col items-start select-none w-full">
+      <div className={`flex flex-col items-start select-none w-full ${isMinimized && containerWidth === minWidth ? 'h-full justify-center mb-0' : 'mb-4'}`}>
         <div style={{ width: isMinimized ? '100%' : 480, maxWidth: '100%' }} className="flex flex-row items-center w-full justify-between">
-          {/* Collapsed + min width: show only add route label */}
+          {/* Collapsed + min width: show route creator or create route */}
           {isMinimized && containerWidth === minWidth ? (
-            <div className="flex items-center w-full">
-              <span className="text-sm font-medium text-gray-700">Add route</span>
+            <div 
+              className={`flex items-center w-full ${routes.length === 0 ? 'justify-center cursor-pointer' : 'justify-between'}`}
+                             onClick={routes.length === 0 ? (e) => {
+                 e.stopPropagation();
+                 if (onExpand) {
+                   onExpand();
+                 } else {
+                   setIsMinimized(false);
+                   setContainerWidth(480);
+                 }
+               } : undefined}
+            >
+              <span className="text-lg font-semibold text-gray-700">
+                {routes.length === 0 ? 'Create route' : 'Route creator'}
+              </span>
+              {routes.length > 0 && (
+                <button
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (isMinimized && onExpand) {
+                      onExpand();
+                    } else {
+                      setIsMinimized(!isMinimized);
+                      if (!isMinimized) {
+                        setIsDatePickerOpen(false);
+                        setInputValue('');
+                        setIsTyping(false);
+                        setContainerWidth(minWidth);
+                      }
+                    }
+                  }}
+                  className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                  title="Expand"
+                >
+                  <ViewColumnsIcon className="w-5 h-5 text-gray-500" />
+                </button>
+              )}
             </div>
           ) : (
             <div className="flex items-center gap-2">
@@ -684,7 +741,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
         // Theme Creation Content
         <>
           {/* Date Picker Dropdown for Flights of view */}
-          <div className="relative" ref={datePickerRef} style={{ width: 480 }}>
+          <div className="relative" ref={datePickerRef} style={{ width: 320 }}>
             {isDatePickerOpen && (
               <div className={`absolute left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 ${
                 dropdownPosition === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'
@@ -705,25 +762,34 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
             )}
           </div>
           {/* Flight Cards */}
-          <div ref={flightCardsRef} className="grid grid-cols-4 gap-4 relative z-10" style={{ width: '100%' }}>
+          <div ref={flightCardsRef} className="flex flex-row items-start relative z-10" style={{ width: '100%' }}>
             {flightSegments.map((segment, index) => (
-              <FlightCard 
-                key={segment.id} 
-                segment={segment} 
-                index={index}
-                activeFlightIndex={activeFlightIndex}
-                setActiveFlightIndex={setActiveFlightIndex}
-              />
+              <React.Fragment key={segment.id}>
+                <div className="flex-1">
+                  <FlightCard 
+                    segment={segment} 
+                    index={index}
+                    activeFlightIndex={activeFlightIndex}
+                    setActiveFlightIndex={setActiveFlightIndex}
+                  />
+                </div>
+                {/* Arrow between flight cards - show for all except the last card */}
+                {index < flightSegments.length - 1 && (
+                  <div className="flex items-center justify-center px-3 py-8">
+                    <ChevronRightIcon className="w-6 h-6 text-gray-400" />
+                  </div>
+                )}
+              </React.Fragment>
             ))}
           </div>
 
           {/* Create Theme Button below flight cards */}
-          <div className="mt-8 flex flex-row justify-start" style={{ width: 700 }}>
+          <div className="mt-8 flex flex-row justify-start">
             <button
-              className="px-4 py-2 rounded-md bg-black text-white text-base font-semibold hover:bg-gray-800 transition-colors shadow"
+              className="w-[160px] h-10 px-4 rounded-full transition-colors bg-black text-white hover:bg-gray-800 flex items-center justify-center"
               onClick={handleCreateTheme}
             >
-              Create Theme
+              Create theme
             </button>
           </div>
         </>
@@ -734,7 +800,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
 
           {/* Add Route Label and Input */}
           {dates.length > 0 && (
-            <div className="mt-4 relative" style={{ width: 700 }}>
+            <div className="mt-4 relative w-full">
               <AirportSearch
                 routes={routes}
                 setRoutes={handleRoutesUpdate}
@@ -747,32 +813,47 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
                   handleRoutesUpdate(newRoutes);
                 }}
                 defaultLabel="Default Theme"
-                isMinimized={isMinimized} // <-- pass isMinimized
+                isMinimized={isMinimized}
+                onToggleMinimized={() => {
+                  setIsMinimized(!isMinimized);
+                  if (!isMinimized) {
+                    // When collapsing, close any open dropdowns and reset input
+                    setIsDatePickerOpen(false);
+                    setInputValue('');
+                    setIsTyping(false);
+                    setContainerWidth(minWidth);
+                  } else {
+                    // When expanding, restore to full width
+                    setContainerWidth(480);
+                  }
+                }}
               />
             </div>
           )}
 
-          {/* Create Themes Button */}
+          {/* Action Buttons */}
           {routes.length > 0 && (
-            <div className="mt-8 flex flex-row gap-3 justify-start" style={{ width: 700 }}>
+            <div className="mt-8 flex flex-row gap-3 justify-start">
               <button
-                className="flex-1 px-4 py-2 rounded-md transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+                className="w-10 h-10 rounded-full transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 flex items-center justify-center"
                 onClick={() => {
                   // Handle add new route logic here
                   console.log('Adding new route...');
                 }}
+                title="Add new route"
               >
-                Add new route
+                <PlusIcon className="w-5 h-5" />
               </button>
               <button
-                className={`flex-1 px-4 py-2 rounded-md transition-colors
-                  ${routes.length >= 2 
+                className={`w-[160px] h-10 px-4 rounded-full transition-colors flex items-center justify-center ${
+                  routes.length >= 2 
                     ? 'bg-black text-white hover:bg-gray-800' 
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                }`}
                 disabled={routes.length < 2}
                 onClick={handleCreateFlightThemes}
               >
-                Generate flight plan
+                Generate flights
               </button>
             </div>
           )}

@@ -16,7 +16,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFlightMinutes = 370, minutesLeft: externalMinutesLeft, onProgressChange, themeColor = '#1E1E1E' }) {
+export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFlightMinutes = 370, minutesLeft: externalMinutesLeft, onProgressChange, themeColor = '#1E1E1E', isPromptMode = false, onPromptHover, onPromptClick }) {
   const barWidth = 1302;
   const [dragging, setDragging] = useState(false);
   const [showPlusButton, setShowPlusButton] = useState(false);
@@ -102,7 +102,28 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
         ref={iconRef}
         style={{ left: `${iconLeft}px`, cursor: 'pointer', background: themeColor, borderColor: themeColor }}
         onMouseDown={handleIconMouseDown}
-        onMouseLeave={handleIconMouseLeave}
+        onMouseLeave={(e) => {
+          handleIconMouseLeave();
+          if (isPromptMode && onPromptHover) {
+            onPromptHover(false, 'flight-icon', { progress, minutesLeft: displayMinutes }, { x: e.clientX, y: e.clientY });
+          }
+        }}
+        onMouseEnter={(e) => {
+          if (isPromptMode && onPromptHover) {
+            onPromptHover(true, 'flight-icon', { progress, minutesLeft: displayMinutes }, { x: e.clientX, y: e.clientY });
+          }
+        }}
+        onMouseMove={(e) => {
+          if (isPromptMode && onPromptHover) {
+            onPromptHover(true, 'flight-icon', { progress, minutesLeft: displayMinutes }, { x: e.clientX, y: e.clientY });
+          }
+        }}
+        onClick={(e) => {
+          if (isPromptMode && onPromptClick) {
+            e.stopPropagation();
+            onPromptClick('flight-icon', { progress, minutesLeft: displayMinutes }, { x: e.clientX, y: e.clientY });
+          }
+        }}
       >
         <span className="icon"></span>
       </div>

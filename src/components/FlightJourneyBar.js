@@ -13,6 +13,30 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
     return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
   }
 
+  // Skeleton component for loading state
+  const SkeletonCard = ({ width, alignment = 'left' }) => (
+    <div
+      className="backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] h-[88px] relative rounded-2xl shrink-0 flex items-center justify-center"
+      style={{ width }}
+    >
+      <div className="animate-pulse space-y-2">
+        <div className={`h-6 bg-gray-300 rounded ${alignment === 'left' ? 'w-32' : 'w-28'}`}></div>
+        <div className={`h-4 bg-gray-300 rounded ${alignment === 'left' ? 'w-24' : 'w-20'}`}></div>
+      </div>
+    </div>
+  );
+
+  const SkeletonLandingCard = () => (
+    <div
+      className="backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] h-[88px] relative rounded-2xl shrink-0 w-[294px] flex items-center justify-center"
+    >
+      <div className="animate-pulse space-y-2 text-center">
+        <div className="h-6 bg-gray-300 rounded w-32 mx-auto"></div>
+        <div className="h-4 bg-gray-300 rounded w-24 mx-auto"></div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="w-full flex justify-center">
       <div
@@ -25,6 +49,9 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
           data-name="airports info"
           id="node-77_5471"
         >
+          {!origin ? (
+            <SkeletonCard width="480px" alignment="left" />
+          ) : (
           <div
             className="backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] h-[88px] relative rounded-2xl shrink-0 w-[480px]"
             data-name="origin info"
@@ -114,6 +141,10 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
             </div>
             <div className="absolute border border-[rgba(0,0,0,0.2)] border-solid inset-0 pointer-events-none rounded-2xl" />
           </div>
+          )}
+          {!origin || !destination ? (
+            <SkeletonLandingCard />
+          ) : (
           <div
             className="backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] h-[88px] relative rounded-2xl shrink-0 w-[294px]"
             data-name="landing info"
@@ -142,6 +173,10 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
             </div>
             <div className="absolute border border-[rgba(0,0,0,0.2)] border-solid inset-0 pointer-events-none rounded-2xl" />
           </div>
+          )}
+          {!destination ? (
+            <SkeletonCard width="480px" alignment="right" />
+          ) : (
           <div
             className="backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] h-[88px] relative rounded-2xl shrink-0 w-[480px]"
             data-name="destination info"
@@ -320,6 +355,7 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
             </div>
             <div className="absolute border border-[rgba(0,0,0,0.2)] border-solid inset-0 pointer-events-none rounded-2xl" />
           </div>
+          )}
         </div>
       </div>
     </div>

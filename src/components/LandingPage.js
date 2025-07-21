@@ -23,7 +23,7 @@ export default function LandingPage() {
         {/* Hero section */}
         <div className="overflow-hidden">
           <div className="mx-auto max-w-7xl px-0 pb-32 pt-36 sm:pt-60 lg:px-1 lg:pt-32">
-            <div className="mx-auto max-w-2xl gap-x-14 lg:mx-0 lg:flex lg:max-w-none lg:items-center">
+            <div className="mx-auto max-w-2xl gap-x-20 lg:mx-0 lg:flex lg:max-w-none lg:items-center">
               <div className="w-full max-w-xl lg:basis-1/3 xl:basis-1/3 lg:shrink-0 xl:max-w-2xl">
                 <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-4xl">
                   Craft Personalized In-flight Experiences
@@ -33,28 +33,38 @@ export default function LandingPage() {
                   Customize the in-flight entertainment experience based on their destination.
                 </p>
                 <div className="mt-10 flex items-center gap-x-6">
-                  <button
+                  <div
                     onClick={() => navigate('/dashboard', { state: { minimizeThemeCreator: true } })}
-                    className="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                    className="bg-white border border-gray-200 shadow-lg cursor-pointer hover:shadow-xl transition-all duration-200 themer-animated-border"
+                    style={{
+                      width: '318px',
+                      height: '48px',
+                      borderRadius: '100px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
                   >
-                    Create themes
-                  </button>
+                    <span className="text-lg font-semibold text-gray-700">Create route</span>
+                  </div>
                 </div>
               </div>
-              <div className="mt-14 flex justify-end gap-8 sm:-mt-44 sm:justify-start sm:pl-20 lg:mt-0 lg:pl-0">
+              <div className="mt-14 flex justify-end gap-8 sm:-mt-44 sm:justify-start sm:pl-24 lg:mt-0 lg:pl-8">
                 <div className="flex-1 lg:basis-2/3 flex items-center justify-center h-full">
-                  <div className="relative w-full h-[550px] max-w-2xl flex items-center justify-center">
-                    {/* Scaled-down IFE frame SVG */}
+                  <div className="relative w-full h-[650px] max-w-4xl flex items-center justify-center">
+                    {/* IFE frame SVG */}
                     <img
                       src={process.env.PUBLIC_URL + '/ife-frame.svg'}
                       alt="IFE Frame"
-                      style={{ position: 'absolute', top: -36, left: -16, width: '732px', height: '582px', zIndex: 1, pointerEvents: 'none' }}
+                      style={{ position: 'absolute', top: -30, left: -50, width: '1000px', height: '800px', zIndex: 1, pointerEvents: 'none' }}
                     />
-                    {/* Scaled-down frame content */}
-                    <div style={{ position: 'relative', zIndex: 2, width: 683, margin: '86px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, transform: 'scale(0.5)', transformOrigin: 'top left' }}>
-                      <div style={{ width: 651, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-                        <FlightJourneyBar />
-                        <FlightProgress />
+                    {/* Theme preview content */}
+                    <div style={{ position: 'relative', zIndex: 2, width: 1302, margin: '92px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32, transform: 'scale(0.6) translateX(-16px)', transformOrigin: 'top center' }}>
+                      <div style={{ width: 1328, maxWidth: 1328, marginLeft: -2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, background: '#1E1E1E14', borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 16, paddingTop: 80, paddingBottom: 40, marginTop: 4 }}>
+                        <div style={{ width: '100%', marginTop: -32, display: 'flex', flexDirection: 'column', gap: 28 }}>
+                          <FlightJourneyBar />
+                          <FlightProgress />
+                        </div>
                       </div>
                       <Component3Cards />
                     </div>
