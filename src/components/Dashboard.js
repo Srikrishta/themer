@@ -90,8 +90,20 @@ export default function Dashboard() {
           </div>
         </div>
       </header>
+      {/* ThemeCreator positioned below header */}
+      <div className="w-full flex justify-center" style={{ marginTop: 80 }}>
+        <ThemeCreator
+          routes={routes}
+          setRoutes={setRoutes}
+          initialMinimized={minimizeThemeCreator}
+          initialWidth={minimizeThemeCreator ? 318 : undefined}
+          onFlightCardSelect={segment => setSelectedSegment(segment)}
+          onThemeColorChange={color => setCurrentThemeColor(color)}
+        />
+      </div>
+      
       {/* Mobile Frame Wrapper */}
-      <div className="w-full flex justify-center" style={{ marginTop: 180 + 64 + 100 }}>
+      <div className="w-full flex justify-center" style={{ marginTop: 8 }}>
         <div style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
           <img
             src={process.env.PUBLIC_URL + '/ife-frame.svg'}
@@ -108,18 +120,6 @@ export default function Dashboard() {
             themeColor={currentThemeColor}
           />
         </div>
-      </div>
-      {/* Main Content */}
-      <div className="p-8">
-        {/* ThemeCreator is now positioned absolutely and draggable */}
-        <ThemeCreator
-          routes={routes}
-          setRoutes={setRoutes}
-          initialMinimized={minimizeThemeCreator}
-          initialWidth={minimizeThemeCreator ? 318 : undefined}
-          onFlightCardSelect={segment => setSelectedSegment(segment)}
-          onThemeColorChange={color => setCurrentThemeColor(color)}
-        />
       </div>
     </div>
   );

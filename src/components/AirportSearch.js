@@ -195,27 +195,18 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [], defau
   return (
     <div
       ref={cardRef ? cardRef : ref}
-      className="relative w-full mb-2 flex items-center"
+      className="relative w-full mb-2"
       style={{ 
         opacity,
         position: 'relative'
       }}
       data-handler-id={handlerId}
     >
-      {/* Dot - positioned to the left of the card */}
-      <div className="flex-shrink-0 mr-4 flex justify-center items-center" style={{ width: '24px' }}>
-        <div 
-          className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold relative z-10"
-          style={{ backgroundColor: circleColor }}
-          ref={dotRef}
-        >
-          {index + 1}
-        </div>
-      </div>
+
 
       {/* Card Content */}
       <div 
-        className="flex-1 cursor-grab hover:cursor-grab"
+        className="w-full cursor-grab hover:cursor-grab"
       >
         {/* Full height drag handle - outside the card - DISABLED */}
         {/* <div 
@@ -231,21 +222,24 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [], defau
         
         <div 
           ref={dragRef}
-          className={`bg-white p-4 rounded-lg border shadow-sm transition-all cursor-grab active:cursor-grabbing hover:cursor-grab ${
+          className={`bg-white p-4 rounded-lg border shadow-sm transition-all cursor-grab active:cursor-grabbing hover:cursor-grab w-full ${
             isDragging ? 'border-indigo-300 shadow-lg' : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
           }`}
         >
           <div className="flex justify-between items-start">
             <div className="flex items-start space-x-3 flex-1 min-w-0">
               <div className="flex-1 min-w-0">
-                <h3 className="text-base font-medium text-gray-900 break-words">
-                  {route.airport.city} ({route.airport.code})
-                  {routeFestivals.length > 0 ? (
-                    <span className="text-gray-600"> • {routeFestivals[0].name}</span>
-                  ) : (
-                    <span className="text-gray-600"> • {defaultLabel || 'Default'}</span>
-                  )}
-                </h3>
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                    style={{ backgroundColor: circleColor }}
+                  >
+                    {index + 1}
+                  </div>
+                  <h3 className="text-base font-medium text-gray-900 break-words">
+                    {route.airport.city} ({route.airport.code})
+                  </h3>
+                </div>
                 <div className="text-xs text-gray-400 mt-1 flex items-center gap-3 flex-wrap break-words">
                   <span className="flex items-center gap-1 font-semibold">
                     <MapPinIcon className="w-3 h-3" />
@@ -293,18 +287,19 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
   return (
     <div className="relative">
       {/* Route Cards */}
-      <div className="relative z-10 flex flex-row gap-x-4 items-start">
+      <div className="relative z-10 flex flex-row gap-x-4 items-start w-full">
         {routes.map((route, index) => (
-          <RouteCard
-            key={route.id}
-            route={route}
-            index={index}
-            moveCard={moveCard}
-            onRemove={() => onRemoveRoute(index)}
-            selectedDates={selectedDates}
-            defaultLabel={defaultLabel}
-            cardRef={index === routes.length - 1 ? lastCardRef : undefined}
-          />
+          <div key={route.id} className="flex-1">
+            <RouteCard
+              route={route}
+              index={index}
+              moveCard={moveCard}
+              onRemove={() => onRemoveRoute(index)}
+              selectedDates={selectedDates}
+              defaultLabel={defaultLabel}
+              cardRef={index === routes.length - 1 ? lastCardRef : undefined}
+            />
+          </div>
         ))}
       </div>
     </div>
@@ -520,7 +515,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
       {/* Input field and badges - now above route cards */}
       <div className="relative" ref={dropdownRef}>
         {/* Custom input container with badges - offset to avoid timeline overlap */}
-        <div ref={inputFieldRef} className={`relative min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-0 ${routes.length > 0 ? 'w-80 ml-8' : 'w-80'}`}>
+        <div ref={inputFieldRef} className="relative min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-0 w-[700px]">
           {/* Airport badges and date picker button in a row */}
           <div className="flex flex-row items-center gap-2">
             {/* Airport badges - showing only available airports (not in routes) */}
@@ -595,7 +590,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
         {/* Label - adjusted for offset container */}
         <label 
           htmlFor="airport-search" 
-          className={`absolute -top-2.5 bg-gray-50 px-2 text-sm font-medium text-gray-600 ${routes.length > 0 ? 'left-11' : 'left-3'}`}
+          className="absolute -top-2.5 bg-gray-50 px-2 text-sm font-medium text-gray-600 left-3"
         >
           Add route
         </label>
