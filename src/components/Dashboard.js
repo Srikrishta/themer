@@ -13,7 +13,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts }) {
   return (
     <div style={{ position: 'relative', zIndex: 2, width: 1302, margin: '92px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
       <div className="fjb-fps-container" style={{ width: 1328, maxWidth: 1328, marginLeft: -2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, background: themeColor + '14', borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 16, paddingTop: 80, paddingBottom: 40, marginTop: 4 }}>
@@ -28,6 +28,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
             isPromptMode={isPromptMode}
             onPromptHover={onPromptHover}
             onPromptClick={onPromptClick}
+            fpsPrompts={fpsPrompts}
           />
         </div>
       </div>
@@ -58,6 +59,9 @@ export default function Dashboard() {
   const [activeSegmentId, setActiveSegmentId] = useState(null); // Track which segment is in prompt mode
   const [promptBubble, setPromptBubble] = useState(null); // { x, y, elementType, elementData }
   const [showPlusIcon, setShowPlusIcon] = useState(false);
+  
+  // Store submitted prompts by FPS position
+  const [fpsPrompts, setFpsPrompts] = useState({}); // { [position]: text }
   
   // NEW: Track if any filter chip has been selected
   const [isFilterChipSelected, setIsFilterChipSelected] = useState(false);
@@ -108,11 +112,21 @@ export default function Dashboard() {
 
   const handlePromptClick = (elementType, elementData, position) => {
     if (isPromptMode) {
+      // Generate unique key for FPS position
+      const positionKey = elementType === 'flight-icon' 
+        ? `fps-${Math.round(elementData.progress * 1000)}` // Use progress as unique identifier
+        : `${elementType}-${elementData.cardIndex || 0}`;
+      
+      // Get existing text for this position
+      const existingText = fpsPrompts[positionKey] || '';
+      
       setPromptBubble({
         x: position.x,
         y: position.y,
         elementType,
-        elementData
+        elementData,
+        positionKey,
+        existingText
       });
       setShowPlusIcon(false); // Hide plus icon when bubble appears
     }
@@ -130,8 +144,17 @@ export default function Dashboard() {
     setShowPlusIcon(false); // Ensure plus icon is hidden when bubble closes
   };
 
-  const handlePromptBubbleSubmit = (promptText, elementType, elementData) => {
+  const handlePromptBubbleSubmit = (promptText, elementType, elementData, positionKey) => {
     console.log('Prompt submitted:', promptText, 'for', elementType, elementData);
+    
+    // Store the submitted text for this position
+    if (positionKey) {
+      setFpsPrompts(prev => ({
+        ...prev,
+        [positionKey]: promptText
+      }));
+    }
+    
     // TODO: Handle the actual prompt submission logic here
     setPromptBubble(null);
     // Optionally exit prompt mode after submission
@@ -143,9 +166,8 @@ export default function Dashboard() {
   };
 
   // Handle progress bar drag
-  const handleProgressChange = (progress) => {
+  const handleProgressChange = (newMinutes) => {
     setDragging(true);
-    const newMinutes = Math.round(maxFlightMinutes * (1 - progress));
     setMinutesLeft(newMinutes);
   };
   useEffect(() => {
@@ -271,6 +293,9 @@ export default function Dashboard() {
         elementData={promptBubble?.elementData}
         onClose={handlePromptBubbleClose}
         onSubmit={handlePromptBubbleSubmit}
+        themeColor={promptBubble?.elementType === 'promo-card' ? '#FFFFFF' : currentThemeColor}
+        existingText={promptBubble?.existingText || ''}
+        positionKey={promptBubble?.positionKey}
       />
       
       {/* Mobile Frame Wrapper - Only show when filter chip is selected */}
@@ -294,6 +319,7 @@ export default function Dashboard() {
               isPromptMode={isPromptMode}
               onPromptHover={handlePromptHover}
               onPromptClick={handlePromptClick}
+              fpsPrompts={fpsPrompts}
             />
           </div>
         </div>

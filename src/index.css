@@ -70,6 +70,15 @@ code {
   background: #cbd5e1; /* bg-slate-300 */
 }
 
+/* Hide scrollbar utility */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
+}
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
 /* Color cycling animation for the theme dot */
 @keyframes colorPulse {
   0% { background-color: #3b82f6; } /* blue-500 */

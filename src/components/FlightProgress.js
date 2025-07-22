@@ -16,10 +16,9 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFlightMinutes = 370, minutesLeft: externalMinutesLeft, onProgressChange, themeColor = '#1E1E1E', isPromptMode = false, onPromptHover, onPromptClick }) {
+export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFlightMinutes = 370, minutesLeft: externalMinutesLeft, onProgressChange, themeColor = '#1E1E1E', isPromptMode = false, onPromptHover, onPromptClick, fpsPrompts = {} }) {
   const barWidth = 1302;
   const [dragging, setDragging] = useState(false);
-  const [showPlusButton, setShowPlusButton] = useState(false);
   const barRef = useRef();
   const iconRef = useRef();
 
@@ -29,10 +28,40 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
   const progressWidth = Math.max(0, Math.min(barWidth * progress, barWidth));
   const iconLeft = Math.max(0, Math.min(barWidth * progress - 16, barWidth - 32));
 
+  // Find the closest prompt for the current position
+  const findClosestPrompt = () => {
+    if (Object.keys(fpsPrompts).length === 0) return null;
+    
+    const currentProgressKey = `fps-${Math.round(progress * 1000)}`;
+    
+    // First try exact match
+    if (fpsPrompts[currentProgressKey]) {
+      return fpsPrompts[currentProgressKey];
+    }
+    
+    // If no exact match, find the closest one
+    let closestKey = null;
+    let closestDistance = Infinity;
+    
+    Object.keys(fpsPrompts).forEach(key => {
+      if (key.startsWith('fps-')) {
+        const keyProgress = parseInt(key.replace('fps-', '')) / 1000;
+        const distance = Math.abs(keyProgress - progress);
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestKey = key;
+        }
+      }
+    });
+    
+    return closestKey ? fpsPrompts[closestKey] : null;
+  };
+  
+  const currentPrompt = findClosestPrompt();
+
   // Drag logic (only start drag from icon)
   const handleIconMouseDown = (e) => {
     setDragging(true);
-    setShowPlusButton(false); // Hide plus button when starting to drag
     e.preventDefault();
     e.stopPropagation();
   };
@@ -40,57 +69,47 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
     if (dragging) setDragging(false);
   };
   useEffect(() => {
-    if (!dragging) return;
     const handleMouseMove = (e) => {
-      // Check if mouse is still over the icon
-      if (iconRef.current) {
-        const rect = iconRef.current.getBoundingClientRect();
-        if (
-          e.clientX < rect.left ||
-          e.clientX > rect.right ||
-          e.clientY < rect.top ||
-          e.clientY > rect.bottom
-        ) {
-          setDragging(false);
-          return;
+      if (dragging && barRef.current) {
+        const barRect = barRef.current.getBoundingClientRect();
+        const offsetX = e.clientX - barRect.left;
+        const newProgress = Math.max(0, Math.min(1, offsetX / barWidth));
+        const newMinutes = Math.round(maxFlightMinutes * (1 - newProgress));
+        if (typeof onProgressChange === 'function') {
+          onProgressChange(newMinutes);
         }
       }
-      const barRect = barRef.current.getBoundingClientRect();
-      let x = e.clientX - barRect.left;
-      x = Math.max(0, Math.min(x, barWidth));
-      const newProgress = x / barWidth;
-      if (onProgressChange) onProgressChange(newProgress);
     };
+
     const handleMouseUp = () => {
-      setDragging(false);
-      setShowPlusButton(true); // Show plus button when dragging ends
+      if (dragging) {
+        setDragging(false);
+      }
     };
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+
+    if (dragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [dragging, onProgressChange, barWidth]);
+  }, [dragging, maxFlightMinutes, onProgressChange]);
 
-  // Click-to-move logic
   const handleBarClick = (e) => {
-    // Prevent click if dragging (to avoid jump on mouseup)
     if (dragging) return;
-    const rect = barRef.current.getBoundingClientRect();
-    let x = e.clientX - rect.left;
-    x = Math.max(0, Math.min(x, barWidth));
-    const newProgress = x / barWidth;
-    if (onProgressChange) onProgressChange(newProgress);
-    setShowPlusButton(true); // Show plus button when clicking to move
-  };
-
-  // Handle plus button click
-  const handlePlusButtonClick = (e) => {
-    e.stopPropagation();
-    // TODO: Add logic to handle adding flight phase
-    console.log('Adding flight phase at position:', progress);
-    setShowPlusButton(false); // Hide the button after clicking
+    
+    const barRect = e.currentTarget.getBoundingClientRect();
+    const offsetX = e.clientX - barRect.left;
+    const newProgress = Math.max(0, Math.min(1, offsetX / barWidth));
+    const newMinutes = Math.round(maxFlightMinutes * (1 - newProgress));
+    
+    if (typeof onProgressChange === 'function') {
+      onProgressChange(newMinutes);
+    }
+    
   };
 
   return (
@@ -127,17 +146,24 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
       >
         <span className="icon"></span>
       </div>
-      {showPlusButton && (
+      
+      {/* Display prompt text below the flight icon */}
+      {currentPrompt && (
         <div
-          className="plus-button"
-          style={{ 
-            left: `${iconLeft + 8}px`, 
-            background: themeColor,
-            borderColor: themeColor
+          className="flight-prompt-label"
+          style={{
+            position: 'absolute',
+            left: `${iconLeft + 8}px`,
+            top: '40px',
+            color: themeColor,
+            fontSize: '10px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+            whiteSpace: 'nowrap',
+            zIndex: 10
           }}
-          onClick={handlePlusButtonClick}
         >
-          <span className="plus-icon">+</span>
+          {currentPrompt}
         </div>
       )}
     </div>
