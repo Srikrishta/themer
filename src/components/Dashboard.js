@@ -48,15 +48,19 @@ export default function Dashboard() {
   const minimizeThemeCreator = location.state?.minimizeThemeCreator;
   // Lifted state for routes
   const [routes, setRoutes] = useState([]);
-  // NEW: State for selected segment (flight card)
+  // NEW: State for selected segment (color card)
   const [selectedSegment, setSelectedSegment] = useState(null);
   // NEW: State for current theme color
   const [currentThemeColor, setCurrentThemeColor] = useState('#1E1E1E');
   
   // NEW: Prompt mode state
   const [isPromptMode, setIsPromptMode] = useState(false);
+  const [activeSegmentId, setActiveSegmentId] = useState(null); // Track which segment is in prompt mode
   const [promptBubble, setPromptBubble] = useState(null); // { x, y, elementType, elementData }
   const [showPlusIcon, setShowPlusIcon] = useState(false);
+  
+  // NEW: Track if any filter chip has been selected
+  const [isFilterChipSelected, setIsFilterChipSelected] = useState(false);
   
   // Scroll state management
   const [scrollY, setScrollY] = useState(0);
@@ -96,7 +100,7 @@ export default function Dashboard() {
     // elementType: 'flight-icon' or 'promo-card'
     // elementData: contains specific data about the element
     // position: { x, y } cursor position
-    if (isPromptMode) {
+    if (isPromptMode && !promptBubble) { // Only show plus icon if no bubble is currently open
       setShowPlusIcon(isHovering);
       console.log('Prompt hover:', isHovering, elementType, elementData, position);
     }
@@ -116,12 +120,14 @@ export default function Dashboard() {
 
   const handleExitPromptMode = () => {
     setIsPromptMode(false);
+    setActiveSegmentId(null);
     setPromptBubble(null);
     setShowPlusIcon(false);
   };
 
   const handlePromptBubbleClose = () => {
     setPromptBubble(null);
+    setShowPlusIcon(false); // Ensure plus icon is hidden when bubble closes
   };
 
   const handlePromptBubbleSubmit = (promptText, elementType, elementData) => {
@@ -130,6 +136,10 @@ export default function Dashboard() {
     setPromptBubble(null);
     // Optionally exit prompt mode after submission
     // handleExitPromptMode();
+  };
+
+  const handleFilterChipSelect = (isSelected) => {
+    setIsFilterChipSelected(isSelected);
   };
 
   // Handle progress bar drag
@@ -191,21 +201,27 @@ export default function Dashboard() {
           {/* Collapsed ThemeCreator in header when scrolling */}
           {isScrollCollapsed && (
             <div className="flex justify-center flex-1 transition-all duration-300 ease-in-out">
-              <ThemeCreator
-                routes={routes}
-                setRoutes={setRoutes}
-                initialMinimized={true}
-                initialWidth={318}
-                initialFlightCreationMode={preScrollFlightCreationState}
-                onFlightCardSelect={segment => setSelectedSegment(segment)}
-                onThemeColorChange={color => setCurrentThemeColor(color)}
-                onExpand={() => {
-                  setIsScrollCollapsed(false);
-                  // Don't clear the saved states - let them restore naturally when the main ThemeCreator mounts
-                }}
-                onEnterPromptMode={() => setIsPromptMode(true)}
-                key="header-tc" // Force re-render for header position
-              />
+                          <ThemeCreator
+              routes={routes}
+              setRoutes={setRoutes}
+              initialMinimized={true}
+              initialWidth={318}
+              initialFlightCreationMode={preScrollFlightCreationState}
+              onColorCardSelect={segment => setSelectedSegment(segment)}
+              onThemeColorChange={color => setCurrentThemeColor(color)}
+              onExpand={() => {
+                setIsScrollCollapsed(false);
+                // Don't clear the saved states - let them restore naturally when the main ThemeCreator mounts
+              }}
+              onEnterPromptMode={(segmentId) => {
+                setIsPromptMode(true);
+                setActiveSegmentId(segmentId);
+              }}
+              onFilterChipSelect={handleFilterChipSelect}
+              isPromptMode={isPromptMode}
+              activeSegmentId={activeSegmentId}
+              key="header-tc" // Force re-render for header position
+            />
             </div>
           )}
           
@@ -221,7 +237,7 @@ export default function Dashboard() {
             initialMinimized={preScrollThemeCreatorState !== null ? preScrollThemeCreatorState : minimizeThemeCreator}
             initialWidth={(preScrollThemeCreatorState !== null ? preScrollThemeCreatorState : minimizeThemeCreator) ? 318 : undefined}
             initialFlightCreationMode={preScrollFlightCreationState}
-            onFlightCardSelect={segment => setSelectedSegment(segment)}
+            onColorCardSelect={segment => setSelectedSegment(segment)}
             onThemeColorChange={color => setCurrentThemeColor(color)}
             onStateChange={(isMinimized, isCreatingThemes) => {
               // Save the current state when it changes, but only if not currently scroll-collapsed
@@ -230,7 +246,13 @@ export default function Dashboard() {
                 setPreScrollFlightCreationState(isCreatingThemes);
               }
             }}
-            onEnterPromptMode={() => setIsPromptMode(true)}
+            onEnterPromptMode={(segmentId) => {
+              setIsPromptMode(true);
+              setActiveSegmentId(segmentId);
+            }}
+            onFilterChipSelect={handleFilterChipSelect}
+            isPromptMode={isPromptMode}
+            activeSegmentId={activeSegmentId}
           />
         </div>
       )}
@@ -251,29 +273,31 @@ export default function Dashboard() {
         onSubmit={handlePromptBubbleSubmit}
       />
       
-      {/* Mobile Frame Wrapper */}
-      <div className="w-full flex justify-center" style={{ marginTop: 8 }}>
-        <div style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
-          <img
-            src={process.env.PUBLIC_URL + '/ife-frame.svg'}
-            alt="Mobile Frame"
-            style={{ position: 'absolute', top: -40, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none' }}
-          />
-          <FrameContent
-            origin={origin}
-            destination={destination}
-            minutesLeft={minutesLeft}
-            landingIn={landingIn}
-            maxFlightMinutes={maxFlightMinutes}
-            handleProgressChange={handleProgressChange}
-            themeColor={currentThemeColor}
-            routes={routes}
-            isPromptMode={isPromptMode}
-            onPromptHover={handlePromptHover}
-            onPromptClick={handlePromptClick}
-          />
+      {/* Mobile Frame Wrapper - Only show when filter chip is selected */}
+      {isFilterChipSelected && (
+        <div className="w-full flex justify-center" style={{ marginTop: 8 }}>
+          <div style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
+            <img
+              src={process.env.PUBLIC_URL + '/ife-frame.svg'}
+              alt="Mobile Frame"
+              style={{ position: 'absolute', top: -40, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none' }}
+            />
+            <FrameContent
+              origin={origin}
+              destination={destination}
+              minutesLeft={minutesLeft}
+              landingIn={landingIn}
+              maxFlightMinutes={maxFlightMinutes}
+              handleProgressChange={handleProgressChange}
+              themeColor={currentThemeColor}
+              routes={routes}
+              isPromptMode={isPromptMode}
+              onPromptHover={handlePromptHover}
+              onPromptClick={handlePromptClick}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 } 

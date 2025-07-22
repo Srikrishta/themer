@@ -71,10 +71,7 @@ export default function PromptBubble({
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="text-white text-sm font-medium">
-          ✨ Describe content for:
-        </div>
+      <div className="flex items-center justify-end mb-3">
         <button
           onClick={onClose}
           className="text-white/70 hover:text-white transition-colors p-1"
@@ -97,15 +94,12 @@ export default function PromptBubble({
             onChange={(e) => setPromptText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Describe what you want to create or modify..."
-            className="w-full bg-white rounded-lg border-0 px-3 py-2 text-sm text-gray-900 placeholder-gray-500 resize-none focus:ring-2 focus:ring-blue-300 focus:outline-none"
+            className="w-full bg-transparent border-0 px-3 py-2 text-sm text-white placeholder-white/60 resize-none focus:ring-0 focus:outline-none"
             rows={3}
           />
         </div>
         
-        <div className="flex items-center justify-between">
-          <div className="text-white/60 text-xs">
-            Press Enter to submit, Esc to close
-          </div>
+        <div className="flex items-center justify-end">
           <button
             type="submit"
             disabled={!promptText.trim()}

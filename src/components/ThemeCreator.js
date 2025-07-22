@@ -5,7 +5,7 @@ import DatePicker from './DatePicker';
 import festivalsData from '../data/festivals.json';
 import { HexColorPicker } from 'react-colorful';
 
-export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFlightCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode }) {
+export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect }) {
   // Get current date in Berlin timezone for initial state
   const getBerlinTodayString = () => {
     const now = new Date();
@@ -42,7 +42,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
   // Refs
   const datePickerRef = useRef(null);
   const containerRef = useRef(null);
-  const flightCardsRef = useRef(null);
+  const colorCardsRef = useRef(null);
 
   // NEW: Badge hover state
   const [isBadgeHovered, setIsBadgeHovered] = useState(false);
@@ -58,7 +58,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
   const lastCardBottomRef = useRef(null);
   const [timelineLine, setTimelineLine] = useState({ top: 0, height: 0 });
 
-  // Active flight card state
+  // Active color card state
   const [activeFlightIndex, setActiveFlightIndex] = useState(null);
 
   // Function to calculate dropdown position
@@ -219,6 +219,10 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
   // NEW: Handle back to route creation
   const handleBackToRouteCreation = () => {
     setIsCreatingThemes(false);
+    setActiveFlightIndex(null);
+    if (typeof onFilterChipSelect === 'function') {
+      onFilterChipSelect(false);
+    }
   };
 
   // Generate flight segments from routes
@@ -252,6 +256,9 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
       // Initialize selected themes
       const initialThemes = {};
       segments.forEach(segment => {
+        // Skip if segment data is incomplete
+        if (!segment?.destination?.airport?.city) return;
+        
         // Determine if a festival is present for this segment
         const destinationCity = segment.destination.airport.city;
         const festival = (() => {
@@ -285,12 +292,12 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
     }
   }, [isCreatingThemes]);
 
-  // Calculate timeline height for flight cards
+  // Calculate timeline height for color cards
   useEffect(() => {
     const calculateTimelineHeight = () => {
-      if (flightCardsRef.current && flightSegments.length > 1) {
-        const flightCardsRect = flightCardsRef.current.getBoundingClientRect();
-        const containerHeight = flightCardsRect.height;
+      if (colorCardsRef.current && flightSegments.length > 1) {
+        const colorCardsRect = colorCardsRef.current.getBoundingClientRect();
+        const containerHeight = colorCardsRect.height;
         // Subtract 24px (dot height) so the line ends at the center of the last dot
         const calculatedHeight = Math.max(containerHeight - 40 - 24, 36); // Minimum 36px height
         setTimelineHeight(`${calculatedHeight}px`);
@@ -314,9 +321,9 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
       flightSegments.length > 1 &&
       firstTitleRef.current &&
       lastCardBottomRef.current &&
-      flightCardsRef.current
+      colorCardsRef.current
     ) {
-      const containerRect = flightCardsRef.current.getBoundingClientRect();
+      const containerRect = colorCardsRef.current.getBoundingClientRect();
       const firstTitleRect = firstTitleRef.current.getBoundingClientRect();
       const lastBottomRect = lastCardBottomRef.current.getBoundingClientRect();
       const top = firstTitleRect.top - containerRect.top;
@@ -325,8 +332,8 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
     }
   }, [isCreatingThemes, flightSegments.length, selectedThemes, isMinimized]); // <-- add isMinimized
 
-  // Flight Card Component
-  const FlightCard = ({ segment, index, activeFlightIndex, setActiveFlightIndex }) => {
+  // Color Card Component
+  const ColorCard = ({ segment, index, activeFlightIndex, setActiveFlightIndex }) => {
     const active = index === activeFlightIndex;
     const [showColorPickerFor, setShowColorPickerFor] = useState(null); // theme.id or null
     const [customColors, setCustomColors] = useState({}); // { [themeId]: color }
@@ -360,7 +367,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
     };
 
     // Prepare theme options with stable ids
-    const destinationCity = segment.destination.airport.city;
+    const destinationCity = segment?.destination?.airport?.city || 'Unknown';
     const festival = getFestivalForCityAndDate(destinationCity, dates);
     const themeOptions = [
       { id: 0, name: 'Default', color: '#1E1E1E' },
@@ -395,8 +402,12 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
         className="relative flex flex-col gap-y-3"
         onClick={() => {
           setActiveFlightIndex(index);
-          if (typeof onFlightCardSelect === 'function') {
-            onFlightCardSelect(segment);
+          if (typeof onColorCardSelect === 'function') {
+            onColorCardSelect(segment);
+          }
+          // Notify about filter chip selection
+          if (typeof onFilterChipSelect === 'function') {
+            onFilterChipSelect(true);
           }
           // Also update theme color in parent when card is selected
           if (typeof onThemeColorChange === 'function') {
@@ -407,27 +418,10 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
         }}
         style={{ cursor: 'pointer' }}
       >
-        {/* Flight Card Content */}
+        {/* Color Card Content */}
         <div className="w-full">
           <div className="p-3 rounded-lg border shadow-sm transition-all w-full bg-white border-gray-200 hover:border-gray-300 hover:shadow-md">
-            {/* Route info with numbered dot on left */}
-            <div className="mb-3 flex items-center gap-2">
-              <div 
-                className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                style={{ backgroundColor: (() => {
-                  const selectedThemeId = selectedThemes[segment.id];
-                  const selectedTheme = themeOptions.find(t => t.id === selectedThemeId);
-                  return selectedTheme ? selectedTheme.color : '#1E1E1E';
-                })() }}
-              >
-                {index + 1}
-              </div>
-              <div className="text-base text-gray-900">
-                <span className="font-medium">{segment.origin.airport.city}</span>
-                <span className="text-gray-400 mx-2">→</span>
-                <span className="font-medium">{segment.destination.airport.city}</span>
-              </div>
-            </div>
+
             {/* Conditional rendering based on active state */}
             {active ? (
               // Active: show theme selection
@@ -517,23 +511,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
                 </span>
               </div>
             )}
-            
-            {/* Build Theme Button */}
-            <div className="mt-3 pt-3 border-t border-gray-100">
-              <button
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  console.log(`Entering prompt mode for ${segment.origin.airport.city} → ${segment.destination.airport.city}`);
-                  if (typeof onEnterPromptMode === 'function') {
-                    onEnterPromptMode();
-                  }
-                }}
-              >
-                <PencilIcon className="w-4 h-4" />
-                Build theme
-              </button>
-            </div>
+
             
             {/* Last card bottom ref for timeline */}
             {index === flightSegments.length - 1 && <div ref={lastCardBottomRef} style={{ height: 0 }} />}
@@ -720,13 +698,59 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
           ) : (
             <div className="flex items-center gap-2">
               {isCreatingThemes ? (
-                // Themes Creation Header
-                <button
-                  onClick={handleBackToRouteCreation}
-                  className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                >
-                  <ArrowLeftIcon className="w-5 h-5 text-gray-500" />
-                </button>
+                // Themes Creation Header with Filter Chips
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleBackToRouteCreation}
+                    className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                  >
+                    <ArrowLeftIcon className="w-5 h-5 text-gray-500" />
+                  </button>
+                  
+                  {/* Filter Chips for Flight Routes */}
+                  <div className="flex items-center gap-2 flex-nowrap overflow-x-auto scrollbar-hide">
+                    {flightSegments.map((segment, index) => {
+                      // Safety checks for segment data
+                      if (!segment || !segment.origin || !segment.destination || !segment.origin.airport || !segment.destination.airport) {
+                        return null;
+                      }
+                      
+                      const selectedThemeId = selectedThemes[segment.id];
+                      const themeOptions = [
+                        { id: 0, name: 'Default', color: '#1E1E1E' },
+                        { id: 1, name: `${segment.destination.airport.city} Theme`, color: '#EF4444' },
+                        { id: 3, name: 'Time of the Day', color: '#F59E0B' }
+                      ];
+                      const selectedTheme = themeOptions.find(t => t.id === selectedThemeId);
+                      const dotColor = selectedTheme ? selectedTheme.color : '#1E1E1E';
+                      
+                      return (
+                        <div
+                          key={segment.id}
+                          className={`flex items-center gap-2 px-3 py-1 rounded-full border text-sm font-medium transition-colors cursor-pointer flex-shrink-0 ${
+                            activeFlightIndex === index
+                              ? 'bg-blue-100 border-blue-300 text-blue-700'
+                              : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'
+                          }`}
+                          onClick={() => {
+                            setActiveFlightIndex(index);
+                            if (typeof onFilterChipSelect === 'function') {
+                              onFilterChipSelect(true);
+                            }
+                          }}
+                        >
+                          <div 
+                            className="w-4 h-4 rounded-full border border-white flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                            style={{ backgroundColor: dotColor }}
+                          >
+                            {index + 1}
+                          </div>
+                          <span>{segment.origin.airport.city} → {segment.destination.airport.city}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               ) : (
                 // Route Creation Header - no date picker button
                 <div></div>
@@ -761,33 +785,43 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onFl
               </div>
             )}
           </div>
-          {/* Flight Cards */}
-          <div ref={flightCardsRef} className="flex flex-row items-start relative z-10" style={{ width: '100%' }}>
-            {flightSegments.map((segment, index) => (
-              <React.Fragment key={segment.id}>
-                <div className="flex-1">
-                  <FlightCard 
-                    segment={segment} 
-                    index={index}
-                    activeFlightIndex={activeFlightIndex}
-                    setActiveFlightIndex={setActiveFlightIndex}
-                  />
-                </div>
-                {/* Arrow between flight cards - show for all except the last card */}
-                {index < flightSegments.length - 1 && (
-                  <div className="flex items-center justify-center px-3 py-8">
-                    <ChevronRightIcon className="w-6 h-6 text-gray-400" />
-                  </div>
-                )}
-              </React.Fragment>
-            ))}
+          {/* Color Card - Show only the selected one */}
+          <div ref={colorCardsRef} className="flex flex-row items-start relative z-10" style={{ width: '60%', maxWidth: '400px' }}>
+            {flightSegments.length > 0 && 
+             activeFlightIndex >= 0 && 
+             activeFlightIndex < flightSegments.length && 
+             flightSegments[activeFlightIndex] &&
+             flightSegments[activeFlightIndex].origin &&
+             flightSegments[activeFlightIndex].destination && (
+              <div className="w-full">
+                <ColorCard 
+                  segment={flightSegments[activeFlightIndex]} 
+                  index={activeFlightIndex}
+                  activeFlightIndex={activeFlightIndex}
+                  setActiveFlightIndex={setActiveFlightIndex}
+                />
+              </div>
+            )}
           </div>
 
-          {/* Create Theme Button below flight cards */}
+          {/* Create Theme Button below color cards */}
           <div className="mt-8 flex flex-row justify-start">
             <button
-              className="w-[160px] h-10 px-4 rounded-full transition-colors bg-black text-white hover:bg-gray-800 flex items-center justify-center"
-              onClick={handleCreateTheme}
+              className={`w-[160px] h-10 px-4 rounded-full transition-colors flex items-center justify-center text-sm font-medium ${
+                isPromptMode && flightSegments.length > 0 && activeFlightIndex >= 0 && activeFlightIndex < flightSegments.length && activeSegmentId === flightSegments[activeFlightIndex]?.id
+                  ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                  : 'bg-black text-white hover:bg-gray-800'
+              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (flightSegments.length > 0 && activeFlightIndex >= 0 && activeFlightIndex < flightSegments.length) {
+                  const currentSegment = flightSegments[activeFlightIndex];
+                  console.log(`Entering prompt mode for ${currentSegment?.origin?.airport?.city || 'Unknown'} → ${currentSegment?.destination?.airport?.city || 'Unknown'}`);
+                  if (typeof onEnterPromptMode === 'function') {
+                    onEnterPromptMode(currentSegment.id);
+                  }
+                }
+              }}
             >
               Create theme
             </button>

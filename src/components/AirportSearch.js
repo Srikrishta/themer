@@ -222,7 +222,7 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [], defau
         
         <div 
           ref={dragRef}
-          className={`bg-white p-4 rounded-lg border shadow-sm transition-all cursor-grab active:cursor-grabbing hover:cursor-grab w-full ${
+          className={`bg-white p-4 rounded-full border shadow-sm transition-all cursor-grab active:cursor-grabbing hover:cursor-grab w-full ${
             isDragging ? 'border-indigo-300 shadow-lg' : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
           }`}
         >
