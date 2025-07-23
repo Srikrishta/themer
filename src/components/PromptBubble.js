@@ -10,7 +10,8 @@ export default function PromptBubble({
   onSubmit,
   themeColor = '#1E1E1E',
   existingText = '',
-  positionKey
+  positionKey,
+  fpsPrompts = {}
 }) {
   const [promptText, setPromptText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -25,6 +26,33 @@ export default function PromptBubble({
     { id: 'descent', label: 'Descent', color: '#F59E0B' },
     { id: 'landing', label: 'Landing', color: '#EF4444' }
   ];
+
+  // Get used prompts for filtering chips
+  const getUsedPrompts = () => {
+    const used = new Set();
+    Object.values(fpsPrompts).forEach(promptText => {
+      if (promptText) {
+        used.add(promptText.toLowerCase());
+      }
+    });
+    return used;
+  };
+
+  // Filter out chips that are already used at other positions
+  const getAvailableChips = () => {
+    if (elementType !== 'flight-icon') return flightPhaseChips;
+    
+    const usedPrompts = getUsedPrompts();
+    const currentText = existingText.toLowerCase();
+    
+    return flightPhaseChips.filter(chip => {
+      const chipLabel = chip.label.toLowerCase();
+      // Show chip if it's not used elsewhere, OR if it's the current position's text
+      return !usedPrompts.has(chipLabel) || chipLabel === currentText;
+    });
+  };
+
+  const availableChips = getAvailableChips();
 
   // Focus input when bubble becomes visible and reset loading state
   useEffect(() => {
@@ -168,10 +196,10 @@ export default function PromptBubble({
             }}
           />
           
-          {/* Flight Phase Chips - Only show for flight-icon */}
-          {elementType === 'flight-icon' && (
+          {/* Flight Phase Chips - Only show for flight-icon and filter out used ones */}
+          {elementType === 'flight-icon' && availableChips.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
-              {flightPhaseChips.map((chip) => (
+              {availableChips.map((chip) => (
                 <button
                   key={chip.id}
                   type="button"

@@ -5,7 +5,7 @@ import DatePicker from './DatePicker';
 import festivalsData from '../data/festivals.json';
 import { HexColorPicker } from 'react-colorful';
 
-export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect }) {
+export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader }) {
   // Get current date in Berlin timezone for initial state
   const getBerlinTodayString = () => {
     const now = new Date();
@@ -626,7 +626,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
         padding: isMinimized && containerWidth === minWidth ? '12px 20px' : undefined,
         backgroundColor: isMinimized ? 'white' : undefined, // Solid white fill when minimized
         borderRadius: isMinimized ? '100px' : undefined, // 100px radius when minimized
-        marginTop: '24px', // 24px space from header
+        marginTop: isInHeader ? '0' : '24px', // No margin when in header, 24px space from header when below
       }}
     >
 
@@ -827,7 +827,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
             )}
           </div>
 
-          {/* Create Theme Button below color cards */}
+          {/* Theme via Prompt Button below color cards */}
           <div className="mt-8 flex flex-row justify-start gap-3">
             <button
               disabled={activeFlightIndex === null || activeFlightIndex < 0 || activeFlightIndex >= flightSegments.length}
@@ -850,24 +850,6 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                     onEnterPromptMode(currentSegment.id);
                   }
                 }
-              }}
-            >
-              Create theme
-            </button>
-            <button
-              disabled={activeFlightIndex === null || activeFlightIndex < 0 || activeFlightIndex >= flightSegments.length}
-              className={`w-[160px] h-10 px-4 rounded-full transition-colors flex items-center justify-center text-sm font-medium ${
-                activeFlightIndex === null || activeFlightIndex < 0 || activeFlightIndex >= flightSegments.length
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
-              }`}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (activeFlightIndex === null || activeFlightIndex < 0 || activeFlightIndex >= flightSegments.length) {
-                  return;
-                }
-                // Handle theme via prompt logic here
-                console.log('Theme via prompt clicked');
               }}
             >
               Theme via prompt

@@ -188,12 +188,12 @@ export default function Dashboard() {
       setScrollY(currentScrollY);
       setScrollDirection(direction);
       
-      // Collapse when scrolling down past 150px, expand when scrolling up past 100px
+      // Collapse when scrolling down past 150px, expand when scrolling up to near the top (20px)
       if (direction === 'down' && currentScrollY > 150 && !isScrollCollapsed) {
         // The state has already been captured by onStateChange callback
         // Now collapse to header
         setIsScrollCollapsed(true);
-      } else if (direction === 'up' && currentScrollY <= 100 && isScrollCollapsed) {
+      } else if (direction === 'up' && currentScrollY <= 20 && isScrollCollapsed) {
         // Restore to main position - the saved state will be used automatically
         setIsScrollCollapsed(false);
       }
@@ -207,9 +207,14 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen">
-      {/* Dashboard Header */}
-      <header className="bg-white border-b border-gray-200 px-8 py-3 fixed top-0 left-0 w-full z-50" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
-        <div className="flex items-center justify-between">
+            {/* Dashboard Header */}
+      <header 
+        className={`bg-white border-b border-gray-200 px-8 fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
+          isScrollCollapsed ? 'py-2' : 'py-3'
+        }`} 
+        style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}
+      >
+        <div className="flex items-center justify-between h-full">
           <div className="flex items-center">
             <span
               className="text-2xl font-bold themer-gradient cursor-pointer"
@@ -238,10 +243,23 @@ export default function Dashboard() {
               onEnterPromptMode={(segmentId) => {
                 setIsPromptMode(true);
                 setActiveSegmentId(segmentId);
+                
+                // Auto-scroll to default position for scrolled state
+                const targetScrollPosition = 800; // Scroll to optimal position shown in design
+                window.scrollTo({
+                  top: targetScrollPosition,
+                  behavior: 'smooth'
+                });
+                
+                // Set collapsed state after a short delay to allow scroll to complete
+                setTimeout(() => {
+                  setIsScrollCollapsed(true);
+                }, 500);
               }}
               onFilterChipSelect={handleFilterChipSelect}
               isPromptMode={isPromptMode}
               activeSegmentId={activeSegmentId}
+              isInHeader={true}
               key="header-tc" // Force re-render for header position
             />
             </div>
@@ -271,6 +289,18 @@ export default function Dashboard() {
             onEnterPromptMode={(segmentId) => {
               setIsPromptMode(true);
               setActiveSegmentId(segmentId);
+              
+              // Auto-scroll to default position for scrolled state
+              const targetScrollPosition = 800; // Scroll to optimal position shown in design
+              window.scrollTo({
+                top: targetScrollPosition,
+                behavior: 'smooth'
+              });
+              
+              // Set collapsed state after a short delay to allow scroll to complete
+              setTimeout(() => {
+                setIsScrollCollapsed(true);
+              }, 500);
             }}
             onFilterChipSelect={handleFilterChipSelect}
             isPromptMode={isPromptMode}
@@ -296,6 +326,7 @@ export default function Dashboard() {
         themeColor={promptBubble?.elementType === 'promo-card' ? '#FFFFFF' : currentThemeColor}
         existingText={promptBubble?.existingText || ''}
         positionKey={promptBubble?.positionKey}
+        fpsPrompts={fpsPrompts}
       />
       
       {/* Mobile Frame Wrapper - Only show when filter chip is selected */}
@@ -320,6 +351,7 @@ export default function Dashboard() {
               onPromptHover={handlePromptHover}
               onPromptClick={handlePromptClick}
               fpsPrompts={fpsPrompts}
+
             />
           </div>
         </div>

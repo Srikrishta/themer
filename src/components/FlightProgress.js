@@ -28,37 +28,6 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
   const progressWidth = Math.max(0, Math.min(barWidth * progress, barWidth));
   const iconLeft = Math.max(0, Math.min(barWidth * progress - 16, barWidth - 32));
 
-  // Find the closest prompt for the current position
-  const findClosestPrompt = () => {
-    if (Object.keys(fpsPrompts).length === 0) return null;
-    
-    const currentProgressKey = `fps-${Math.round(progress * 1000)}`;
-    
-    // First try exact match
-    if (fpsPrompts[currentProgressKey]) {
-      return fpsPrompts[currentProgressKey];
-    }
-    
-    // If no exact match, find the closest one
-    let closestKey = null;
-    let closestDistance = Infinity;
-    
-    Object.keys(fpsPrompts).forEach(key => {
-      if (key.startsWith('fps-')) {
-        const keyProgress = parseInt(key.replace('fps-', '')) / 1000;
-        const distance = Math.abs(keyProgress - progress);
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          closestKey = key;
-        }
-      }
-    });
-    
-    return closestKey ? fpsPrompts[closestKey] : null;
-  };
-  
-  const currentPrompt = findClosestPrompt();
-
   // Drag logic (only start drag from icon)
   const handleIconMouseDown = (e) => {
     setDragging(true);
@@ -147,25 +116,34 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
         <span className="icon"></span>
       </div>
       
-      {/* Display prompt text below the flight icon */}
-      {currentPrompt && (
-        <div
-          className="flight-prompt-label"
-          style={{
-            position: 'absolute',
-            left: `${iconLeft + 8}px`,
-            top: '40px',
-            color: themeColor,
-            fontSize: '10px',
-            fontWeight: 'bold',
-            textTransform: 'uppercase',
-            whiteSpace: 'nowrap',
-            zIndex: 10
-          }}
-        >
-          {currentPrompt}
-        </div>
-      )}
+      {/* Display ALL prompts at their FIXED positions */}
+      {Object.entries(fpsPrompts).map(([positionKey, promptText]) => {
+        if (!positionKey.startsWith('fps-')) return null;
+        
+        // Extract progress from position key
+        const promptProgress = parseInt(positionKey.replace('fps-', '')) / 1000;
+        const promptLeft = Math.max(0, Math.min(barWidth * promptProgress - 16, barWidth - 32));
+        
+        return (
+          <div
+            key={positionKey}
+            className="flight-prompt-label"
+            style={{
+              position: 'absolute',
+              left: `${promptLeft + 8}px`, // Fixed position based on original progress
+              top: '40px',
+              color: themeColor,
+              fontSize: '10px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
+              zIndex: 10
+            }}
+          >
+            {promptText}
+          </div>
+        );
+      })}
     </div>
   );
 } 

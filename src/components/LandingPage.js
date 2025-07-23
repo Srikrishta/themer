@@ -34,7 +34,7 @@ export default function LandingPage() {
                 </p>
                 <div className="mt-10 flex items-center gap-x-6">
                   <div
-                    onClick={() => navigate('/dashboard', { state: { minimizeThemeCreator: true } })}
+                    onClick={() => navigate('/dashboard')}
                     className="bg-white border border-gray-200 shadow-lg cursor-pointer hover:shadow-xl transition-all duration-200 themer-animated-border"
                     style={{
                       width: '318px',
