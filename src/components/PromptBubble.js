@@ -15,6 +15,7 @@ export default function PromptBubble({
 }) {
   const [promptText, setPromptText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [stickyPosition, setStickyPosition] = useState(null);
   const bubbleRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -26,6 +27,52 @@ export default function PromptBubble({
     { id: 'descent', label: 'Descent', color: '#F59E0B' },
     { id: 'landing', label: 'Landing', color: '#EF4444' }
   ];
+
+  // Set sticky position when bubble becomes visible
+  useEffect(() => {
+    if (isVisible && position && !stickyPosition) {
+      // Convert viewport coordinates to document coordinates
+      const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+      
+      setStickyPosition({
+        x: position.x + scrollX,
+        y: position.y + scrollY
+      });
+    } else if (!isVisible) {
+      setStickyPosition(null);
+    }
+  }, [isVisible, position, stickyPosition]);
+
+  // Update position on scroll to maintain relative position
+  useEffect(() => {
+    if (!isVisible || !stickyPosition) return;
+
+    const handleScroll = () => {
+      const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+      
+      // Convert document coordinates back to viewport coordinates for fixed positioning
+      const viewportX = stickyPosition.x - scrollX;
+      const viewportY = stickyPosition.y - scrollY;
+      
+      if (bubbleRef.current) {
+        bubbleRef.current.style.left = `${Math.max(10, Math.min(viewportX - 160, window.innerWidth - 400))}px`;
+        bubbleRef.current.style.top = `${Math.max(10, Math.min(viewportY - 60, window.innerHeight - 200))}px`;
+      }
+    };
+
+    // Set initial position
+    handleScroll();
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, [isVisible, stickyPosition]);
 
   // Get used prompts for filtering chips
   const getUsedPrompts = () => {
@@ -109,7 +156,7 @@ export default function PromptBubble({
     setPromptText(chipLabel);
   };
 
-  if (!isVisible) return null;
+  if (!isVisible || !stickyPosition) return null;
 
   const getElementDescription = () => {
     switch (elementType) {
@@ -133,8 +180,6 @@ export default function PromptBubble({
         borderTopRightRadius: '24px',
         borderBottomLeftRadius: '24px',
         borderBottomRightRadius: '24px',
-        left: Math.max(10, Math.min(position.x - 160, window.innerWidth - 400)),
-        top: Math.max(10, Math.min(position.y - 60, window.innerHeight - 200)),
         width: '250px',
         maxWidth: '250px'
       }}
@@ -203,6 +248,7 @@ export default function PromptBubble({
                 <button
                   key={chip.id}
                   type="button"
+                  data-chip={chip.id}
                   onClick={() => handleChipClick(chip.label)}
                   className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium transition-all cursor-pointer border"
                   style={{

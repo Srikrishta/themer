@@ -39,6 +39,148 @@
   justify-content: center;
   border: 2px solid #000;
   z-index: 2;
+  transition: left 0.1s ease-out;
+}
+
+.flight-progress-icon.moving-icon {
+  transition: left 0.05s linear;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.flight-progress-icon.reached-target {
+  animation: gentle-pulse 3s ease-in-out infinite;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Dummy mouse pointer styles */
+.dummy-mouse-pointer {
+  position: absolute;
+  animation: pointer-appear 0.5s ease-out;
+}
+
+.pointer-dot {
+  width: 8px;
+  height: 8px;
+  background: #333;
+  border-radius: 50%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  animation: pointer-pulse 2s ease-in-out infinite;
+}
+
+.pointer-shadow {
+  width: 12px;
+  height: 12px;
+  background: rgba(51, 51, 51, 0.3);
+  border-radius: 50%;
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  animation: shadow-pulse 2s ease-in-out infinite;
+}
+
+/* Chip clicked state styles */
+.chip-clicked {
+  animation: chip-click-pulse 0.8s ease-in-out !important;
+  transform: scale(0.9) !important;
+  background-color: #10B981 !important;
+  border-color: #10B981 !important;
+  color: white !important;
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4) !important;
+}
+
+@keyframes chip-click-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+  }
+  50% {
+    transform: scale(0.85);
+    box-shadow: 0 6px 12px rgba(16, 185, 129, 0.6);
+  }
+  100% {
+    transform: scale(0.9);
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
+  }
+}
+
+@keyframes label-appear {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Plus button animation */
+@keyframes plus-button-appear {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes pointer-appear {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pointer-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+@keyframes shadow-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1);
+  }
+}
+
+@keyframes gentle-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.15);
+  }
 }
 
 .flight-progress-icon .icon {
