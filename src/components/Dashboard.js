@@ -5,6 +5,7 @@ import FlightProgress from './FlightProgress';
 import Component3Cards from './Component3Cards';
 import PlusIconCursor from './PlusIconCursor';
 import PromptBubble from './PromptBubble';
+import MousePointer from './MousePointer';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 function formatTime(minutes) {
@@ -65,6 +66,9 @@ export default function Dashboard() {
   
   // NEW: Track if any filter chip has been selected
   const [isFilterChipSelected, setIsFilterChipSelected] = useState(false);
+  
+  // Mouse pointer state
+  const [showMousePointer, setShowMousePointer] = useState(true);
   
   // Scroll state management
   const [scrollY, setScrollY] = useState(0);
@@ -313,6 +317,15 @@ export default function Dashboard() {
       <PlusIconCursor 
         isVisible={isPromptMode && showPlusIcon} 
         themeColor={currentThemeColor} 
+      />
+
+      {/* Mouse Pointer Cursor */}
+      <MousePointer 
+        isVisible={showMousePointer}
+        themeColor={currentThemeColor}
+        size="normal"
+        showShadow={true}
+        animated={true}
       />
 
       {/* Prompt Bubble */}
