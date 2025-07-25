@@ -21,9 +21,11 @@
   left: 0;
   width: 642px; /* Adjust for progress */
   height: 4px;
-  background: #000; /* black for progress */
+  background: var(--theme-color, #000); /* Use theme color variable, fallback to black */
   border-radius: 2px;
   z-index: 1;
+  opacity: 1; /* Ensure full opacity */
+  transition: none; /* Remove CSS transition to let JavaScript handle smooth animation */
 }
 
 .flight-progress-icon {
@@ -32,18 +34,19 @@
   left: 626px; /* Adjust to match progress end */
   width: 32px;
   height: 32px;
-  background: #000;
+  background: var(--theme-color, #000); /* Use theme color variable, fallback to black */
   border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #000;
+  border: 2px solid var(--theme-color, #000); /* Use theme color variable, fallback to black */
   z-index: 2;
-  transition: left 0.1s ease-out;
+  transition: none; /* Remove CSS transition to let JavaScript handle smooth animation */
+  opacity: 1; /* Ensure full opacity */
 }
 
 .flight-progress-icon.moving-icon {
-  transition: left 0.05s linear;
+  transition: none; /* Remove CSS transition to let JavaScript handle smooth animation */
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -56,29 +59,45 @@
 .dummy-mouse-pointer {
   position: absolute;
   animation: pointer-appear 0.5s ease-out;
-}
-
-.pointer-dot {
-  width: 8px;
-  height: 8px;
+  width: 16px;
+  height: 16px;
   background: #333;
   border-radius: 50%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  animation: pointer-pulse 2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 20;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transform: translate(-50%, -50%);
 }
 
-.pointer-shadow {
-  width: 12px;
-  height: 12px;
-  background: rgba(51, 51, 51, 0.3);
-  border-radius: 50%;
+.dummy-mouse-pointer::before {
+  content: '';
   position: absolute;
-  top: -2px;
-  left: -2px;
-  animation: shadow-pulse 2s ease-in-out infinite;
+  width: 20px;
+  height: 20px;
+  background: rgba(51, 51, 51, 0.2);
+  border-radius: 50%;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  filter: blur(2px);
+  z-index: -1;
 }
+
+.dummy-mouse-pointer::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid #333;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) translateY(-1px);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+
 
 /* Chip clicked state styles */
 .chip-clicked {
@@ -139,28 +158,6 @@
   }
 }
 
-@keyframes pointer-pulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 0.8;
-  }
-}
-
-@keyframes shadow-pulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.3;
-  }
-  50% {
-    transform: scale(1.3);
-    opacity: 0.1;
-  }
-}
-
 @keyframes pulse {
   0%, 100% {
     transform: scale(1);
@@ -186,9 +183,10 @@
 .flight-progress-icon .icon {
   width: 22px;
   height: 21px;
-  background: #fff;
-  border-radius: 4px;
-  /* You can use a background-image or a simple shape here */
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .plus-button {
@@ -196,12 +194,12 @@
   top: 48px; /* Position below the flight progress icon */
   width: 24px;
   height: 24px;
-  background: #000;
+  background: var(--theme-color, #000); /* Use theme color variable, fallback to black */
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #000;
+  border: 2px solid var(--theme-color, #000); /* Use theme color variable, fallback to black */
   cursor: pointer;
   z-index: 3;
   transition: all 0.2s ease;

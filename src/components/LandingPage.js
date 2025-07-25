@@ -127,6 +127,82 @@ export default function LandingPage() {
                 onPromptHover={() => {}}
                 onPromptClick={() => {}}
               />
+              
+              {/* Recommended for you section */}
+              <div
+                className="flex flex-col items-start"
+                style={{ width: '1302px', gap: '24px' }}
+              >
+                <p className="block text-left text-black font-bold" style={{ fontSize: '28px', lineHeight: '36px', margin: 0 }}>
+                  Recommended for you
+                </p>
+                
+                {/* 4 Recommended Tiles */}
+                <div
+                  className="grid grid-cols-4 gap-6"
+                  style={{ width: '100%' }}
+                >
+                  {/* Tile 1 */}
+                  <div
+                    className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
+                    style={{ 
+                      width: '100%', 
+                      height: '184px',
+                      background: mockThemeColor,
+                      borderTopLeftRadius: '8px',
+                      borderTopRightRadius: '8px',
+                      borderBottomLeftRadius: '0px',
+                      borderBottomRightRadius: '0px'
+                    }}
+                  >
+                  </div>
+                  
+                  {/* Tile 2 */}
+                  <div
+                    className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
+                    style={{ 
+                      width: '100%', 
+                      height: '184px',
+                      background: mockThemeColor,
+                      borderTopLeftRadius: '8px',
+                      borderTopRightRadius: '8px',
+                      borderBottomLeftRadius: '0px',
+                      borderBottomRightRadius: '0px'
+                    }}
+                  >
+                  </div>
+                  
+                  {/* Tile 3 */}
+                  <div
+                    className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
+                    style={{ 
+                      width: '100%', 
+                      height: '184px',
+                      background: mockThemeColor,
+                      borderTopLeftRadius: '8px',
+                      borderTopRightRadius: '8px',
+                      borderBottomLeftRadius: '0px',
+                      borderBottomRightRadius: '0px'
+                    }}
+                  >
+                  </div>
+                  
+                  {/* Tile 4 */}
+                  <div
+                    className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
+                    style={{ 
+                      width: '100%', 
+                      height: '184px',
+                      background: mockThemeColor,
+                      borderTopLeftRadius: '8px',
+                      borderTopRightRadius: '8px',
+                      borderBottomLeftRadius: '0px',
+                      borderBottomRightRadius: '0px'
+                    }}
+                  >
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
