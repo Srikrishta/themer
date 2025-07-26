@@ -5,7 +5,7 @@ const imgAutumnMeal = "http://localhost:3845/assets/67867be324b149fdbc2f5cc31419
 const imgAddAnAutumnMovie = "http://localhost:3845/assets/8ea70d2052f6ce510170e999f000793ea6f8a1cb.png";
 const img2 = "http://localhost:3845/assets/1bd3170f3986d13a6502916089cd682ffee55e02.svg";
 
-export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], isPromptMode = false, onPromptHover, onPromptClick }) {
+export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], isPromptMode = false, onPromptHover, onPromptClick, promptStates = {} }) {
   // Skeleton component for loading state
   const SkeletonCard = () => (
     <div
@@ -41,7 +41,7 @@ export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], i
           <div
             className="bg-black h-[200px] overflow-clip relative rounded-lg shrink-0 flex items-center justify-center"
             style={{ width: '416px', background: themeColor }}
-            data-name="add an image of shopping for autumn"
+            data-name="croissants at 4€"
             id="node-82_35814"
             onMouseEnter={(e) => {
               if (isPromptMode && onPromptHover) {
@@ -65,9 +65,24 @@ export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], i
               }
             }}
           >
-            <p className="block text-center text-white font-bold" style={{ fontSize: '28px', lineHeight: '36px', margin: 0 }}>
-              Add title
-            </p>
+            {promptStates['promo-card-0'] ? (
+              <div className="relative h-full w-full">
+                <img 
+                  src="https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=416&h=200&fit=crop&crop=center" 
+                  alt="Croissants" 
+                  className="w-full h-full object-cover rounded-lg"
+                />
+                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 rounded-lg">
+                  <p className="block text-center text-white font-bold" style={{ fontSize: '28px', lineHeight: '36px', margin: 0 }}>
+                    Croissants at 3€
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="block text-center text-white font-bold" style={{ fontSize: '28px', lineHeight: '36px', margin: 0 }}>
+                Add title
+              </p>
+            )}
           </div>
           <div
             className="bg-black h-[200px] overflow-clip relative rounded-lg shrink-0 flex items-center justify-center"

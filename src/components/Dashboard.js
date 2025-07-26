@@ -144,7 +144,7 @@ export default function Dashboard() {
   const [isFilterChipSelected, setIsFilterChipSelected] = useState(false);
   
   // Mouse pointer state
-  const [showMousePointer, setShowMousePointer] = useState(true);
+  const [showMousePointer, setShowMousePointer] = useState(false);
   
   // Scroll state management
   const [scrollY, setScrollY] = useState(0);

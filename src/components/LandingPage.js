@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import FlightJourneyBar from './FlightJourneyBar';
 import FlightProgress from './FlightProgress';
 import Component3Cards from './Component3Cards';
@@ -10,8 +10,17 @@ export default function LandingPage() {
   // Mock data for the theme preview
   const mockOrigin = { airport: { city: 'Berlin', code: 'BER' } };
   const mockDestination = { airport: { city: 'Paris', code: 'CDG' } };
-  const mockMinutesLeft = 370;
   const mockRoutes = [mockOrigin, mockDestination];
+  
+  // Countdown state for landing time
+  const maxFlightMinutes = 185; // 3h 05m
+  const [minutesLeft, setMinutesLeft] = useState(maxFlightMinutes);
+  const timerRef = useRef();
+  const [dragging, setDragging] = useState(false);
+  const [showMovingIcon, setShowMovingIcon] = useState(true); // Start with animation
+  const [promoCardLoading, setPromoCardLoading] = useState(false);
+  const [promoCardFinishedLoading, setPromoCardFinishedLoading] = useState(false);
+  const [promptBubbleVisible, setPromptBubbleVisible] = useState(false);
   
   // Theme colors that will cycle every 3 seconds
   const themeColors = [
@@ -24,6 +33,62 @@ export default function LandingPage() {
     '#06b6d4', // cyan-500
     '#84cc16'  // lime-500
   ];
+  
+  const formatTime = (minutes) => {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
+  };
+  
+  // Countdown timer effect - only run when not in animation mode
+  useEffect(() => {
+    setMinutesLeft(maxFlightMinutes);
+  }, [maxFlightMinutes]);
+
+  useEffect(() => {
+    if (dragging) return; // Pause timer while dragging
+    if (minutesLeft <= 0) return;
+    if (showMovingIcon) return; // Pause timer during flight icon animation
+    
+    console.log('Setting timer for minutesLeft:', minutesLeft);
+    timerRef.current = setTimeout(() => {
+      console.log('Timer fired, updating minutesLeft from:', minutesLeft, 'to:', minutesLeft - 1);
+      setMinutesLeft((m) => (m > 0 ? m - 1 : 0));
+    }, 60000); // Update every minute (same as Dashboard)
+    return () => clearTimeout(timerRef.current);
+  }, [minutesLeft, dragging, showMovingIcon]);
+
+  // Handle animation progress changes
+  const handleAnimationProgressChange = (newMinutes) => {
+    console.log('Animation progress changed minutes to:', newMinutes);
+    setMinutesLeft(newMinutes);
+  };
+
+  // Handle progress bar drag
+  const handleProgressChange = (newMinutes) => {
+    setDragging(true);
+    setMinutesLeft(newMinutes);
+  };
+
+  const handlePromoCardLoadingChange = (isLoading) => {
+    setPromoCardLoading(isLoading);
+    if (!isLoading && promoCardLoading) {
+      // Loading just finished
+      setPromoCardFinishedLoading(true);
+    }
+    // If isLoading is false, it means the prompt bubble is visible
+    if (!isLoading) {
+      setPromptBubbleVisible(true);
+      setPromoCardFinishedLoading(true); // Show the croissant image immediately when prompt bubble appears
+    }
+  };
+
+  useEffect(() => {
+    if (!dragging) return;
+    const handleUp = () => setDragging(false);
+    window.addEventListener('mouseup', handleUp);
+    return () => window.removeEventListener('mouseup', handleUp);
+  }, [dragging]);
   
   const [currentThemeColorIndex, setCurrentThemeColorIndex] = useState(0);
   const mockThemeColor = themeColors[currentThemeColorIndex];
@@ -39,13 +104,8 @@ export default function LandingPage() {
     return () => clearInterval(interval);
   }, []);
   
-  const formatTime = (minutes) => {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
-  };
-  
-  const landingIn = formatTime(mockMinutesLeft);
+  const landingIn = formatTime(minutesLeft);
+  console.log('LandingPage - minutesLeft:', minutesLeft, 'landingIn:', landingIn);
 
   return (
     <div className="min-h-screen bg-white">
@@ -105,18 +165,20 @@ export default function LandingPage() {
             <div style={{ position: 'relative', zIndex: 2, width: 1302, margin: '92px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
               <div className="fjb-fps-container" style={{ width: 1328, maxWidth: 1328, marginLeft: -2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, background: mockThemeColor + '14', borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 16, paddingTop: 80, paddingBottom: 40, marginTop: 4 }}>
                 <div style={{ width: '100%', marginTop: -32, display: 'flex', flexDirection: 'column', gap: 28 }}>
-                  <FlightJourneyBar origin={mockOrigin} destination={mockDestination} minutesLeft={mockMinutesLeft} themeColor={mockThemeColor} />
+                  <FlightJourneyBar origin={mockOrigin} destination={mockDestination} minutesLeft={minutesLeft} themeColor={mockThemeColor} />
                   <FlightProgress 
                     landingIn={landingIn} 
-                    maxFlightMinutes={370} 
-                    minutesLeft={mockMinutesLeft} 
-                    onProgressChange={() => {}} 
+                    maxFlightMinutes={maxFlightMinutes} 
+                    minutesLeft={minutesLeft} 
+                    onProgressChange={handleProgressChange} 
                     themeColor={mockThemeColor}
                     isPromptMode={false}
                     onPromptHover={() => {}}
                     onPromptClick={() => {}}
                     fpsPrompts={{}}
-                    showMovingIcon={true}
+                    showMovingIcon={showMovingIcon}
+                    onAnimationProgressChange={handleAnimationProgressChange}
+                    onPromoCardLoadingChange={handlePromoCardLoadingChange}
                   />
                 </div>
               </div>
@@ -126,6 +188,7 @@ export default function LandingPage() {
                 isPromptMode={false}
                 onPromptHover={() => {}}
                 onPromptClick={() => {}}
+                promptStates={{ 'promo-card-0': promptBubbleVisible }}
               />
               
               {/* Recommended for you section */}

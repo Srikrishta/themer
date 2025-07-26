@@ -7,6 +7,7 @@ const img5 = "http://localhost:3845/assets/5b430c457bb1a36eac34c8197e3558b70a889
 const img6 = "http://localhost:3845/assets/29fa6c4c59170f1b8aade086622c24fdce89c35a.svg";
 
 export default function FlightJourneyBar({ origin, destination, minutesLeft, themeColor = '#1E1E1E' }) {
+  console.log('FlightJourneyBar - received minutesLeft:', minutesLeft);
   function formatTime(minutes) {
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;

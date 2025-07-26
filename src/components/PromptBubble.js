@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { XMarkIcon, PaperAirplaneIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PaperAirplaneIcon, PlusIcon, PhotoIcon } from '@heroicons/react/24/outline';
 
 export default function PromptBubble({ 
   isVisible, 
@@ -11,21 +11,23 @@ export default function PromptBubble({
   themeColor = '#1E1E1E',
   existingText = '',
   positionKey,
-  fpsPrompts = {}
+  fpsPrompts = {},
+  onLoadingStateChange,
+  onVisibilityChange
 }) {
-  const [promptText, setPromptText] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [promptText, setPromptText] = useState(elementType === 'promo-card' ? 'Croissants at 3€' : '');
+  const [isLoading, setIsLoading] = useState(elementType === 'promo-card' ? true : false);
   const [stickyPosition, setStickyPosition] = useState(null);
   const bubbleRef = useRef(null);
   const inputRef = useRef(null);
 
   // Flight phase chips for FPS
   const flightPhaseChips = [
-    { id: 'takeoff', label: 'Takeoff', color: '#10B981' },
-    { id: 'climb', label: 'Climb', color: '#3B82F6' },
-    { id: 'cruise', label: 'Cruise', color: '#8B5CF6' },
-    { id: 'descent', label: 'Descent', color: '#F59E0B' },
-    { id: 'landing', label: 'Landing', color: '#EF4444' }
+    { id: 'takeoff', label: 'Takeoff', color: '#6B7280' },
+    { id: 'climb', label: 'Climb', color: '#6B7280' },
+    { id: 'cruise', label: 'Cruise', color: '#6B7280' },
+    { id: 'descent', label: 'Descent', color: '#6B7280' },
+    { id: 'landing', label: 'Landing', color: '#6B7280' }
   ];
 
   // Set sticky position when bubble becomes visible
@@ -105,10 +107,33 @@ export default function PromptBubble({
   useEffect(() => {
     if (isVisible && inputRef.current) {
       inputRef.current.focus();
-      setIsLoading(false);
-      setPromptText(existingText); // Load existing text for this position
+      if (elementType === 'promo-card' && existingText === '') {
+        setPromptText('Croissants at 3€');
+        setIsLoading(true);
+        // Simulate loading process for promo cards
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 3000); // 3 seconds loading time
+      } else {
+        setIsLoading(false);
+        setPromptText(existingText); // Load existing text for this position
+      }
     }
   }, [isVisible, existingText]);
+
+  // Notify parent component when loading state changes
+  useEffect(() => {
+    if (onLoadingStateChange && elementType === 'promo-card') {
+      onLoadingStateChange(isLoading);
+    }
+  }, [isLoading, elementType, onLoadingStateChange]);
+
+  // Notify parent component when visibility changes
+  useEffect(() => {
+    if (onVisibilityChange && elementType === 'promo-card') {
+      onVisibilityChange(isVisible);
+    }
+  }, [isVisible, elementType, onVisibilityChange]);
 
   // Handle click outside to close
   useEffect(() => {
@@ -208,7 +233,7 @@ export default function PromptBubble({
       )}
 
       {/* Input Form */}
-      <form onSubmit={handleSubmit} className="flex items-end gap-3">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <div className="relative flex-1">
           <textarea
             ref={inputRef}
@@ -271,13 +296,41 @@ export default function PromptBubble({
           )}
         </div>
         
-        <button
-          type="submit"
-          disabled={!promptText.trim() || isLoading}
-          className={`${elementType === 'promo-card' ? 'text-black/70 hover:text-black' : 'text-white/70 hover:text-white'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0`}
-        >
-          <PaperAirplaneIcon className="w-4 h-4" />
-        </button>
+        {/* Button Row - Only show for promo cards (PCs) */}
+        {elementType === 'promo-card' && (
+          <div className="flex items-center gap-3 justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                // Handle image upload functionality
+                console.log('Image upload clicked');
+                // TODO: Implement image upload logic
+              }}
+              className="text-black/70 hover:text-black transition-colors flex-shrink-0"
+            >
+              <PhotoIcon className="w-4 h-4" />
+            </button>
+            
+            <button
+              type="submit"
+              disabled={!promptText.trim() || isLoading}
+              className="text-black/70 hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+            >
+              <PaperAirplaneIcon className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+        
+        {/* Send Button for Flight Phase Selection (FPS) */}
+        {elementType !== 'promo-card' && (
+          <button
+            type="submit"
+            disabled={!promptText.trim() || isLoading}
+            className="text-white/70 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 self-end"
+          >
+            <PaperAirplaneIcon className="w-4 h-4" />
+          </button>
+        )}
       </form>
     </div>
   );
