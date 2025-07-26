@@ -21,6 +21,7 @@ export default function LandingPage() {
   const [promoCardLoading, setPromoCardLoading] = useState(false);
   const [promoCardFinishedLoading, setPromoCardFinishedLoading] = useState(false);
   const [promptBubbleVisible, setPromptBubbleVisible] = useState(false);
+  const [animationProgress, setAnimationProgress] = useState(0);
   
   // Theme colors that will cycle every 3 seconds
   const themeColors = [
@@ -64,6 +65,11 @@ export default function LandingPage() {
     setMinutesLeft(newMinutes);
   };
 
+  // Handle animation progress from FlightProgress
+  const handleAnimationProgress = (progress) => {
+    setAnimationProgress(progress);
+  };
+
   // Handle progress bar drag
   const handleProgressChange = (newMinutes) => {
     setDragging(true);
@@ -76,11 +82,7 @@ export default function LandingPage() {
       // Loading just finished
       setPromoCardFinishedLoading(true);
     }
-    // If isLoading is false, it means the prompt bubble is visible
-    if (!isLoading) {
-      setPromptBubbleVisible(true);
-      setPromoCardFinishedLoading(true); // Show the croissant image immediately when prompt bubble appears
-    }
+    // Don't automatically show prompt bubble - let FlightProgress control this
   };
 
   useEffect(() => {
@@ -179,6 +181,7 @@ export default function LandingPage() {
                     showMovingIcon={showMovingIcon}
                     onAnimationProgressChange={handleAnimationProgressChange}
                     onPromoCardLoadingChange={handlePromoCardLoadingChange}
+                    onAnimationProgress={handleAnimationProgress}
                   />
                 </div>
               </div>
@@ -188,7 +191,8 @@ export default function LandingPage() {
                 isPromptMode={false}
                 onPromptHover={() => {}}
                 onPromptClick={() => {}}
-                promptStates={{ 'promo-card-0': promptBubbleVisible }}
+                promptStates={{ 'promo-card-0': false }} // Don't show promo card prompt bubble until FlightProgress controls it
+                animationProgress={animationProgress}
               />
               
               {/* Recommended for you section */}

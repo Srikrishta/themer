@@ -15,9 +15,12 @@ export default function PromptBubble({
   onLoadingStateChange,
   onVisibilityChange
 }) {
-  const [promptText, setPromptText] = useState(elementType === 'promo-card' ? 'Croissants at 3€' : '');
+  const [promptText, setPromptText] = useState(elementType === 'flight-icon' && positionKey === 'landing-demo' ? 'Cruise' : (elementType === 'promo-card' ? '' : ''));
   const [isLoading, setIsLoading] = useState(elementType === 'promo-card' ? true : false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [typedText, setTypedText] = useState('');
   const [stickyPosition, setStickyPosition] = useState(null);
+  const [selectedChip, setSelectedChip] = useState(elementType === 'flight-icon' && positionKey === 'landing-demo' ? 'cruise' : null);
   const bubbleRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -103,23 +106,74 @@ export default function PromptBubble({
 
   const availableChips = getAvailableChips();
 
+  // Auto-click effect: when send button color changes (Cruise selected), show loading after 2 seconds
+  useEffect(() => {
+    if (selectedChip === 'cruise' && elementType === 'flight-icon' && positionKey === 'landing-demo') {
+      // Wait 5 seconds after Cruise is selected, then show loading
+      setTimeout(() => {
+        setIsLoading(true);
+        setPromptText('loading...');
+        // Show Cruise label immediately when loading appears
+        onSubmit('Cruise', elementType, elementData, positionKey);
+      }, 5000); // 5 seconds delay after Cruise selection
+    }
+  }, [selectedChip, elementType, positionKey, onSubmit, elementData]);
+
+  // Function to simulate typing animation
+  const startTypingAnimation = (text) => {
+    setIsTyping(true);
+    setTypedText('');
+    let index = 0;
+    
+    const typeNextChar = () => {
+      if (index < text.length) {
+        setTypedText(prev => prev + text[index]);
+        index++;
+        setTimeout(typeNextChar, 100); // Type each character with 100ms delay
+      } else {
+        setIsTyping(false);
+        setPromptText(text);
+      }
+    };
+    
+    typeNextChar();
+  };
+
   // Focus input when bubble becomes visible and reset loading state
   useEffect(() => {
     if (isVisible && inputRef.current) {
       inputRef.current.focus();
       if (elementType === 'promo-card' && existingText === '') {
-        setPromptText('Croissants at 3€');
         setIsLoading(true);
-        // Simulate loading process for promo cards
+        // Start typing animation after loading is done
         setTimeout(() => {
           setIsLoading(false);
-        }, 3000); // 3 seconds loading time
+          // Start typing animation immediately after loading is done
+          setTimeout(() => {
+            startTypingAnimation('Croissants at 3€');
+          }, 100); // Small delay after loading ends
+        }, 1000); // 1 second loading time instead of 3 seconds
       } else {
         setIsLoading(false);
         setPromptText(existingText); // Load existing text for this position
       }
+      
+      // For landing page demo, show Cruise as already selected immediately
+      if (elementType === 'flight-icon' && positionKey === 'landing-demo') {
+        if (existingText === 'loading...') {
+          setPromptText('loading...');
+          setIsLoading(true);
+        } else {
+          setPromptText('Cruise');
+          setSelectedChip('cruise');
+        }
+      }
+    } else if (!isVisible) {
+      // Reset states when bubble becomes invisible
+      setSelectedChip(null);
+      setPromptText('');
     }
-  }, [isVisible, existingText]);
+  }, [isVisible, existingText, elementType, positionKey, onSubmit, elementData]);
 
   // Notify parent component when loading state changes
   useEffect(() => {
@@ -179,6 +233,11 @@ export default function PromptBubble({
 
   const handleChipClick = (chipLabel) => {
     setPromptText(chipLabel);
+    // Find the chip id from the label
+    const chip = flightPhaseChips.find(c => c.label === chipLabel);
+    if (chip) {
+      setSelectedChip(chip.id);
+    }
   };
 
   if (!isVisible || !stickyPosition) return null;
@@ -237,7 +296,7 @@ export default function PromptBubble({
         <div className="relative flex-1">
           <textarea
             ref={inputRef}
-            value={promptText}
+            value={isTyping ? typedText : (isLoading ? 'loading...' : promptText)}
             onChange={(e) => setPromptText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={isLoading ? "loading..." : elementType === 'promo-card' ? "add image and text" : "add flight phase"}
@@ -269,29 +328,38 @@ export default function PromptBubble({
           {/* Flight Phase Chips - Only show for flight-icon and filter out used ones */}
           {elementType === 'flight-icon' && availableChips.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
-              {availableChips.map((chip) => (
-                <button
-                  key={chip.id}
-                  type="button"
-                  data-chip={chip.id}
-                  onClick={() => handleChipClick(chip.label)}
-                  className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium transition-all cursor-pointer border"
-                  style={{
-                    backgroundColor: `${chip.color}20`,
-                    borderColor: chip.color,
-                    color: elementType === 'promo-card' ? '#000000' : '#FFFFFF'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.backgroundColor = `${chip.color}40`;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.backgroundColor = `${chip.color}20`;
-                  }}
-                >
-                  {chip.label}
-                  <PlusIcon className="w-3 h-3 ml-1.5 flex-shrink-0" />
-                </button>
-              ))}
+              {availableChips.map((chip) => {
+                const isSelected = selectedChip === chip.id;
+                return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    data-chip={chip.id}
+                    onClick={() => handleChipClick(chip.label)}
+                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium transition-all cursor-pointer border"
+                    style={{
+                      backgroundColor: isSelected ? '#10B981' : `${chip.color}20`,
+                      borderColor: isSelected ? '#10B981' : chip.color,
+                      color: isSelected ? 'white' : (elementType === 'promo-card' ? '#000000' : '#FFFFFF'),
+                      transform: isSelected ? 'scale(0.9)' : 'scale(1)',
+                      boxShadow: isSelected ? '0 4px 8px rgba(16, 185, 129, 0.4)' : 'none'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) {
+                        e.target.style.backgroundColor = `${chip.color}40`;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) {
+                        e.target.style.backgroundColor = `${chip.color}20`;
+                      }
+                    }}
+                  >
+                    {chip.label}
+                    {!isSelected && <PlusIcon className="w-3 h-3 ml-1.5 flex-shrink-0" />}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -326,7 +394,10 @@ export default function PromptBubble({
           <button
             type="submit"
             disabled={!promptText.trim() || isLoading}
-            className="text-white/70 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 self-end"
+            className="transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 self-end"
+            style={{
+              color: selectedChip === 'cruise' ? '#10B981' : 'rgba(255, 255, 255, 0.7)'
+            }}
           >
             <PaperAirplaneIcon className="w-4 h-4" />
           </button>

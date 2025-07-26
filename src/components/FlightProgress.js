@@ -17,7 +17,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFlightMinutes = 370, minutesLeft: externalMinutesLeft, onProgressChange, themeColor = '#1E1E1E', isPromptMode = false, onPromptHover, onPromptClick, fpsPrompts = {}, showMovingIcon = false, onAnimationProgressChange, onPromoCardLoadingChange }) {
+export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFlightMinutes = 370, minutesLeft: externalMinutesLeft, onProgressChange, themeColor = '#1E1E1E', isPromptMode = false, onPromptHover, onPromptClick, fpsPrompts = {}, showMovingIcon = false, onAnimationProgressChange, onPromoCardLoadingChange, onAnimationProgress }) {
   const barWidth = 1302;
   const [dragging, setDragging] = useState(false);
   const [animationProgress, setAnimationProgress] = useState(showMovingIcon ? 0.02 : 0); // Start with 2% progress if showing moving icon
@@ -27,12 +27,14 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
   const [showPromptBubble, setShowPromptBubble] = useState(false);
   const [promptBubblePosition, setPromptBubblePosition] = useState({ x: 0, y: 0 });
   const [showTakeoffLabel, setShowTakeoffLabel] = useState(false);
+  const [showCruiseLabel, setShowCruiseLabel] = useState(false);
   const [movePointerToCard, setMovePointerToCard] = useState(false);
   const [pointerCardPosition, setPointerCardPosition] = useState({ x: 0, y: 0 });
   const [showPlusButtonAtCard, setShowPlusButtonAtCard] = useState(false);
   const [showPromptBubbleAtCard, setShowPromptBubbleAtCard] = useState(false);
   const [promptBubbleCardPosition, setPromptBubbleCardPosition] = useState({ x: 0, y: 0 });
   const [promoCardLoading, setPromoCardLoading] = useState(false);
+  const [promptBubbleLoading, setPromptBubbleLoading] = useState(false);
   const [movePointerToSecondTile, setMovePointerToSecondTile] = useState(false);
   const [secondTilePosition, setSecondTilePosition] = useState({ x: 0, y: 0 });
   const barRef = useRef();
@@ -44,6 +46,16 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
       barRef.current.style.setProperty('--theme-color', themeColor);
     }
   }, [themeColor]);
+
+  // Debug: Track when showPromptBubble changes
+  useEffect(() => {
+    console.log('=== showPromptBubble changed ===', { 
+      showPromptBubble, 
+      showMovingIcon, 
+      hasReachedTarget,
+      animationProgress 
+    });
+  }, [showPromptBubble, showMovingIcon, hasReachedTarget, animationProgress]);
 
   // If externalMinutesLeft is provided, use it as the source of truth
   const displayMinutes = typeof externalMinutesLeft === 'number' ? externalMinutesLeft : parseTime(landingIn);
@@ -66,9 +78,21 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
   useEffect(() => {
     if (!showMovingIcon) return;
 
-    const animationDuration = 3000; // 3 seconds to reach 20%
+    console.log('=== ANIMATION START ===', { 
+      animationProgress, 
+      startProgress: animationProgress, 
+      targetProgress: 0.2,
+      hasReachedTarget 
+    });
+
+    // Don't show Cruise label during animation - only show after prompt submission
+
+    // If we've already reached the target, don't restart animation
+    if (hasReachedTarget) return;
+
+    const animationDuration = 8000; // 8 seconds to reach 20% (increased from 3 seconds)
     const startTime = Date.now();
-    const startProgress = 0.02; // Start with 2% progress for visibility
+    const startProgress = animationProgress; // Start from current progress instead of 0.02
 
     const animate = () => {
       const elapsed = Date.now() - startTime;
@@ -77,6 +101,37 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
       
       // Update both progress and icon position in the same frame
       setAnimationProgress(newProgress);
+      
+      // Debug: Log progress values
+      if (newProgress >= 0.19 && newProgress <= 0.21) {
+        console.log('Progress tracking:', {
+          newProgress,
+          percentage: (newProgress * 100).toFixed(1) + '%',
+          hasReachedTarget
+        });
+      }
+      
+      // Show Takeoff label at 5% progress
+      if (newProgress >= 0.05 && newProgress <= 0.06 && !showTakeoffLabel) {
+        setShowTakeoffLabel(true);
+      }
+      
+      // Pass animation progress to parent
+      if (onAnimationProgress) {
+        onAnimationProgress(newProgress);
+      }
+      
+      // Don't show Cruise label during animation - only show after prompt submission
+      
+      // Show prompt bubble exactly at 20% progress
+      if (newProgress >= 0.20 && newProgress <= 0.205 && !hasReachedTarget) {
+        console.log('=== 20% PROGRESS REACHED ===', { 
+          newProgress, 
+          hasReachedTarget,
+          exactProgress: (newProgress * 100).toFixed(1) + '%'
+        });
+        setHasReachedTarget(true);
+      }
       
       // Calculate and update countdown timer based on animation progress
       if (onAnimationProgressChange) {
@@ -89,56 +144,42 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
       if (progressRatio < 1) {
         requestAnimationFrame(animate);
       } else {
-        setHasReachedTarget(true);
-        // Show pointer after a short delay
+        // Animation has completed - flight icon has stopped
+        console.log('=== FLIGHT ICON STOPPED ===', { 
+          finalProgress: newProgress,
+          percentage: (newProgress * 100).toFixed(1) + '%'
+        });
+        
+        // Show dummy mouse pointer first
         setTimeout(() => {
           setShowPointer(true);
-        }, 500);
+        }, 2000); // 2 seconds delay after stopping (increased from 800ms)
+        
         // Show plus button after pointer appears
         setTimeout(() => {
           setShowPlusButton(true);
-        }, 1000);
-        // Show prompt bubble after plus button appears
-        setTimeout(() => {
-          setShowPromptBubble(true);
-          // Hide plus button when prompt bubble appears
-          setShowPlusButton(false);
-          // Calculate position for prompt bubble (at the same position as plus button)
-          // Get the FPS container position relative to viewport
-          if (barRef.current) {
-            const containerRect = barRef.current.getBoundingClientRect();
-            // Account for PromptBubble's internal offset adjustments (-160 for x, -60 for y)
-            const bubbleX = containerRect.left + iconLeft + 8 + 160; // Plus button position + offset
-            const bubbleY = containerRect.top + 48 + 60; // Plus button position + offset
-            setPromptBubblePosition({ x: bubbleX, y: bubbleY });
-          }
           
-          // Auto-click "Takeoff" chip after a longer delay to show the interaction
+          // Show prompt bubble after 3 seconds of plus button appearing
           setTimeout(() => {
-            // First, simulate the chip being clicked (visual feedback)
-            const takeoffChip = document.querySelector('[data-chip="takeoff"]');
-            if (takeoffChip) {
-              // Add clicked class for more prominent visual feedback
-              takeoffChip.classList.add('chip-clicked');
-              takeoffChip.style.transform = 'scale(0.9)';
-              takeoffChip.style.backgroundColor = '#10B981';
-              takeoffChip.style.borderColor = '#10B981';
-              takeoffChip.style.color = 'white';
-              takeoffChip.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.4)';
-            }
+            setShowPromptBubble(true);
+            setShowPlusButton(false); // Hide plus button when prompt bubble appears
             
-            // Then submit after showing the click effect
-            setTimeout(() => {
-              handlePromptBubbleSubmit("Takeoff", "flight-icon", { progress, minutesLeft: displayMinutes }, "landing-demo");
-            }, 800); // Longer delay to show the clicked state
-          }, 2000); // Increased delay to 2 seconds
-        }, 1500);
+            // Calculate position for prompt bubble (to the right of the plus button)
+            if (barRef.current) {
+              const containerRect = barRef.current.getBoundingClientRect();
+              // Position to the right of the plus button
+              const bubbleX = containerRect.left + iconLeft + 8 + 40 + 160; // Plus button position + button width + spacing + offset
+              const bubbleY = containerRect.top + 48 + 60; // Same vertical position as plus button + offset
+              setPromptBubblePosition({ x: bubbleX, y: bubbleY });
+            }
+          }, 3000); // 3 seconds after plus button appears (reduced from 8 seconds)
+        }, 3000); // 3 seconds delay after animation completes (increased from 1.5 seconds)
       }
     };
 
     const animationId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationId);
-  }, [showMovingIcon]);
+  }, [showMovingIcon, showTakeoffLabel, showCruiseLabel, hasReachedTarget]);
 
   // Drag logic (only start drag from icon)
   const handleIconMouseDown = (e) => {
@@ -255,65 +296,13 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
     // Handle the prompt submission for landing page demo
     console.log('=== HANDLE PROMPT BUBBLE SUBMIT CALLED ===');
     console.log('Prompt submitted:', promptText, elementType, elementData, positionKey);
-    setShowPromptBubble(false);
     
-    // Show the Takeoff label below the flight icon
-    if (promptText === "Takeoff") {
-      setShowTakeoffLabel(true);
+        // Show the Cruise label below the flight icon
+    if (promptText === "Cruise") {
+      setShowCruiseLabel(true);
+      setShowPromptBubble(false); // Close prompt bubble immediately
       
-      // Move pointer to promo card after Takeoff label appears
-      setTimeout(() => {
-        setMovePointerToCard(true);
-        // Calculate position for center of left promo card
-        // Component3Cards uses flexbox with gap-8 (32px gap)
-        const containerWidth = 1302;
-        const cardWidth = 416;
-        const cardHeight = 200;
-        const gap = 32;
-        
-        // Calculate the position of the leftmost card
-        // Total width of 3 cards + 2 gaps = 416*3 + 32*2 = 1312
-        const totalCardsWidth = (cardWidth * 3) + (gap * 2);
-        const leftMargin = (containerWidth - totalCardsWidth) / 2;
-        
-        // Center of left promo card relative to Component3Cards container
-        const leftCardCenterX = leftMargin + cardWidth / 2;
-        const leftCardCenterY = cardHeight / 2;
-        
-        // Convert to absolute position relative to the flight progress bar container
-        // Component3Cards is positioned below the flight progress bar with gap: 32
-        const flightProgressHeight = 32; // Height of flight progress bar
-        const gapBetweenComponents = 32; // Gap between flight progress and Component3Cards
-        
-        setPointerCardPosition({ 
-          x: leftCardCenterX, 
-          y: flightProgressHeight + gapBetweenComponents + leftCardCenterY 
-        });
-        
-        // Show plus button at promo card position after a short delay
-        setTimeout(() => {
-          console.log('=== STEP 1: Plus button appears at promo card ===');
-          setShowPlusButtonAtCard(true);
-          
-          // Show prompt bubble after plus button appears
-          setTimeout(() => {
-            console.log('=== STEP 2: Prompt bubble appears below plus button ===');
-            setShowPlusButtonAtCard(false);
-            setShowPromptBubbleAtCard(true);
-            
-            // Calculate position for prompt bubble below the plus button
-            if (barRef.current) {
-              const containerRect = barRef.current.getBoundingClientRect();
-              const bubbleX = containerRect.left + leftCardCenterX;
-              const bubbleY = containerRect.top + flightProgressHeight + gapBetweenComponents + leftCardCenterY + 50; // 50px below the pointer
-              console.log('Prompt bubble position below plus button:', { x: bubbleX, y: bubbleY });
-              setPromptBubbleCardPosition({ x: bubbleX, y: bubbleY });
-            } else {
-              console.log('barRef.current is null');
-            }
-          }, 800); // 800ms after plus button appears
-        }, 500); // 500ms after pointer moves to card
-      }, 1000); // 1 second after Takeoff label appears
+      // Animation ends here - no more interactions with promo cards
     }
   };
 
@@ -373,53 +362,8 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
         </svg>
       </div>
       
-      {/* Dummy mouse pointer */}
-      {showPointer && showMovingIcon && !movePointerToCard && !movePointerToSecondTile && (
-        <div 
-          className="dummy-mouse-pointer"
-          style={{
-            position: 'absolute',
-            left: `${iconLeft + 16}px`,
-            top: '20px',
-            zIndex: 10,
-            pointerEvents: 'none'
-          }}
-        >
-        </div>
-      )}
-      
-      {/* Dummy mouse pointer at promo card position */}
-      {movePointerToCard && showMovingIcon && (
-        <div 
-          className="dummy-mouse-pointer"
-          style={{
-            position: 'absolute',
-            left: `${pointerCardPosition.x}px`,
-            top: `${pointerCardPosition.y}px`,
-            zIndex: 20,
-            pointerEvents: 'none'
-          }}
-        >
-        </div>
-      )}
-      
-      {/* Dummy mouse pointer at 2nd tile position */}
-      {movePointerToSecondTile && showMovingIcon && (
-        <div 
-          className="dummy-mouse-pointer"
-          style={{
-            position: 'absolute',
-            left: `${secondTilePosition.x}px`,
-            top: `${secondTilePosition.y}px`,
-            zIndex: 20,
-            pointerEvents: 'none'
-          }}
-        >
-        </div>
-      )}
-      
-      {/* Plus button at pointer position */}
-      {showPlusButton && showMovingIcon && (
+      {/* Plus button below flight icon */}
+      {showPlusButton && showMovingIcon && !showPromptBubble && (
         <div 
           className="landing-plus-button"
           style={{
@@ -460,56 +404,101 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
         </div>
       )}
       
-      {/* Plus button at promo card position */}
-      {showPlusButtonAtCard && showMovingIcon && (
+      {/* Dummy mouse pointer */}
+      {showPointer && showMovingIcon && !movePointerToCard && !movePointerToSecondTile && (
         <div 
-          className="landing-plus-button"
+          className="dummy-mouse-pointer"
+          style={{
+            position: 'absolute',
+            left: `${iconLeft + 16}px`,
+            top: '48px', // Position below the flight icon (same as plus button)
+            zIndex: 20, // Higher z-index to appear above plus button
+            pointerEvents: 'none'
+          }}
+        >
+        </div>
+      )}
+      
+      {/* Dummy mouse pointer at promo card position */}
+      {/* {movePointerToCard && showMovingIcon && (
+        <div 
+          className="dummy-mouse-pointer"
           style={{
             position: 'absolute',
             left: `${pointerCardPosition.x}px`,
             top: `${pointerCardPosition.y}px`,
-            zIndex: 15,
+            zIndex: 20,
             pointerEvents: 'none'
           }}
         >
-          <div 
-            className="plus-button-inner"
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '16px',
-              backgroundColor: themeColor,
-              border: '2px solid white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
-              animation: 'plus-button-appear 0.5s ease-out'
-            }}
-          >
-            <span 
-              className="plus-icon"
-              style={{
-                color: 'white',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                lineHeight: '1'
-              }}
-            >
-              +
-            </span>
-          </div>
         </div>
-      )}
+      )} */}
       
-      {/* Takeoff Label */}
+      {/* Dummy mouse pointer at 2nd tile position */}
+      {/* {movePointerToSecondTile && showMovingIcon && (
+        <div 
+          className="dummy-mouse-pointer"
+          style={{
+            position: 'absolute',
+            left: `${secondTilePosition.x}px`,
+            top: `${secondTilePosition.y}px`,
+            zIndex: 20,
+            pointerEvents: 'none'
+          }}
+        >
+        </div>
+      )} */}
+      
+      {/* Takeoff Label - Sticky at 5% position */}
       {showTakeoffLabel && (
         <div 
           className="flight-prompt-label"
           style={{
             position: 'absolute',
-            left: `${iconLeft + 16}px`, // Same as dummy mouse pointer position
+            left: `${barWidth * 0.05}px`, // 5% position
             top: '40px',
+            color: themeColor,
+            fontSize: '10px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+            whiteSpace: 'nowrap',
+            zIndex: 10,
+            transform: 'translateX(-50%)' // Center the label text
+          }}
+        >
+          TAKEOFF
+        </div>
+      )}
+      
+      {/* Takeoff Position Dot */}
+      {showTakeoffLabel && (
+        <div 
+          className="flight-progress-dot"
+          style={{
+            position: 'absolute',
+            left: `${barWidth * 0.05}px`, // 5% position
+            top: '14px', // Center of the progress bar (adjusted for larger size)
+            width: '12px',
+            height: '12px',
+            backgroundColor: themeColor,
+            borderRadius: '50%',
+            zIndex: 1,
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+            transform: 'translateX(-50%)' // Center the dot
+          }}
+        />
+      )}
+      
+
+      
+      {/* Cruise Label - Below flight icon at 20% position */}
+      {showCruiseLabel && (
+        <div 
+          className="flight-prompt-label"
+          style={{
+            position: 'absolute',
+            left: `${barWidth * 0.20}px`, // Fixed 20% position where flight icon stops
+            top: '55px', // Below the flight icon
             color: themeColor,
             fontSize: '10px',
             fontWeight: 'bold',
@@ -520,43 +509,25 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
             transform: 'translateX(-50%)' // Center the label text
           }}
         >
-          TAKEOFF
+          CRUISE
         </div>
       )}
       
       {/* Prompt Bubble */}
       <PromptBubble
-        isVisible={showPromptBubble && showMovingIcon}
+        isVisible={showPromptBubble && showMovingIcon && hasReachedTarget}
         position={promptBubblePosition}
         elementType="flight-icon"
         elementData={{ progress, minutesLeft: displayMinutes }}
         onClose={handlePromptBubbleClose}
         onSubmit={handlePromptBubbleSubmit}
         themeColor={themeColor}
-        existingText=""
+        existingText={promptBubbleLoading ? "loading..." : ""}
         positionKey="landing-demo"
         fpsPrompts={{}}
       />
       
-      {/* Prompt Bubble for Promo Card */}
-      {console.log('=== RENDER CHECK ===', 'showPromptBubbleAtCard:', showPromptBubbleAtCard, 'promptBubbleCardPosition:', promptBubbleCardPosition)}
-      <PromptBubble
-        isVisible={showPromptBubbleAtCard}
-        position={promptBubbleCardPosition}
-        elementType="promo-card"
-        elementData={{ cardIndex: 0, cardType: 'shopping' }}
-        onClose={() => setShowPromptBubbleAtCard(false)}
-        onSubmit={(promptText, elementType, elementData, positionKey) => {
-          console.log('Promo card prompt submitted:', promptText);
-          setShowPromptBubbleAtCard(false);
-        }}
-        themeColor="#FFFFFF"
-        existingText=""
-        positionKey="landing-demo-promo"
-        fpsPrompts={{}}
-        onLoadingStateChange={handlePromoCardLoadingChange}
-        onVisibilityChange={handlePromoCardVisibilityChange}
-      />
+
       
       {/* Display ALL prompts at their FIXED positions */}
       {Object.entries(fpsPrompts).map(([positionKey, promptText]) => {
