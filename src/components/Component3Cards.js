@@ -6,6 +6,12 @@ const imgAddAnAutumnMovie = "http://localhost:3845/assets/8ea70f2052f6ce510170e9
 const img2 = "http://localhost:3845/assets/1bd3170f3986d13a6502916089cd682ffee55e02.svg";
 
 export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], isPromptMode = false, onPromptHover, onPromptClick, promptStates = {}, animationProgress = 0, cruiseLabelShown = false, middleCardPromptClosed = false }) {
+  console.log('=== COMPONENT3CARDS RENDER ===', { 
+    isPromptMode, 
+    cruiseLabelShown, 
+    middleCardPromptClosed,
+    hasOnPromptClick: !!onPromptClick
+  });
   // Skeleton component for loading state
   const SkeletonCard = () => (
     <div
@@ -26,6 +32,7 @@ export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], i
   const getCardContent = (cardIndex) => {
     if (middleCardPromptClosed) {
       // When middle card prompt is closed, update both middle and left cards
+      console.log('=== UPDATING CARD CONTENT ===', { cardIndex, middleCardPromptClosed });
       if (cardIndex === 0) {
         // Left card - French cuisine
         return {
@@ -206,9 +213,21 @@ export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], i
               }
             }}
             onClick={(e) => {
+              console.log('=== MIDDLE CARD CLICKED ===', { 
+                isPromptMode, 
+                onPromptClick: !!onPromptClick,
+                clientX: e.clientX,
+                clientY: e.clientY
+              });
+              
               if (isPromptMode && onPromptClick) {
                 e.stopPropagation();
                 onPromptClick('promo-card', { cardIndex: 1, cardType: 'meal' }, { x: e.clientX, y: e.clientY });
+              } else {
+                console.log('=== CLICK NOT PROCESSED ===', { 
+                  isPromptMode, 
+                  hasOnPromptClick: !!onPromptClick 
+                });
               }
             }}
           >

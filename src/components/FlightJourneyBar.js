@@ -6,7 +6,7 @@ const img4 = "http://localhost:3845/assets/12ff138a200ba4f26363bc8b4c9c314031978
 const img5 = "http://localhost:3845/assets/5b430c457bb1a36eac34c8197e3558b70a889106.svg";
 const img6 = "http://localhost:3845/assets/29fa6c4c59170f1b8aade086622c24fdce89c35a.svg";
 
-export default function FlightJourneyBar({ origin, destination, minutesLeft, themeColor = '#1E1E1E' }) {
+export default function FlightJourneyBar({ origin, destination, minutesLeft, themeColor = '#1E1E1E', isLandingPage = false }) {
   console.log('FlightJourneyBar - received minutesLeft:', minutesLeft);
   function formatTime(minutes) {
     const h = Math.floor(minutes / 60);
@@ -47,14 +47,24 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
       >
         {/* Logo Placeholder */}
         <div
-          className="backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] h-[88px] relative rounded-2xl shrink-0 w-[120px] flex items-center justify-center"
+          className={`h-[88px] relative rounded-2xl shrink-0 w-[120px] flex items-center justify-center ${isLandingPage ? '' : 'backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)]'}`}
           data-name="logo placeholder"
         >
-          <div className="text-center">
-            <div className="text-[16px] font-semibold text-black mb-1">LOGO</div>
-            <div className="text-[12px] text-black/70">PLACEHOLDER</div>
-          </div>
-          <div className="absolute border border-[rgba(0,0,0,0.2)] border-solid inset-0 pointer-events-none rounded-2xl" />
+          {isLandingPage ? (
+            <img 
+              src={process.env.PUBLIC_URL + '/discover.svg'} 
+              alt="Discover Logo" 
+              className="w-full h-full object-contain p-2"
+            />
+          ) : (
+            <>
+              <div className="text-center">
+                <div className="text-[16px] font-semibold text-black mb-1">LOGO</div>
+                <div className="text-[12px] text-black/70">PLACEHOLDER</div>
+              </div>
+              <div className="absolute border border-[rgba(0,0,0,0.2)] border-solid inset-0 pointer-events-none rounded-2xl" />
+            </>
+          )}
         </div>
 
         <div

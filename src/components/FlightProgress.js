@@ -18,6 +18,13 @@ function formatTime(minutes) {
 }
 
 export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFlightMinutes = 370, minutesLeft: externalMinutesLeft, onProgressChange, themeColor = '#1E1E1E', isPromptMode = false, onPromptHover, onPromptClick, fpsPrompts = {}, showMovingIcon = false, onAnimationProgressChange, onPromoCardLoadingChange, onAnimationProgress, onCruiseLabelShow, onMiddleCardPromptClose, onThemeColorChange }) {
+  console.log('=== FlightProgress themeColor ===', { themeColor, isGradient: themeColor.includes('gradient') });
+  
+  // Helper function to determine color based on theme type
+  const getElementColor = () => {
+    return themeColor.includes('gradient') ? '#000000' : themeColor;
+  };
+  
   const barWidth = 1302;
   const [dragging, setDragging] = useState(false);
   const [animationProgress, setAnimationProgress] = useState(showMovingIcon ? 0.02 : 0); // Start with 2% progress if showing moving icon
@@ -40,8 +47,6 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
   const [movePointerToMiddleCard, setMovePointerToMiddleCard] = useState(false);
   const [middleCardPosition, setMiddleCardPosition] = useState({ x: 0, y: 0 });
   const [showPlusButtonAtMiddleCard, setShowPlusButtonAtMiddleCard] = useState(false);
-  const [showPromptBubbleAtMiddleCard, setShowPromptBubbleAtMiddleCard] = useState(false);
-  const [promptBubbleMiddleCardPosition, setPromptBubbleMiddleCardPosition] = useState({ x: 0, y: 0 });
   const [middleCardPromptClosed, setMiddleCardPromptClosed] = useState(false);
   const [movePointerToFJB, setMovePointerToFJB] = useState(false);
   const [fjbPosition, setFjbPosition] = useState({ x: 0, y: 0 });
@@ -76,37 +81,56 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
       
       // Move pointer to FJB after a delay
       setTimeout(() => {
+        console.log('=== HIDING MIDDLE CARD ELEMENTS AND MOVING TO FJB ===');
         setShowPointer(false);
         setMovePointerToMiddleCard(false);
         setShowPlusButtonAtMiddleCard(false);
-        setShowPromptBubbleAtMiddleCard(false);
         setMovePointerToFJB(true);
         
-        // Show plus button after pointer appears
+        // Show plus button after pointer appears at FJB
         setTimeout(() => {
+          console.log('=== SHOWING PLUS BUTTON AT FJB ===');
           setShowPlusButtonAtFJB(true);
           
-                  // Show prompt bubble after plus button appears
-        setTimeout(() => {
-          // Calculate FJB prompt bubble position
-          // Add a small delay to ensure DOM is ready
+          // Show prompt bubble after plus button appears
           setTimeout(() => {
-            // Position relative to the FJB center
-            const bubbleX = barWidth / 2 + 200; // 200px to the right of the FJB center
-            const bubbleY = -60; // 60px above the FJB
-            
-            console.log('=== FJB BUBBLE POSITION ===', {
-              barWidth,
-              bubbleX,
-              bubbleY
-            });
-            
-            setPromptBubbleFJBPosition({ x: bubbleX, y: bubbleY });
-            setShowPromptBubbleAtFJB(true);
-          }, 100); // Small delay to ensure DOM is ready
-        }, 1000); // 1 second delay after plus button appears
-        }, 500); // 0.5 second delay after pointer appears
-      }, 1000); // 1 second delay
+            console.log('=== PREPARING FJB PROMPT BUBBLE ===');
+            // Calculate FJB prompt bubble position
+            // Add a small delay to ensure DOM is ready
+            setTimeout(() => {
+              // Calculate absolute position like Dashboard does
+              // Find the flight progress bar container to get its absolute position
+              const flightProgressContainer = document.querySelector('.flight-progress-bar-container');
+              if (flightProgressContainer) {
+                const containerRect = flightProgressContainer.getBoundingClientRect();
+                
+                // Plus button is at barWidth / 2 + 20, top: -12px (relative to progress bar)
+                // Calculate absolute position relative to viewport
+                const absoluteX = containerRect.left + barWidth / 2 + 20; // Plus button X (no spacing)
+                const absoluteY = containerRect.top + (-12 + 16); // Plus button Y + half button height (reduced Y distance)
+                
+                console.log('=== FJB BUBBLE POSITION ===', {
+                  barWidth,
+                  containerRect: { left: containerRect.left, top: containerRect.top },
+                  absoluteX,
+                  absoluteY
+                });
+                
+                setPromptBubbleFJBPosition({ x: absoluteX, y: absoluteY });
+                              setShowPromptBubbleAtFJB(true);
+              console.log('=== FJB PROMPT BUBBLE SHOWN FROM FLIGHTPROGRESS ===');
+              console.log('=== FJB PROMPT BUBBLE STATE ===', { 
+                showPromptBubbleAtFJB: true, 
+                showMovingIcon,
+                position: { x: absoluteX, y: absoluteY } 
+              });
+              } else {
+                console.error('flight-progress-bar-container not found');
+              }
+            }, 100); // Small delay to ensure DOM is ready
+                      }, 800); // 0.8 second delay after plus button appears
+        }, 300); // 0.3 second delay after pointer appears at FJB
+      }, 500); // 0.5 second delay after middle card prompt closed
     }
   }, [middleCardPromptClosed, showMovingIcon]);
 
@@ -147,7 +171,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
     const startAnimation = () => {
       const animationDuration = 8000; // 8 seconds to reach 20% (increased from 3 seconds)
       const startTime = Date.now();
-      const startProgress = animationProgress; // Start from current progress instead of 0.02
+      const startProgress = Math.max(0.02, animationProgress); // Start from current progress or 2%, whichever is higher
 
       const animate = () => {
         const elapsed = Date.now() - startTime;
@@ -156,6 +180,17 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
         
         // Update both progress and icon position in the same frame
         setAnimationProgress(newProgress);
+        
+        // Debug: Log animation progress (only log occasionally to avoid spam)
+        if (newProgress % 0.05 < 0.01) { // Log every 5% progress
+          console.log('=== ANIMATION PROGRESS ===', {
+            elapsed,
+            progressRatio,
+            startProgress,
+            newProgress,
+            percentage: (newProgress * 100).toFixed(1) + '%'
+          });
+        }
         
         // Debug: Log progress values
         if (newProgress >= 0.19 && newProgress <= 0.21) {
@@ -208,34 +243,40 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
           // Show dummy mouse pointer first
           setTimeout(() => {
             setShowPointer(true);
-          }, 2000); // 2 seconds delay after stopping (increased from 800ms)
+          }, 500); // Reduced from 2000ms to 500ms
           
           // Show plus button after pointer appears
           setTimeout(() => {
             setShowPlusButton(true);
             
-            // Show prompt bubble below the plus button after 2 seconds
+            // Show prompt bubble below the plus button after 1 second
             setTimeout(() => {
               setShowPromptBubble(true);
               setShowPlusButton(false); // Hide plus button when prompt bubble appears
               
               // Calculate position for prompt bubble below the plus button
-              // Plus button is at iconLeft + 8, top: 48px
+              // Use target progress (20%) to ensure correct positioning
+              const targetIconLeft = Math.max(0, Math.min(barWidth * targetProgress - 16, barWidth - 32));
+              // Plus button is at targetIconLeft + 8, top: 48px
               // Position bubble 2px away from the plus button
-              const bubbleX = iconLeft + 8 + 2; // 2px to the right of plus button
+              const bubbleX = targetIconLeft + 8 + 2; // 2px to the right of plus button
               const bubbleY = 48 + 32 + 10; // Plus button Y + button height + spacing
               
               console.log('=== FPS BUBBLE POSITION CALCULATION ===', {
                 iconLeft,
-                plusButtonX: iconLeft + 8,
+                targetIconLeft,
+                plusButtonX: targetIconLeft + 8,
                 plusButtonY: 48,
                 bubbleX,
-                bubbleY
+                bubbleY,
+                animationProgress,
+                barWidth,
+                targetProgress
               });
               
               setPromptBubblePosition({ x: bubbleX, y: bubbleY });
-            }, 2000); // 2 seconds after plus button appears
-          }, 3000); // 3 seconds delay after animation completes (increased from 1.5 seconds)
+            }, 1000); // Reduced from 2000ms to 1000ms
+          }, 1000); // Reduced from 3000ms to 1000ms
         }
       };
 
@@ -398,13 +439,14 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
         const middleCardX = startX + cardWidth + gap; // First card + gap
         const middleCardY = 100; // Center of card height (200px / 2)
         
-        // Convert to absolute position relative to the flight progress bar container
+        // Position relative to the flight progress bar container (same as dummy mouse pointer)
+        // Component3Cards is positioned below the flight progress bar with gap: 32
         const flightProgressHeight = 32; // Height of flight progress bar
-        const gapBetweenComponents = 32; // Gap between flight progress and Component3Cards
+        const gapBetweenFPSAndComponent3Cards = 32; // Gap between FPS and Component3Cards
         
         setMiddleCardPosition({ 
           x: middleCardX, 
-          y: flightProgressHeight + gapBetweenComponents + middleCardY 
+          y: flightProgressHeight + gapBetweenFPSAndComponent3Cards + middleCardY 
         });
         
         // Hide pointer at flight icon and move to middle card
@@ -414,32 +456,67 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
         // Show plus button at middle card after cursor moves
         setTimeout(() => {
           console.log('=== SHOWING PLUS BUTTON AT MIDDLE CARD ===');
+          console.log('=== MIDDLE CARD POSITION WHEN PLUS APPEARS ===', middleCardPosition);
           setShowPlusButtonAtMiddleCard(true);
           
-          // Show prompt bubble at middle card after 2 seconds, replacing plus button
+          // Show prompt bubble at middle card after 1 second
           setTimeout(() => {
             console.log('=== SHOWING PROMPT BUBBLE AT MIDDLE CARD ===');
             setShowPlusButtonAtMiddleCard(false); // Hide plus button
-            setShowPromptBubbleAtMiddleCard(true); // Show prompt bubble
             
-            // Calculate position for prompt bubble at middle card
-            // Add a small delay to ensure DOM is ready
-            setTimeout(() => {
-              // Use the same middleCardPosition state that's used for the plus button
-              // This ensures consistency with the plus button positioning
-              const bubbleX = middleCardPosition.x + 8 + 40 + 20; // Plus button position + button width + spacing
-              const bubbleY = middleCardPosition.y + 8 + 20; // Plus button Y position + spacing
-              
-              console.log('=== MIDDLE CARD BUBBLE POSITION ===', {
-                middleCardPosition,
-                bubbleX,
-                bubbleY
+            // Trigger prompt bubble to appear on the actual middle card
+            console.log('=== ATTEMPTING TO FIND MIDDLE CARD ===');
+            
+            // Try multiple selectors to find the middle card
+            const selectors = [
+              '[data-name="autumn meal"]',
+              '[data-name="3-cards"] > div:nth-child(2)', 
+              '.flex.flex-row.gap-8 > div:nth-child(2)',
+              'div[style*="width: 416px"]:nth-child(2)'
+            ];
+            
+            let middleCardElement = null;
+            let usedSelector = '';
+            
+            for (const selector of selectors) {
+              middleCardElement = document.querySelector(selector);
+              if (middleCardElement) {
+                usedSelector = selector;
+                break;
+              }
+            }
+            
+            if (middleCardElement) {
+              const rect = middleCardElement.getBoundingClientRect();
+              console.log('=== FOUND MIDDLE CARD ===', { 
+                usedSelector, 
+                rect,
+                element: middleCardElement
               });
               
-              setPromptBubbleMiddleCardPosition({ x: bubbleX, y: bubbleY });
-            }, 100); // Reduced delay since we're using the state directly
-          }, 2000); // 2 seconds after plus button appears
-        }, 500); // 0.5 seconds after cursor moves to middle card
+              // Create and dispatch a click event
+              const clickEvent = new MouseEvent('click', {
+                bubbles: true,
+                cancelable: true,
+                clientX: rect.left + rect.width / 2,
+                clientY: rect.top + rect.height / 2
+              });
+              
+              console.log('=== DISPATCHING CLICK EVENT ===', {
+                clientX: rect.left + rect.width / 2,
+                clientY: rect.top + rect.height / 2
+              });
+              
+              middleCardElement.dispatchEvent(clickEvent);
+            } else {
+              console.error('Middle card element not found with any selector');
+              console.log('=== ALL AVAILABLE ELEMENTS ===');
+              document.querySelectorAll('[data-name="3-cards"] > div').forEach((el, i) => {
+                console.log(`Card ${i}:`, el);
+              });
+            }
+          }, 1000);
+        }, 300);
       }, 1000); // 1 second delay after Cruise label appears
       
       // Animation ends here - no more interactions with promo cards
@@ -453,10 +530,10 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
       <div className="flight-path"></div>
       <div className="flight-progress" style={{ 
         width: `${progressWidth}px`, 
-        background: themeColor,
+        background: getElementColor(),
         opacity: 1,
         // Ensure minimum contrast - if theme color is very light, use a darker fallback
-        filter: themeColor && themeColor.toLowerCase() !== '#ffffff' && themeColor.toLowerCase() !== '#fff' ? 'none' : 'brightness(0.2)',
+        filter: themeColor.includes('gradient') ? 'none' : (themeColor && themeColor.toLowerCase() !== '#ffffff' && themeColor.toLowerCase() !== '#fff' ? 'none' : 'brightness(0.2)'),
         // Ensure minimum width for visibility when animating
         minWidth: showMovingIcon ? '4px' : '0px'
       }}></div>
@@ -466,11 +543,11 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
         style={{ 
           left: `${iconLeft}px`, 
           cursor: showMovingIcon ? 'default' : 'pointer', 
-          background: themeColor, 
-          borderColor: themeColor,
+          background: getElementColor(), 
+          borderColor: getElementColor(),
           opacity: 1,
           // Ensure minimum contrast for the icon as well
-          filter: themeColor && themeColor.toLowerCase() !== '#ffffff' && themeColor.toLowerCase() !== '#fff' ? 'none' : 'brightness(0.2)',
+          filter: themeColor.includes('gradient') ? 'none' : (themeColor && themeColor.toLowerCase() !== '#ffffff' && themeColor.toLowerCase() !== '#fff' ? 'none' : 'brightness(0.2)'),
           // Ensure icon is visible even at start position
           visibility: showMovingIcon && iconLeft < 0 ? 'hidden' : 'visible'
         }}
@@ -712,7 +789,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
             position: 'absolute',
             left: `${barWidth * 0.05}px`, // 5% position
             top: '40px',
-            color: themeColor,
+            color: getElementColor(),
             fontSize: '10px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
@@ -735,7 +812,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
             top: '14px', // Center of the progress bar (adjusted for larger size)
             width: '12px',
             height: '12px',
-            backgroundColor: themeColor,
+            backgroundColor: getElementColor(),
             borderRadius: '50%',
             zIndex: 1,
             boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
@@ -754,7 +831,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
             position: 'absolute',
             left: `${barWidth * 0.20}px`, // Fixed 20% position
             top: '40px', // Same spacing as Takeoff label
-            color: themeColor,
+            color: getElementColor(),
             fontSize: '10px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
@@ -779,7 +856,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
             top: '14px', // Center of the progress bar (same as Takeoff dot)
             width: '12px',
             height: '12px',
-            backgroundColor: themeColor,
+            backgroundColor: getElementColor(),
             borderRadius: '50%',
             zIndex: 1,
             boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
@@ -803,37 +880,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
         fpsPrompts={{}}
       />
       
-      {/* Prompt Bubble at Middle Card */}
-      <PromptBubble
-        isVisible={showPromptBubbleAtMiddleCard && showMovingIcon}
-        position={promptBubbleMiddleCardPosition}
-        elementType="promo-card"
-        elementData={{ cardIndex: 1, cardType: 'middle' }}
-                      onClose={() => {
-                console.log('=== MIDDLE CARD PROMPT BUBBLE CLOSED ===');
-                setShowPromptBubbleAtMiddleCard(false);
-                setMiddleCardPromptClosed(true);
-                if (onMiddleCardPromptClose) {
-                  console.log('=== Calling onMiddleCardPromptClose(true) ===');
-                  onMiddleCardPromptClose(true);
-                }
-              }}
-        onSubmit={(promptText, elementType, elementData, positionKey) => {
-          console.log('=== MIDDLE CARD PROMPT SUBMITTED ===', { promptText, elementType, elementData, positionKey });
-          setShowPromptBubbleAtMiddleCard(false);
-          setMiddleCardPromptClosed(true);
-          console.log('=== SETTING middleCardPromptClosed TO TRUE ===');
-          if (onMiddleCardPromptClose) {
-            console.log('=== Calling onMiddleCardPromptClose(true) from onSubmit ===');
-            onMiddleCardPromptClose(true);
-          }
-          // Handle middle card prompt submission here
-        }}
-        themeColor={themeColor}
-        existingText=""
-        positionKey="middle-card-demo"
-        fpsPrompts={{}}
-      />
+
 
       {/* Prompt Bubble at FJB */}
       <PromptBubble
@@ -846,13 +893,37 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
           setShowPromptBubbleAtFJB(false);
         }}
         onSubmit={(promptText, elementType, elementData, positionKey) => {
-          console.log('=== FJB PROMPT SUBMITTED ===', promptText);
+          console.log('=== FJB PROMPT SUBMITTED FROM FLIGHTPROGRESS ===', { 
+            promptText, 
+            elementType, 
+            elementData, 
+            positionKey 
+          });
+          console.log('=== FLIGHTPROGRESS ONSUBMIT HANDLER CALLED ===');
           setShowPromptBubbleAtFJB(false);
-          // Handle FJB prompt submission here
+          
+          // Update theme color to gradient green for FJB landing page
+          console.log('=== CHECKING POSITION KEY IN FLIGHTPROGRESS ===', { 
+            positionKey, 
+            isFJBLanding: positionKey === 'fjb-landing' 
+          });
+          if (positionKey === 'fjb-landing') {
+            console.log('=== UPDATING THEME FROM FLIGHTPROGRESS ===');
+            console.log('=== onThemeColorChange EXISTS ===', { exists: !!onThemeColorChange });
+            if (onThemeColorChange) {
+              console.log('=== CALLING onThemeColorChange WITH GRADIENT ===');
+              onThemeColorChange('linear-gradient(120deg, #d4fc79 0%, #96e6a1 100%)');
+              console.log('=== THEME COLOR CHANGE CALLED SUCCESSFULLY ===');
+            } else {
+              console.log('=== ERROR: onThemeColorChange IS NULL ===');
+            }
+          } else {
+            console.log('=== POSITION KEY IS NOT FJB-LANDING ===', { positionKey });
+          }
         }}
         themeColor={themeColor}
         existingText=""
-        positionKey="fjb-demo"
+        positionKey="fjb-landing"
         fpsPrompts={{}}
         onThemeColorChange={onThemeColorChange}
       />

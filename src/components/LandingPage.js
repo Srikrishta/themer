@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import FlightJourneyBar from './FlightJourneyBar';
 import FlightProgress from './FlightProgress';
 import Component3Cards from './Component3Cards';
+import PromptBubble from './PromptBubble';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -35,6 +36,10 @@ export default function LandingPage() {
   
   const [cruiseLabelShown, setCruiseLabelShown] = useState(false);
   const [middleCardPromptClosed, setMiddleCardPromptClosed] = useState(false);
+  const [showMiddleCardPrompt, setShowMiddleCardPrompt] = useState(false);
+  const [middleCardPromptPosition, setMiddleCardPromptPosition] = useState({ x: 0, y: 0 });
+  const [showFJBPrompt, setShowFJBPrompt] = useState(false);
+  const [fJBPromptPosition, setFJBPromptPosition] = useState({ x: 0, y: 0 });
   const [recommendedTiles, setRecommendedTiles] = useState([
     { id: 1, color: themeColors[0] },
     { id: 2, color: themeColors[0] },
@@ -80,7 +85,9 @@ export default function LandingPage() {
 
   // Handle Cruise label show event
   const handleCruiseLabelShow = (isShown) => {
+    console.log('=== CRUISE LABEL SHOW EVENT ===', { isShown, cruiseLabelShown });
     setCruiseLabelShown(isShown);
+    console.log('=== CRUISE LABEL STATE UPDATED ===', { newState: isShown });
   };
 
   const handleMiddleCardPromptClose = (isClosed) => {
@@ -88,15 +95,100 @@ export default function LandingPage() {
     setMiddleCardPromptClosed(isClosed);
   };
 
+  const handleMiddleCardPromptClick = (elementType, elementData, position) => {
+    console.log('=== MIDDLE CARD PROMPT CLICK HANDLER CALLED ===', { 
+      elementType, 
+      elementData, 
+      position,
+      showMiddleCardPrompt,
+      middleCardPromptClosed
+    });
+    setMiddleCardPromptPosition(position);
+    setShowMiddleCardPrompt(true);
+    console.log('=== PROMPT BUBBLE STATE UPDATED ===', { 
+      newPosition: position, 
+      showPrompt: true 
+    });
+  };
+
+  const handleMiddleCardPromptBubbleClose = () => {
+    console.log('=== MIDDLE CARD PROMPT BUBBLE CLOSED ===');
+    setShowMiddleCardPrompt(false);
+    setMiddleCardPromptClosed(true);
+    handleMiddleCardPromptClose(true);
+  };
+
+  const handleFJBPromptBubbleClose = () => {
+    console.log('=== FJB PROMPT BUBBLE CLOSED ===');
+    setShowFJBPrompt(false);
+  };
+
+  const handleFJBPromptSubmit = (promptText, elementType, elementData, positionKey) => {
+    console.log('=== FJB PROMPT SUBMITTED ===', { promptText, elementType, elementData, positionKey });
+    console.log('=== FJB SUBMIT HANDLER CALLED ===');
+    setShowFJBPrompt(false);
+    
+    // Update theme color to gradient green for FJB landing page
+    if (positionKey === 'fjb-landing') {
+      console.log('=== UPDATING THEME TO GRADIENT GREEN ===');
+      console.log('=== BEFORE THEME UPDATE ===', { currentThemeColor, mockThemeColor });
+      
+      // Set the theme color directly to the gradient and enable gradient mode
+      const gradientColor = 'linear-gradient(120deg, #d4fc79 0%, #96e6a1 100%)';
+      setCurrentThemeColor(gradientColor);
+      setIsGradientMode(true);
+      console.log('=== AFTER THEME UPDATE ===', { newGradient: gradientColor, isGradientMode: true });
+      console.log('=== THEME UPDATE COMPLETE ===');
+    } else {
+      console.log('=== POSITION KEY NOT FJB-LANDING ===', { positionKey });
+    }
+  };
+
+  const handleMiddleCardPromptSubmit = (promptText, elementType, elementData, positionKey) => {
+    console.log('=== MIDDLE CARD PROMPT SUBMITTED ===', { promptText, elementType, elementData, positionKey });
+    console.log('=== TRIGGERING CARD CONTENT UPDATE AND ANIMATION CONTINUATION ===');
+    setShowMiddleCardPrompt(false);
+    setMiddleCardPromptClosed(true);
+    handleMiddleCardPromptClose(true);
+    console.log('=== MIDDLE CARD PROMPT CLOSED - ANIMATION SHOULD CONTINUE TO FJB ===');
+    
+    // Trigger FJB prompt bubble after middle card is complete
+    setTimeout(() => {
+      console.log('=== TRIGGERING FJB PROMPT BUBBLE ===');
+      const fjbElement = document.querySelector('[data-name="flight journey bar"]');
+      if (fjbElement) {
+        const rect = fjbElement.getBoundingClientRect();
+        const position = {
+          x: rect.left + rect.width / 2 + 20, // Center + offset for plus button
+          y: rect.top + rect.height / 2
+        };
+        setFJBPromptPosition(position);
+        setShowFJBPrompt(true);
+        console.log('=== FJB PROMPT BUBBLE POSITIONED ===', { position });
+        console.log('=== FJB PROMPT BUBBLE SHOWN ===', { showFJBPrompt: true });
+      } else {
+        console.error('FJB element not found');
+      }
+    }, 1000); // 1 second delay after middle card prompt closes
+  };
+
   const handleThemeColorChange = (newColor) => {
     // Update the theme color when changed from the color picker
-    console.log('Theme color changed to:', newColor);
-    setCurrentThemeColor(newColor);
+    console.log('=== handleThemeColorChange CALLED ===', { newColor });
+    console.log('=== BEFORE THEME CHANGE ===', { currentThemeColor });
     
-    // Also update the index if the color is in our predefined array
-    const colorIndex = themeColors.indexOf(newColor);
-    if (colorIndex !== -1) {
-      setCurrentThemeColorIndex(colorIndex);
+    // Check if it's a gradient
+    const isGradient = newColor.includes('gradient');
+    setIsGradientMode(isGradient);
+    setCurrentThemeColor(newColor);
+    console.log('=== AFTER THEME CHANGE ===', { newColor, isGradient });
+    
+    // Also update the index if the color is in our predefined array (only for solid colors)
+    if (!isGradient) {
+      const colorIndex = themeColors.indexOf(newColor);
+      if (colorIndex !== -1) {
+        setCurrentThemeColorIndex(colorIndex);
+      }
     }
   };
 
@@ -154,7 +246,40 @@ export default function LandingPage() {
   
   const [currentThemeColorIndex, setCurrentThemeColorIndex] = useState(0);
   const [currentThemeColor, setCurrentThemeColor] = useState(themeColors[0]);
+  const [isGradientMode, setIsGradientMode] = useState(false);
   const mockThemeColor = currentThemeColor;
+  
+  // Helper function to convert hex to rgba with opacity
+  const hexToRgba = (hex, opacity) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  };
+  
+  // Helper function to get background color with proper opacity handling
+  const getBackgroundColor = (color) => {
+    if (color.includes('gradient')) {
+      return color;
+    } else {
+      return hexToRgba(color, 0.14);
+    }
+  };
+  
+  // Debug theme color changes
+  useEffect(() => {
+    console.log('=== THEME COLOR CHANGED ===', { currentThemeColor, mockThemeColor });
+    console.log('=== BACKGROUND COLOR ===', { background: getBackgroundColor(mockThemeColor) });
+    if (mockThemeColor.includes('gradient')) {
+      console.log('=== GRADIENT THEME APPLIED ===', { gradient: mockThemeColor });
+      console.log('=== GRADIENT LENGTH ===', mockThemeColor.length);
+      console.log('=== GRADIENT VALIDATION ===', {
+        hasLinear: mockThemeColor.includes('linear-gradient'),
+        hasDegrees: mockThemeColor.includes('120deg'),
+        hasColors: mockThemeColor.includes('#d4fc79') && mockThemeColor.includes('#96e6a1')
+      });
+    }
+  }, [currentThemeColor, mockThemeColor]);
   
   // Cycle through theme colors every 7 seconds
   // useEffect(() => {
@@ -167,10 +292,13 @@ export default function LandingPage() {
   //   return () => clearInterval(interval);
   // }, []);
 
-  // Update currentThemeColor when currentThemeColorIndex changes
+  // Update currentThemeColor when currentThemeColorIndex changes (only for solid colors)
   useEffect(() => {
-    setCurrentThemeColor(themeColors[currentThemeColorIndex]);
-  }, [currentThemeColorIndex, themeColors]);
+    // Only update if not in gradient mode
+    if (!isGradientMode) {
+      setCurrentThemeColor(themeColors[currentThemeColorIndex]);
+    }
+  }, [currentThemeColorIndex, themeColors, isGradientMode]);
 
   // Update tiles when theme color changes
   useEffect(() => {
@@ -212,7 +340,11 @@ export default function LandingPage() {
                 </p>
                 <div className="mt-10 flex items-center justify-center">
                   <div
-                    onClick={() => navigate('/dashboard')}
+                    onClick={() => {
+                      console.log('=== CREATE BUTTON CLICKED ===');
+                      console.log('=== NAVIGATING TO DASHBOARD ===');
+                      navigate('/dashboard');
+                    }}
                     className="bg-black cursor-pointer transition-all duration-200 themer-animated-border"
                     style={{
                       width: '200px',
@@ -241,9 +373,9 @@ export default function LandingPage() {
               style={{ position: 'absolute', top: -40, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none' }}
             />
             <div style={{ position: 'relative', zIndex: 2, width: 1302, margin: '92px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
-              <div className="fjb-fps-container" style={{ width: 1328, maxWidth: 1328, marginLeft: -2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, background: mockThemeColor + '14', borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 16, paddingTop: 80, paddingBottom: 40, marginTop: 4 }}>
+              <div className="fjb-fps-container" style={{ width: 1328, maxWidth: 1328, marginLeft: -2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, background: getBackgroundColor(mockThemeColor), borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 16, paddingTop: 80, paddingBottom: 40, marginTop: 4 }}>
                 <div style={{ width: '100%', marginTop: -32, display: 'flex', flexDirection: 'column', gap: 28 }}>
-                  <FlightJourneyBar origin={mockOrigin} destination={mockDestination} minutesLeft={minutesLeft} themeColor={mockThemeColor} />
+                  <FlightJourneyBar origin={mockOrigin} destination={mockDestination} minutesLeft={minutesLeft} themeColor={mockThemeColor} isLandingPage={true} />
                   <FlightProgress 
                     landingIn={landingIn} 
                     maxFlightMinutes={maxFlightMinutes} 
@@ -267,14 +399,23 @@ export default function LandingPage() {
               <Component3Cards 
                 themeColor={mockThemeColor} 
                 routes={mockRoutes}
-                isPromptMode={false}
+                isPromptMode={cruiseLabelShown && !middleCardPromptClosed}
                 onPromptHover={() => {}}
-                onPromptClick={() => {}}
+                onPromptClick={handleMiddleCardPromptClick}
                 promptStates={{ 'promo-card-0': false }} // Don't show promo card prompt bubble until FlightProgress controls it
                 animationProgress={animationProgress}
                 cruiseLabelShown={cruiseLabelShown}
                 middleCardPromptClosed={middleCardPromptClosed}
               />
+              
+              {/* Debug Info */}
+              {console.log('=== COMPONENT3CARDS PROPS ===', {
+                cruiseLabelShown,
+                middleCardPromptClosed,
+                isPromptMode: cruiseLabelShown && !middleCardPromptClosed,
+                showMiddleCardPrompt,
+                showMovingIcon
+              })}
               
               {/* Recommended for you section */}
               <div
@@ -310,7 +451,7 @@ export default function LandingPage() {
                       onDrop={(e) => handleDrop(e, tile.id)}
                       onDragEnd={handleDragEnd}
                     >
-                      <span className="text-white text-sm font-medium">Tile {tile.id}</span>
+                      <span className="text-black text-sm font-medium">Tile {tile.id}</span>
                     </div>
                   ))}
                 </div>
@@ -319,6 +460,39 @@ export default function LandingPage() {
           </div>
         </div>
       </main>
+
+      {/* Middle Card Prompt Bubble */}
+      {showMiddleCardPrompt && (
+        <PromptBubble
+          isVisible={showMiddleCardPrompt}
+          position={middleCardPromptPosition}
+          elementType="promo-card"
+          elementData={{ cardIndex: 1, cardType: 'middle' }}
+          onClose={handleMiddleCardPromptBubbleClose}
+          onSubmit={handleMiddleCardPromptSubmit}
+          themeColor={mockThemeColor}
+          existingText=""
+          positionKey="middle-card-landing"
+          fpsPrompts={{}}
+        />
+      )}
+
+      {/* FJB Prompt Bubble */}
+      {console.log('=== RENDERING FJB PROMPT BUBBLE ===', { showFJBPrompt, fJBPromptPosition })}
+      {showFJBPrompt && (
+        <PromptBubble
+          isVisible={showFJBPrompt}
+          position={fJBPromptPosition}
+          elementType="flight-journey-bar"
+          elementData={{ themeColor: mockThemeColor }}
+          onClose={handleFJBPromptBubbleClose}
+          onSubmit={handleFJBPromptSubmit}
+          themeColor={mockThemeColor}
+          existingText=""
+          positionKey="fjb-landing"
+          fpsPrompts={{}}
+        />
+      )}
     </div>
   );
 } 
