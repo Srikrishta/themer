@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { XMarkIcon, PaperAirplaneIcon, PlusIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { HexColorPicker } from 'react-colorful';
 
 export default function PromptBubble({ 
   isVisible, 
@@ -13,7 +14,8 @@ export default function PromptBubble({
   positionKey,
   fpsPrompts = {},
   onLoadingStateChange,
-  onVisibilityChange
+  onVisibilityChange,
+  onThemeColorChange
 }) {
   const [promptText, setPromptText] = useState(elementType === 'flight-icon' && positionKey === 'landing-demo' ? 'Cruise' : (elementType === 'promo-card' ? '' : ''));
   const [isLoading, setIsLoading] = useState(elementType === 'promo-card' ? true : false);
@@ -21,6 +23,8 @@ export default function PromptBubble({
   const [typedText, setTypedText] = useState('');
   const [stickyPosition, setStickyPosition] = useState(null);
   const [selectedChip, setSelectedChip] = useState(elementType === 'flight-icon' && positionKey === 'landing-demo' ? 'cruise' : null);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [selectedColor, setSelectedColor] = useState(themeColor);
   const bubbleRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -35,19 +39,60 @@ export default function PromptBubble({
 
   // Set sticky position when bubble becomes visible
   useEffect(() => {
+    console.log('=== PROMPT BUBBLE POSITION UPDATE ===', { 
+      isVisible, 
+      position, 
+      stickyPosition,
+      elementType,
+      positionKey 
+    });
     if (isVisible && position && !stickyPosition) {
+      // For relative positioning, we need to get the container's position
+      let containerLeft = 0;
+      let containerTop = 0;
+      
+      // Find the flight progress container
+      const flightProgressContainer = document.querySelector('.flight-progress-bar-container');
+      if (flightProgressContainer) {
+        const containerRect = flightProgressContainer.getBoundingClientRect();
+        containerLeft = containerRect.left;
+        containerTop = containerRect.top;
+      }
+      
+      // Convert relative coordinates to absolute viewport coordinates
+      const absoluteX = containerLeft + position.x;
+      const absoluteY = containerTop + position.y;
+      
       // Convert viewport coordinates to document coordinates
       const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
       const scrollY = window.pageYOffset || document.documentElement.scrollTop;
       
-      setStickyPosition({
-        x: position.x + scrollX,
-        y: position.y + scrollY
+      const newStickyPosition = {
+        x: absoluteX + scrollX,
+        y: absoluteY + scrollY
+      };
+      
+      console.log('=== SETTING STICKY POSITION ===', {
+        position,
+        containerLeft,
+        containerTop,
+        absoluteX,
+        absoluteY,
+        scrollX,
+        scrollY,
+        newStickyPosition
       });
+      
+      setStickyPosition(newStickyPosition);
     } else if (!isVisible) {
       setStickyPosition(null);
     }
   }, [isVisible, position, stickyPosition]);
+
+  // Update selectedColor when themeColor changes (for automatic theme cycling)
+  useEffect(() => {
+    setSelectedColor(themeColor);
+  }, [themeColor]);
 
   // Update position on scroll to maintain relative position
   useEffect(() => {
@@ -61,9 +106,24 @@ export default function PromptBubble({
       const viewportX = stickyPosition.x - scrollX;
       const viewportY = stickyPosition.y - scrollY;
       
+      const finalX = Math.max(10, Math.min(viewportX - 160, window.innerWidth - 400));
+      const finalY = Math.max(10, Math.min(viewportY - 60, window.innerHeight - 200));
+      
+      console.log('=== PROMPT BUBBLE SCROLL POSITION ===', {
+        stickyPosition,
+        scrollX,
+        scrollY,
+        viewportX,
+        viewportY,
+        finalX,
+        finalY,
+        elementType,
+        positionKey
+      });
+      
       if (bubbleRef.current) {
-        bubbleRef.current.style.left = `${Math.max(10, Math.min(viewportX - 160, window.innerWidth - 400))}px`;
-        bubbleRef.current.style.top = `${Math.max(10, Math.min(viewportY - 60, window.innerHeight - 200))}px`;
+        bubbleRef.current.style.left = `${finalX}px`;
+        bubbleRef.current.style.top = `${finalY}px`;
       }
     };
 
@@ -106,21 +166,65 @@ export default function PromptBubble({
 
   const availableChips = getAvailableChips();
 
-  // Auto-click effect: when send button color changes (Cruise selected), show loading after 2 seconds
+  // Auto-click send button for landing page demo
   useEffect(() => {
-    if (selectedChip === 'cruise' && elementType === 'flight-icon' && positionKey === 'landing-demo') {
-      // Wait 5 seconds after Cruise is selected, then show loading
-      setTimeout(() => {
+    if (elementType === 'flight-icon' && positionKey === 'landing-demo' && isVisible) {
+      console.log('=== LANDING DEMO AUTO-SUBMISSION CHECK ===', { 
+        promptText, 
+        isLoading, 
+        promptTextTrimmed: promptText.trim(),
+        shouldSubmit: promptText.trim() && !isLoading 
+      });
+      // Wait 3 seconds after prompt bubble appears, then auto-submit
+      const timer = setTimeout(() => {
+        if (promptText.trim() && !isLoading) {
+          console.log('=== AUTO-SUBMITTING CRUISE ===');
+          setIsLoading(true);
+          onSubmit(promptText.trim(), elementType, elementData, positionKey);
+          setPromptText('');
+        } else {
+          console.log('=== AUTO-SUBMISSION FAILED ===', { 
+            promptText, 
+            isLoading, 
+            promptTextTrimmed: promptText.trim() 
+          });
+        }
+      }, 3000); // 3 seconds delay after prompt bubble appears
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible, promptText, isLoading, elementType, positionKey, onSubmit, elementData]);
+
+  // Auto-click send button for middle card demo
+  useEffect(() => {
+    if (elementType === 'promo-card' && positionKey === 'middle-card-demo' && isVisible && !isLoading && promptText.trim() && !isTyping) {
+      console.log('=== MIDDLE CARD AUTO-SUBMISSION CHECK ===', { 
+        promptText, 
+        isLoading, 
+        isTyping,
+        promptTextTrimmed: promptText.trim(),
+        shouldSubmit: promptText.trim() && !isLoading && !isTyping 
+      });
+      // Wait 2 seconds after typing animation completes, then auto-submit
+      const timer = setTimeout(() => {
+        console.log('=== AUTO-SUBMITTING MIDDLE CARD ===');
         setIsLoading(true);
         setPromptText('loading...');
-        // Show Cruise label immediately when loading appears
-        onSubmit('Cruise', elementType, elementData, positionKey);
-      }, 5000); // 5 seconds delay after Cruise selection
+        onSubmit(promptText.trim(), elementType, elementData, positionKey);
+        // Close the bubble after submission
+        setTimeout(() => {
+          console.log('=== AUTO-CLOSING MIDDLE CARD BUBBLE ===');
+          onClose();
+        }, 500); // Close after 500ms to show loading state briefly
+      }, 2000); // 2 seconds delay after text is ready
+      
+      return () => clearTimeout(timer);
     }
-  }, [selectedChip, elementType, positionKey, onSubmit, elementData]);
+  }, [isVisible, promptText, isLoading, isTyping, elementType, positionKey, onSubmit, elementData, onClose]);
 
   // Function to simulate typing animation
   const startTypingAnimation = (text) => {
+    console.log('=== STARTING TYPING ANIMATION ===', { text });
     setIsTyping(true);
     setTypedText('');
     let index = 0;
@@ -131,6 +235,7 @@ export default function PromptBubble({
         index++;
         setTimeout(typeNextChar, 100); // Type each character with 100ms delay
       } else {
+        console.log('=== TYPING ANIMATION COMPLETED ===');
         setIsTyping(false);
         setPromptText(text);
       }
@@ -142,8 +247,23 @@ export default function PromptBubble({
   // Focus input when bubble becomes visible and reset loading state
   useEffect(() => {
     if (isVisible && inputRef.current) {
+      console.log('=== PROMPT BUBBLE BECAME VISIBLE ===', { elementType, positionKey, isVisible });
       inputRef.current.focus();
-      if (elementType === 'promo-card' && existingText === '') {
+      if (elementType === 'promo-card' && positionKey === 'middle-card-demo') {
+        console.log('=== STARTING MIDDLE CARD TYPING ANIMATION ===');
+        // For middle card demo, start typing animation immediately without loading
+        setIsLoading(false);
+        setTimeout(() => {
+          console.log('=== CALLING startTypingAnimation FOR MIDDLE CARD ===');
+          startTypingAnimation('Croissants at 3€');
+        }, 1000); // Increased delay to ensure DOM is ready
+      } else if (elementType === 'flight-journey-bar' && positionKey === 'fjb-demo') {
+        // For FJB demo, start typing animation immediately without loading
+        setIsLoading(false);
+        setTimeout(() => {
+          startTypingAnimation('add eiffel tower animation');
+        }, 500); // Small delay before starting typing animation
+      } else if (elementType === 'promo-card' && existingText === '') {
         setIsLoading(true);
         // Start typing animation after loading is done
         setTimeout(() => {
@@ -240,26 +360,28 @@ export default function PromptBubble({
     }
   };
 
-  if (!isVisible || !stickyPosition) return null;
-
-  const getElementDescription = () => {
-    switch (elementType) {
-      case 'flight-icon':
-        return 'Add phase';
-      case 'promo-card':
-        return `Content Card ${elementData.cardIndex + 1} (${elementData.cardType})`;
-      default:
-        return 'Element';
+  const handleColorChange = (color) => {
+    setSelectedColor(color);
+    if (onThemeColorChange) {
+      onThemeColorChange(color);
     }
   };
+
+  if (!isVisible || !stickyPosition) return null;
+
+
 
   return (
     <div
       ref={bubbleRef}
-      className="fixed z-50 shadow-xl border-2 p-3"
+      className="fixed z-50 shadow-xl border-2 p-3 backdrop-blur-[10px] backdrop-filter"
       style={{
-        backgroundColor: themeColor,
-        borderColor: themeColor,
+        backgroundColor: elementType === 'promo-card' && positionKey === 'middle-card-demo' 
+          ? 'rgba(255,255,255,0.2)' // FJB color: semi-transparent white
+          : themeColor,
+        borderColor: elementType === 'promo-card' && positionKey === 'middle-card-demo'
+          ? 'rgba(0,0,0,0.2)' // FJB border color
+          : themeColor,
         borderTopLeftRadius: 0,
         borderTopRightRadius: '24px',
         borderBottomLeftRadius: '24px',
@@ -278,28 +400,17 @@ export default function PromptBubble({
         </button>
       </div>
 
-      {/* Element Description - Only show for non-flight-icon and non-promo-card elements */}
-      {elementType !== 'flight-icon' && elementType !== 'promo-card' && (
-        <div 
-          className={`${elementType === 'promo-card' ? 'text-black/80' : 'text-white/80'} text-xs mb-3 rounded-lg px-3 py-2`}
-          style={{
-            backgroundColor: `${themeColor}dd`, // Add some transparency
-            filter: 'brightness(0.8)' // Make it slightly darker than the main bubble
-          }}
-        >
-          {getElementDescription()}
-        </div>
-      )}
+
 
       {/* Input Form */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <div className="relative flex-1">
           <textarea
             ref={inputRef}
-            value={isTyping ? typedText : (isLoading ? 'loading...' : promptText)}
+            value={isTyping ? typedText : (isLoading && elementType !== 'promo-card' ? 'loading...' : promptText)}
             onChange={(e) => setPromptText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isLoading ? "loading..." : elementType === 'promo-card' ? "add image and text" : "add flight phase"}
+            placeholder={isLoading && elementType !== 'promo-card' ? "loading..." : elementType === 'promo-card' ? "add image and text" : elementType === 'flight-journey-bar' ? "change theme or add animation" : "add flight phase"}
             className={`bg-transparent border-0 text-sm ${elementType === 'promo-card' ? 'text-black placeholder-black/60' : 'text-white placeholder-white/60'} resize-none focus:ring-0 focus:outline-none`}
             style={{
               width: '200px',
@@ -364,33 +475,77 @@ export default function PromptBubble({
           )}
         </div>
         
-        {/* Button Row - Only show for promo cards (PCs) */}
-        {elementType === 'promo-card' && (
+        {/* Button Row - Show for promo cards (PCs) and flight journey bar (FJB) */}
+        {(elementType === 'promo-card' || elementType === 'flight-journey-bar') && (
           <div className="flex items-center gap-3 justify-end">
             <button
               type="button"
               onClick={() => {
-                // Handle image upload functionality
-                console.log('Image upload clicked');
-                // TODO: Implement image upload logic
+                if (elementType === 'flight-journey-bar') {
+                  setShowColorPicker(!showColorPicker);
+                } else {
+                  // Handle image upload functionality
+                  console.log('Image upload clicked');
+                  // TODO: Implement image upload logic
+                }
               }}
               className="text-black/70 hover:text-black transition-colors flex-shrink-0"
             >
-              <PhotoIcon className="w-4 h-4" />
+              {elementType === 'flight-journey-bar' ? (
+                <div className="flex items-center gap-2 px-2 py-1 border border-black/20 rounded-full">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <defs>
+                      <radialGradient id="colorWheelGradient" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor="white"/>
+                        <stop offset="100%" stopColor="transparent"/>
+                      </radialGradient>
+                      <linearGradient id="colorWheelSpectrum" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#ff0000"/>
+                        <stop offset="14.28%" stopColor="#ff8000"/>
+                        <stop offset="28.57%" stopColor="#ffff00"/>
+                        <stop offset="42.86%" stopColor="#80ff00"/>
+                        <stop offset="57.14%" stopColor="#00ffff"/>
+                        <stop offset="71.43%" stopColor="#0080ff"/>
+                        <stop offset="85.71%" stopColor="#8000ff"/>
+                        <stop offset="100%" stopColor="#ff0080"/>
+                      </linearGradient>
+                    </defs>
+                    <circle cx="12" cy="12" r="10" fill="url(#colorWheelSpectrum)" stroke="#333" strokeWidth="0.5"/>
+                    <circle cx="12" cy="12" r="3" fill="url(#colorWheelGradient)"/>
+                  </svg>
+                  <span className="text-xs font-mono text-black/70">{selectedColor}</span>
+                </div>
+              ) : (
+                <PhotoIcon className="w-4 h-4" />
+              )}
             </button>
             
             <button
               type="submit"
               disabled={!promptText.trim() || isLoading}
               className="text-black/70 hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+              style={{
+                color: positionKey === 'middle-card-demo' ? '#000000' : 'rgba(0, 0, 0, 0.7)'
+              }}
             >
               <PaperAirplaneIcon className="w-4 h-4" />
             </button>
           </div>
         )}
+
+        {/* Color Picker for FJB */}
+        {elementType === 'flight-journey-bar' && showColorPicker && (
+          <div className="absolute top-full left-0 mt-2 z-50">
+            <HexColorPicker
+              color={selectedColor}
+              onChange={handleColorChange}
+              className="shadow-lg rounded-lg"
+            />
+          </div>
+        )}
         
         {/* Send Button for Flight Phase Selection (FPS) */}
-        {elementType !== 'promo-card' && (
+        {elementType !== 'promo-card' && elementType !== 'flight-journey-bar' && (
           <button
             type="submit"
             disabled={!promptText.trim() || isLoading}

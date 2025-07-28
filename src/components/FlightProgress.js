@@ -17,7 +17,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFlightMinutes = 370, minutesLeft: externalMinutesLeft, onProgressChange, themeColor = '#1E1E1E', isPromptMode = false, onPromptHover, onPromptClick, fpsPrompts = {}, showMovingIcon = false, onAnimationProgressChange, onPromoCardLoadingChange, onAnimationProgress }) {
+export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFlightMinutes = 370, minutesLeft: externalMinutesLeft, onProgressChange, themeColor = '#1E1E1E', isPromptMode = false, onPromptHover, onPromptClick, fpsPrompts = {}, showMovingIcon = false, onAnimationProgressChange, onPromoCardLoadingChange, onAnimationProgress, onCruiseLabelShow, onMiddleCardPromptClose, onThemeColorChange }) {
   const barWidth = 1302;
   const [dragging, setDragging] = useState(false);
   const [animationProgress, setAnimationProgress] = useState(showMovingIcon ? 0.02 : 0); // Start with 2% progress if showing moving icon
@@ -37,6 +37,17 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
   const [promptBubbleLoading, setPromptBubbleLoading] = useState(false);
   const [movePointerToSecondTile, setMovePointerToSecondTile] = useState(false);
   const [secondTilePosition, setSecondTilePosition] = useState({ x: 0, y: 0 });
+  const [movePointerToMiddleCard, setMovePointerToMiddleCard] = useState(false);
+  const [middleCardPosition, setMiddleCardPosition] = useState({ x: 0, y: 0 });
+  const [showPlusButtonAtMiddleCard, setShowPlusButtonAtMiddleCard] = useState(false);
+  const [showPromptBubbleAtMiddleCard, setShowPromptBubbleAtMiddleCard] = useState(false);
+  const [promptBubbleMiddleCardPosition, setPromptBubbleMiddleCardPosition] = useState({ x: 0, y: 0 });
+  const [middleCardPromptClosed, setMiddleCardPromptClosed] = useState(false);
+  const [movePointerToFJB, setMovePointerToFJB] = useState(false);
+  const [fjbPosition, setFjbPosition] = useState({ x: 0, y: 0 });
+  const [showPlusButtonAtFJB, setShowPlusButtonAtFJB] = useState(false);
+  const [showPromptBubbleAtFJB, setShowPromptBubbleAtFJB] = useState(false);
+  const [promptBubbleFJBPosition, setPromptBubbleFJBPosition] = useState({ x: 0, y: 0 });
   const barRef = useRef();
   const iconRef = useRef();
 
@@ -56,6 +67,48 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
       animationProgress 
     });
   }, [showPromptBubble, showMovingIcon, hasReachedTarget, animationProgress]);
+
+  // Move pointer to FJB after middle card prompt closes
+  useEffect(() => {
+    console.log('=== MIDDLE CARD PROMPT CLOSURE CHECK ===', { middleCardPromptClosed, showMovingIcon });
+    if (middleCardPromptClosed && showMovingIcon) {
+      console.log('=== MIDDLE CARD PROMPT CLOSED - MOVING POINTER TO FJB ===');
+      
+      // Move pointer to FJB after a delay
+      setTimeout(() => {
+        setShowPointer(false);
+        setMovePointerToMiddleCard(false);
+        setShowPlusButtonAtMiddleCard(false);
+        setShowPromptBubbleAtMiddleCard(false);
+        setMovePointerToFJB(true);
+        
+        // Show plus button after pointer appears
+        setTimeout(() => {
+          setShowPlusButtonAtFJB(true);
+          
+                  // Show prompt bubble after plus button appears
+        setTimeout(() => {
+          // Calculate FJB prompt bubble position
+          // Add a small delay to ensure DOM is ready
+          setTimeout(() => {
+            // Position relative to the FJB center
+            const bubbleX = barWidth / 2 + 200; // 200px to the right of the FJB center
+            const bubbleY = -60; // 60px above the FJB
+            
+            console.log('=== FJB BUBBLE POSITION ===', {
+              barWidth,
+              bubbleX,
+              bubbleY
+            });
+            
+            setPromptBubbleFJBPosition({ x: bubbleX, y: bubbleY });
+            setShowPromptBubbleAtFJB(true);
+          }, 100); // Small delay to ensure DOM is ready
+        }, 1000); // 1 second delay after plus button appears
+        }, 500); // 0.5 second delay after pointer appears
+      }, 1000); // 1 second delay
+    }
+  }, [middleCardPromptClosed, showMovingIcon]);
 
   // If externalMinutesLeft is provided, use it as the source of truth
   const displayMinutes = typeof externalMinutesLeft === 'number' ? externalMinutesLeft : parseTime(landingIn);
@@ -90,95 +143,109 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
     // If we've already reached the target, don't restart animation
     if (hasReachedTarget) return;
 
-    const animationDuration = 8000; // 8 seconds to reach 20% (increased from 3 seconds)
-    const startTime = Date.now();
-    const startProgress = animationProgress; // Start from current progress instead of 0.02
+    // Add a delay to ensure DOM elements are ready
+    const startAnimation = () => {
+      const animationDuration = 8000; // 8 seconds to reach 20% (increased from 3 seconds)
+      const startTime = Date.now();
+      const startProgress = animationProgress; // Start from current progress instead of 0.02
 
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progressRatio = Math.min(elapsed / animationDuration, 1);
-      const newProgress = startProgress + (targetProgress - startProgress) * progressRatio;
-      
-      // Update both progress and icon position in the same frame
-      setAnimationProgress(newProgress);
-      
-      // Debug: Log progress values
-      if (newProgress >= 0.19 && newProgress <= 0.21) {
-        console.log('Progress tracking:', {
-          newProgress,
-          percentage: (newProgress * 100).toFixed(1) + '%',
-          hasReachedTarget
-        });
-      }
-      
-      // Show Takeoff label at 5% progress
-      if (newProgress >= 0.05 && newProgress <= 0.06 && !showTakeoffLabel) {
-        setShowTakeoffLabel(true);
-      }
-      
-      // Pass animation progress to parent
-      if (onAnimationProgress) {
-        onAnimationProgress(newProgress);
-      }
-      
-      // Don't show Cruise label during animation - only show after prompt submission
-      
-      // Show prompt bubble exactly at 20% progress
-      if (newProgress >= 0.20 && newProgress <= 0.205 && !hasReachedTarget) {
-        console.log('=== 20% PROGRESS REACHED ===', { 
-          newProgress, 
-          hasReachedTarget,
-          exactProgress: (newProgress * 100).toFixed(1) + '%'
-        });
-        setHasReachedTarget(true);
-      }
-      
-      // Calculate and update countdown timer based on animation progress
-      if (onAnimationProgressChange) {
-        const startMinutes = 185; // 3H 05M
-        const endMinutes = 148;   // 2H 28M (20% progress)
-        const currentMinutes = startMinutes - (newProgress * (startMinutes - endMinutes) / 0.2);
-        onAnimationProgressChange(Math.round(currentMinutes));
-      }
-      
-      if (progressRatio < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        // Animation has completed - flight icon has stopped
-        console.log('=== FLIGHT ICON STOPPED ===', { 
-          finalProgress: newProgress,
-          percentage: (newProgress * 100).toFixed(1) + '%'
-        });
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progressRatio = Math.min(elapsed / animationDuration, 1);
+        const newProgress = startProgress + (targetProgress - startProgress) * progressRatio;
         
-        // Show dummy mouse pointer first
-        setTimeout(() => {
-          setShowPointer(true);
-        }, 2000); // 2 seconds delay after stopping (increased from 800ms)
+        // Update both progress and icon position in the same frame
+        setAnimationProgress(newProgress);
         
-        // Show plus button after pointer appears
-        setTimeout(() => {
-          setShowPlusButton(true);
+        // Debug: Log progress values
+        if (newProgress >= 0.19 && newProgress <= 0.21) {
+          console.log('Progress tracking:', {
+            newProgress,
+            percentage: (newProgress * 100).toFixed(1) + '%',
+            hasReachedTarget
+          });
+        }
+        
+        // Show Takeoff label at 5% progress
+        if (newProgress >= 0.05 && newProgress <= 0.06 && !showTakeoffLabel) {
+          setShowTakeoffLabel(true);
+        }
+        
+        // Pass animation progress to parent
+        if (onAnimationProgress) {
+          onAnimationProgress(newProgress);
+        }
+        
+        // Don't show Cruise label during animation - only show after prompt submission
+        
+        // Show prompt bubble exactly at 20% progress
+        if (newProgress >= 0.20 && newProgress <= 0.205 && !hasReachedTarget) {
+          console.log('=== 20% PROGRESS REACHED ===', { 
+            newProgress, 
+            hasReachedTarget,
+            exactProgress: (newProgress * 100).toFixed(1) + '%'
+          });
+          setHasReachedTarget(true);
+        }
+        
+        // Calculate and update countdown timer based on animation progress
+        if (onAnimationProgressChange) {
+          const startMinutes = 185; // 3H 05M
+          const endMinutes = 148;   // 2H 28M (20% progress)
+          const currentMinutes = startMinutes - (newProgress * (startMinutes - endMinutes) / 0.2);
+          onAnimationProgressChange(Math.round(currentMinutes));
+        }
+        
+        if (progressRatio < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          // Animation has completed - flight icon has stopped
+          console.log('=== FLIGHT ICON STOPPED ===', { 
+            finalProgress: newProgress,
+            percentage: (newProgress * 100).toFixed(1) + '%'
+          });
           
-          // Show prompt bubble after 3 seconds of plus button appearing
+          // Show dummy mouse pointer first
           setTimeout(() => {
-            setShowPromptBubble(true);
-            setShowPlusButton(false); // Hide plus button when prompt bubble appears
+            setShowPointer(true);
+          }, 2000); // 2 seconds delay after stopping (increased from 800ms)
+          
+          // Show plus button after pointer appears
+          setTimeout(() => {
+            setShowPlusButton(true);
             
-            // Calculate position for prompt bubble (to the right of the plus button)
-            if (barRef.current) {
-              const containerRect = barRef.current.getBoundingClientRect();
-              // Position to the right of the plus button
-              const bubbleX = containerRect.left + iconLeft + 8 + 40 + 160; // Plus button position + button width + spacing + offset
-              const bubbleY = containerRect.top + 48 + 60; // Same vertical position as plus button + offset
+            // Show prompt bubble below the plus button after 2 seconds
+            setTimeout(() => {
+              setShowPromptBubble(true);
+              setShowPlusButton(false); // Hide plus button when prompt bubble appears
+              
+              // Calculate position for prompt bubble below the plus button
+              // Plus button is at iconLeft + 8, top: 48px
+              // Position bubble 2px away from the plus button
+              const bubbleX = iconLeft + 8 + 2; // 2px to the right of plus button
+              const bubbleY = 48 + 32 + 10; // Plus button Y + button height + spacing
+              
+              console.log('=== FPS BUBBLE POSITION CALCULATION ===', {
+                iconLeft,
+                plusButtonX: iconLeft + 8,
+                plusButtonY: 48,
+                bubbleX,
+                bubbleY
+              });
+              
               setPromptBubblePosition({ x: bubbleX, y: bubbleY });
-            }
-          }, 3000); // 3 seconds after plus button appears (reduced from 8 seconds)
-        }, 3000); // 3 seconds delay after animation completes (increased from 1.5 seconds)
-      }
+            }, 2000); // 2 seconds after plus button appears
+          }, 3000); // 3 seconds delay after animation completes (increased from 1.5 seconds)
+        }
+      };
+
+      const animationId = requestAnimationFrame(animate);
+      return () => cancelAnimationFrame(animationId);
     };
 
-    const animationId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationId);
+    // Start animation after a delay to ensure DOM is ready
+    const timer = setTimeout(startAnimation, 1000); // 1 second delay
+    return () => clearTimeout(timer);
   }, [showMovingIcon, showTakeoffLabel, showCruiseLabel, hasReachedTarget]);
 
   // Drag logic (only start drag from icon)
@@ -296,13 +363,88 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
     // Handle the prompt submission for landing page demo
     console.log('=== HANDLE PROMPT BUBBLE SUBMIT CALLED ===');
     console.log('Prompt submitted:', promptText, elementType, elementData, positionKey);
+    console.log('Prompt text comparison:', {
+      submitted: promptText,
+      expected: "Cruise",
+      isMatch: promptText === "Cruise",
+      trimmed: promptText.trim(),
+      trimmedMatch: promptText.trim() === "Cruise"
+    });
     
-        // Show the Cruise label below the flight icon
-    if (promptText === "Cruise") {
+    // Show the Cruise label below the flight icon
+    if (promptText.trim() === "Cruise") {
+      console.log('=== CRUISE DETECTED - SHOWING LABEL ===');
       setShowCruiseLabel(true);
       setShowPromptBubble(false); // Close prompt bubble immediately
       
+      // Notify parent that Cruise label has appeared
+      if (onCruiseLabelShow) {
+        onCruiseLabelShow(true);
+      }
+      
+      // Move cursor to middle promo card after a short delay
+      setTimeout(() => {
+        console.log('=== MOVING TO MIDDLE CARD ===');
+        // Calculate position for middle promo card (Component3Cards)
+        // Component3Cards is positioned below the flight progress bar with gap: 32
+        // The middle card is the 2nd card (index 1) in a 3-card layout with gap-8 (32px gap)
+        const containerWidth = 1302;
+        const cardWidth = 416;
+        const gap = 32;
+        const totalCardsWidth = cardWidth * 3 + gap * 2; // 3 cards + 2 gaps
+        const startX = (containerWidth - totalCardsWidth) / 2; // Center the cards
+        
+        // Position of middle card (index 1)
+        const middleCardX = startX + cardWidth + gap; // First card + gap
+        const middleCardY = 100; // Center of card height (200px / 2)
+        
+        // Convert to absolute position relative to the flight progress bar container
+        const flightProgressHeight = 32; // Height of flight progress bar
+        const gapBetweenComponents = 32; // Gap between flight progress and Component3Cards
+        
+        setMiddleCardPosition({ 
+          x: middleCardX, 
+          y: flightProgressHeight + gapBetweenComponents + middleCardY 
+        });
+        
+        // Hide pointer at flight icon and move to middle card
+        setShowPointer(false);
+        setMovePointerToMiddleCard(true);
+        
+        // Show plus button at middle card after cursor moves
+        setTimeout(() => {
+          console.log('=== SHOWING PLUS BUTTON AT MIDDLE CARD ===');
+          setShowPlusButtonAtMiddleCard(true);
+          
+          // Show prompt bubble at middle card after 2 seconds, replacing plus button
+          setTimeout(() => {
+            console.log('=== SHOWING PROMPT BUBBLE AT MIDDLE CARD ===');
+            setShowPlusButtonAtMiddleCard(false); // Hide plus button
+            setShowPromptBubbleAtMiddleCard(true); // Show prompt bubble
+            
+            // Calculate position for prompt bubble at middle card
+            // Add a small delay to ensure DOM is ready
+            setTimeout(() => {
+              // Use the same middleCardPosition state that's used for the plus button
+              // This ensures consistency with the plus button positioning
+              const bubbleX = middleCardPosition.x + 8 + 40 + 20; // Plus button position + button width + spacing
+              const bubbleY = middleCardPosition.y + 8 + 20; // Plus button Y position + spacing
+              
+              console.log('=== MIDDLE CARD BUBBLE POSITION ===', {
+                middleCardPosition,
+                bubbleX,
+                bubbleY
+              });
+              
+              setPromptBubbleMiddleCardPosition({ x: bubbleX, y: bubbleY });
+            }, 100); // Reduced delay since we're using the state directly
+          }, 2000); // 2 seconds after plus button appears
+        }, 500); // 0.5 seconds after cursor moves to middle card
+      }, 1000); // 1 second delay after Cruise label appears
+      
       // Animation ends here - no more interactions with promo cards
+    } else {
+      console.log('=== CRUISE NOT DETECTED ===');
     }
   };
 
@@ -449,6 +591,119 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
         </div>
       )} */}
       
+      {/* Dummy mouse pointer at middle promo card position */}
+      {movePointerToMiddleCard && showMovingIcon && (
+        <div 
+          className="dummy-mouse-pointer"
+          style={{
+            position: 'absolute',
+            left: `${middleCardPosition.x}px`,
+            top: `${middleCardPosition.y}px`,
+            zIndex: 20,
+            pointerEvents: 'none'
+          }}
+        >
+        </div>
+      )}
+      
+      {/* Plus button at middle promo card position */}
+      {showPlusButtonAtMiddleCard && showMovingIcon && (
+        <div 
+          className="landing-plus-button"
+          style={{
+            position: 'absolute',
+            left: `${middleCardPosition.x + 8}px`,
+            top: `${middleCardPosition.y + 8}px`,
+            zIndex: 25,
+            pointerEvents: 'none'
+          }}
+        >
+          <div 
+            className="plus-button-inner"
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '16px',
+              backgroundColor: themeColor,
+              border: '2px solid white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+              animation: 'plus-button-appear 0.5s ease-out'
+            }}
+          >
+            <span 
+              className="plus-icon"
+              style={{
+                color: 'white',
+                fontSize: '16px',
+                fontWeight: 'bold',
+              }}>
+              +
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Dummy mouse pointer at FJB position */}
+      {movePointerToFJB && showMovingIcon && (
+        <div 
+          className="dummy-mouse-pointer"
+          style={{
+            position: 'absolute',
+            left: `${barWidth / 2}px`, // Center of the flight progress bar
+            top: '-12px', // Position much higher above the flight progress bar
+            zIndex: 20,
+            pointerEvents: 'none',
+            transform: 'translateX(-50%)' // Center the pointer horizontally
+          }}
+        >
+        </div>
+      )}
+
+      {/* Plus button at FJB position */}
+      {showPlusButtonAtFJB && showMovingIcon && (
+        <div 
+          className="landing-plus-button"
+          style={{
+            position: 'absolute',
+            left: `${barWidth / 2 + 20}px`, // Position to the right of the dummy pointer
+            top: '-12px',
+            zIndex: 25,
+            pointerEvents: 'none'
+          }}
+        >
+          <div 
+            className="plus-button-inner"
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '16px',
+              backgroundColor: themeColor,
+              border: '2px solid white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+              animation: 'plus-button-appear 0.5s ease-out'
+            }}
+          >
+            <span 
+              className="plus-icon"
+              style={{
+                color: 'white',
+                fontSize: '16px',
+                fontWeight: 'bold',
+              }}>
+              +
+            </span>
+          </div>
+        </div>
+      )}
+
+
+      
       {/* Takeoff Label - Sticky at 5% position */}
       {showTakeoffLabel && (
         <div 
@@ -491,14 +746,14 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
       
 
       
-      {/* Cruise Label - Below flight icon at 20% position */}
+      {/* Cruise Label - Fixed at 20% position */}
       {showCruiseLabel && (
         <div 
           className="flight-prompt-label"
           style={{
             position: 'absolute',
-            left: `${barWidth * 0.20}px`, // Fixed 20% position where flight icon stops
-            top: '55px', // Below the flight icon
+            left: `${barWidth * 0.20}px`, // Fixed 20% position
+            top: '40px', // Same spacing as Takeoff label
             color: themeColor,
             fontSize: '10px',
             fontWeight: 'bold',
@@ -506,11 +761,32 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
             whiteSpace: 'nowrap',
             zIndex: 10,
             animation: 'label-appear 0.5s ease-out',
-            transform: 'translateX(-50%)' // Center the label text
+            transform: 'translateX(-50%)', // Center the label text
+            transition: 'none' // Ensure no CSS transitions affect positioning
           }}
         >
           CRUISE
         </div>
+      )}
+      
+      {/* Cruise Position Dot */}
+      {showCruiseLabel && (
+        <div 
+          className="flight-progress-dot"
+          style={{
+            position: 'absolute',
+            left: `${barWidth * 0.20}px`, // Fixed 20% position
+            top: '14px', // Center of the progress bar (same as Takeoff dot)
+            width: '12px',
+            height: '12px',
+            backgroundColor: themeColor,
+            borderRadius: '50%',
+            zIndex: 1,
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+            transform: 'translateX(-50%)', // Center the dot
+            transition: 'none' // Ensure no CSS transitions affect positioning
+          }}
+        />
       )}
       
       {/* Prompt Bubble */}
@@ -527,7 +803,59 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
         fpsPrompts={{}}
       />
       
+      {/* Prompt Bubble at Middle Card */}
+      <PromptBubble
+        isVisible={showPromptBubbleAtMiddleCard && showMovingIcon}
+        position={promptBubbleMiddleCardPosition}
+        elementType="promo-card"
+        elementData={{ cardIndex: 1, cardType: 'middle' }}
+                      onClose={() => {
+                console.log('=== MIDDLE CARD PROMPT BUBBLE CLOSED ===');
+                setShowPromptBubbleAtMiddleCard(false);
+                setMiddleCardPromptClosed(true);
+                if (onMiddleCardPromptClose) {
+                  console.log('=== Calling onMiddleCardPromptClose(true) ===');
+                  onMiddleCardPromptClose(true);
+                }
+              }}
+        onSubmit={(promptText, elementType, elementData, positionKey) => {
+          console.log('=== MIDDLE CARD PROMPT SUBMITTED ===', { promptText, elementType, elementData, positionKey });
+          setShowPromptBubbleAtMiddleCard(false);
+          setMiddleCardPromptClosed(true);
+          console.log('=== SETTING middleCardPromptClosed TO TRUE ===');
+          if (onMiddleCardPromptClose) {
+            console.log('=== Calling onMiddleCardPromptClose(true) from onSubmit ===');
+            onMiddleCardPromptClose(true);
+          }
+          // Handle middle card prompt submission here
+        }}
+        themeColor={themeColor}
+        existingText=""
+        positionKey="middle-card-demo"
+        fpsPrompts={{}}
+      />
 
+      {/* Prompt Bubble at FJB */}
+      <PromptBubble
+        isVisible={showPromptBubbleAtFJB && showMovingIcon}
+        position={promptBubbleFJBPosition}
+        elementType="flight-journey-bar"
+        elementData={{ barWidth, themeColor }}
+        onClose={() => {
+          console.log('=== FJB PROMPT BUBBLE CLOSED ===');
+          setShowPromptBubbleAtFJB(false);
+        }}
+        onSubmit={(promptText, elementType, elementData, positionKey) => {
+          console.log('=== FJB PROMPT SUBMITTED ===', promptText);
+          setShowPromptBubbleAtFJB(false);
+          // Handle FJB prompt submission here
+        }}
+        themeColor={themeColor}
+        existingText=""
+        positionKey="fjb-demo"
+        fpsPrompts={{}}
+        onThemeColorChange={onThemeColorChange}
+      />
       
       {/* Display ALL prompts at their FIXED positions */}
       {Object.entries(fpsPrompts).map(([positionKey, promptText]) => {

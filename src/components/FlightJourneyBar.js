@@ -41,24 +41,36 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
   return (
     <div className="w-full flex justify-center">
       <div
-        className="box-border content-stretch flex flex-row gap-16 items-center justify-start p-0 relative mx-auto"
+        className="box-border content-stretch flex flex-row gap-8 items-center justify-between p-0 relative mx-auto w-full max-w-[1328px]"
         data-name="flight journey bar"
         id="node-77_5469"
       >
+        {/* Logo Placeholder */}
         <div
-          className="box-border content-stretch flex flex-row gap-6 items-center justify-center p-0 relative shrink-0"
+          className="backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] h-[88px] relative rounded-2xl shrink-0 w-[120px] flex items-center justify-center"
+          data-name="logo placeholder"
+        >
+          <div className="text-center">
+            <div className="text-[16px] font-semibold text-black mb-1">LOGO</div>
+            <div className="text-[12px] text-black/70">PLACEHOLDER</div>
+          </div>
+          <div className="absolute border border-[rgba(0,0,0,0.2)] border-solid inset-0 pointer-events-none rounded-2xl" />
+        </div>
+
+        <div
+          className="box-border content-stretch flex flex-row gap-6 items-center justify-center p-0 relative shrink-0 flex-1"
           data-name="airports info"
           id="node-77_5471"
         >
           {!origin ? (
-            <SkeletonCard width="480px" alignment="left" />
+            <SkeletonCard width="400px" alignment="left" />
           ) : (
           <div
-            className="backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] h-[88px] relative rounded-2xl shrink-0 w-[480px]"
+            className="backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] h-[88px] relative rounded-2xl shrink-0 w-[400px]"
             data-name="origin info"
             id="node-77_5576"
           >
-            <div className="h-[88px] overflow-clip relative w-[480px]">
+            <div className="h-[88px] overflow-clip relative w-[400px]">
               <div
                 className="absolute box-border content-stretch flex flex-row gap-2 items-start justify-start leading-[0] left-6 not-italic p-0 text-[#000000] text-[20px] text-left text-nowrap top-[13px]"
                 data-name="Departure location"
@@ -82,7 +94,7 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
                 </div>
               </div>
               <div
-                className="absolute font-['Lufthansa_Text:Bold',_sans-serif] leading-[0] left-[456px] not-italic text-[#000000] text-[20px] text-nowrap text-right top-[13px] tracking-[0.8px] translate-x-[-100%]"
+                className="absolute font-['Lufthansa_Text:Bold',_sans-serif] leading-[0] right-6 not-italic text-[#000000] text-[20px] text-nowrap text-right top-[13px] tracking-[0.8px]"
                 id="node-77_5580"
               >
                 <p className="adjustLetterSpacing block leading-[32px] whitespace-pre">
@@ -103,16 +115,9 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
                   </span>
                 </p>
               </div>
+
               <div
-                className="absolute font-['Lufthansa_Text:Regular',_sans-serif] leading-[0] left-[456px] not-italic text-[#000000] text-[14px] text-nowrap text-right top-[51px] tracking-[1.4px] translate-x-[-100%] uppercase"
-                id="node-77_5582"
-              >
-                <p className="adjustLetterSpacing block leading-[24px] whitespace-pre">
-                  Highs 18º – lows 12º
-                </p>
-              </div>
-              <div
-                className="absolute left-[375px] overflow-clip size-8 top-[13px]"
+                className="absolute right-6 overflow-clip size-8 top-[45px]"
                 data-name="Weather Icons"
                 id="node-77_5583"
               >
@@ -176,14 +181,14 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
           </div>
           )}
           {!destination ? (
-            <SkeletonCard width="480px" alignment="right" />
+            <SkeletonCard width="400px" alignment="right" />
           ) : (
           <div
-            className="backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] h-[88px] relative rounded-2xl shrink-0 w-[480px]"
+            className="backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] h-[88px] relative rounded-2xl shrink-0 w-[400px]"
             data-name="destination info"
             id="node-77_5605"
           >
-            <div className="h-[88px] overflow-clip relative w-[480px]">
+            <div className="h-[88px] overflow-clip relative w-[400px]">
               <div
                 className="absolute box-border content-stretch flex flex-row gap-2 items-start justify-end leading-[0] not-italic p-0 right-6 text-[#000000] text-nowrap text-right top-[13px]"
                 data-name="Destionation"
@@ -228,16 +233,9 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
                   </span>
                 </p>
               </div>
+
               <div
-                className="absolute font-['Lufthansa_Text:Regular',_sans-serif] leading-[0] left-6 not-italic text-[#000000] text-[14px] text-left text-nowrap top-[51px] tracking-[1.4px] uppercase"
-                id="node-77_5611"
-              >
-                <p className="adjustLetterSpacing block leading-[24px] whitespace-pre">
-                  Highs 27º – lows 16º
-                </p>
-              </div>
-              <div
-                className="absolute left-[73px] overflow-clip size-8 top-[13px]"
+                className="absolute left-[24px] overflow-clip size-8 top-[45px]"
                 data-name="Weather Icons"
                 id="node-77_5612"
               >

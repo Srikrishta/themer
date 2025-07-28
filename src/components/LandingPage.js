@@ -20,20 +20,28 @@ export default function LandingPage() {
   const [showMovingIcon, setShowMovingIcon] = useState(true); // Start with animation
   const [promoCardLoading, setPromoCardLoading] = useState(false);
   const [promoCardFinishedLoading, setPromoCardFinishedLoading] = useState(false);
-  const [promptBubbleVisible, setPromptBubbleVisible] = useState(false);
   const [animationProgress, setAnimationProgress] = useState(0);
-  
   // Theme colors that will cycle every 3 seconds
   const themeColors = [
     '#3b82f6', // blue-500
-    '#8b5cf6', // purple-500
-    '#ec4899', // pink-500
-    '#f59e0b', // amber-500
-    '#10b981', // emerald-500
-    '#ef4444', // red-500
-    '#06b6d4', // cyan-500
-    '#84cc16'  // lime-500
+    '#1d4ed8', // blue-700
+    '#1e40af', // blue-800
+    '#1e3a8a', // blue-900
+    '#60a5fa', // blue-400
+    '#93c5fd', // blue-300
+    '#2563eb', // blue-600
+    '#1e40af'  // blue-800
   ];
+  
+  const [cruiseLabelShown, setCruiseLabelShown] = useState(false);
+  const [middleCardPromptClosed, setMiddleCardPromptClosed] = useState(false);
+  const [recommendedTiles, setRecommendedTiles] = useState([
+    { id: 1, color: themeColors[0] },
+    { id: 2, color: themeColors[0] },
+    { id: 3, color: themeColors[0] },
+    { id: 4, color: themeColors[0] }
+  ]);
+  const [draggedTile, setDraggedTile] = useState(null);
   
   const formatTime = (minutes) => {
     const h = Math.floor(minutes / 60);
@@ -70,6 +78,58 @@ export default function LandingPage() {
     setAnimationProgress(progress);
   };
 
+  // Handle Cruise label show event
+  const handleCruiseLabelShow = (isShown) => {
+    setCruiseLabelShown(isShown);
+  };
+
+  const handleMiddleCardPromptClose = (isClosed) => {
+    console.log('=== LandingPage: handleMiddleCardPromptClose called ===', { isClosed });
+    setMiddleCardPromptClosed(isClosed);
+  };
+
+  const handleThemeColorChange = (newColor) => {
+    // Update the theme color when changed from the color picker
+    console.log('Theme color changed to:', newColor);
+    setCurrentThemeColor(newColor);
+    
+    // Also update the index if the color is in our predefined array
+    const colorIndex = themeColors.indexOf(newColor);
+    if (colorIndex !== -1) {
+      setCurrentThemeColorIndex(colorIndex);
+    }
+  };
+
+  // Drag and drop handlers for recommended tiles
+  const handleDragStart = (e, tileId) => {
+    setDraggedTile(tileId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e, targetTileId) => {
+    e.preventDefault();
+    if (draggedTile && draggedTile !== targetTileId) {
+      const draggedIndex = recommendedTiles.findIndex(tile => tile.id === draggedTile);
+      const targetIndex = recommendedTiles.findIndex(tile => tile.id === targetTileId);
+      
+      const newTiles = [...recommendedTiles];
+      const [draggedItem] = newTiles.splice(draggedIndex, 1);
+      newTiles.splice(targetIndex, 0, draggedItem);
+      
+      setRecommendedTiles(newTiles);
+    }
+    setDraggedTile(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTile(null);
+  };
+
   // Handle progress bar drag
   const handleProgressChange = (newMinutes) => {
     setDragging(true);
@@ -93,18 +153,34 @@ export default function LandingPage() {
   }, [dragging]);
   
   const [currentThemeColorIndex, setCurrentThemeColorIndex] = useState(0);
-  const mockThemeColor = themeColors[currentThemeColorIndex];
+  const [currentThemeColor, setCurrentThemeColor] = useState(themeColors[0]);
+  const mockThemeColor = currentThemeColor;
   
   // Cycle through theme colors every 7 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentThemeColorIndex((prevIndex) => 
-        (prevIndex + 1) % themeColors.length
-      );
-    }, 7000);
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     setCurrentThemeColorIndex((prevIndex) => 
+  //       (prevIndex + 1) % themeColors.length
+  //     );
+  //   }, 7000);
     
-    return () => clearInterval(interval);
-  }, []);
+  //   return () => clearInterval(interval);
+  // }, []);
+
+  // Update currentThemeColor when currentThemeColorIndex changes
+  useEffect(() => {
+    setCurrentThemeColor(themeColors[currentThemeColorIndex]);
+  }, [currentThemeColorIndex, themeColors]);
+
+  // Update tiles when theme color changes
+  useEffect(() => {
+    setRecommendedTiles(prevTiles => 
+      prevTiles.map(tile => ({
+        ...tile,
+        color: mockThemeColor
+      }))
+    );
+  }, [mockThemeColor]);
   
   const landingIn = formatTime(minutesLeft);
   console.log('LandingPage - minutesLeft:', minutesLeft, 'landingIn:', landingIn);
@@ -137,7 +213,7 @@ export default function LandingPage() {
                 <div className="mt-10 flex items-center justify-center">
                   <div
                     onClick={() => navigate('/dashboard')}
-                    className="bg-black shadow-lg cursor-pointer hover:shadow-xl transition-all duration-200 themer-animated-border"
+                    className="bg-black cursor-pointer transition-all duration-200 themer-animated-border"
                     style={{
                       width: '200px',
                       height: '48px',
@@ -182,6 +258,9 @@ export default function LandingPage() {
                     onAnimationProgressChange={handleAnimationProgressChange}
                     onPromoCardLoadingChange={handlePromoCardLoadingChange}
                     onAnimationProgress={handleAnimationProgress}
+                    onCruiseLabelShow={handleCruiseLabelShow}
+                    onMiddleCardPromptClose={handleMiddleCardPromptClose}
+                    onThemeColorChange={handleThemeColorChange}
                   />
                 </div>
               </div>
@@ -193,6 +272,8 @@ export default function LandingPage() {
                 onPromptClick={() => {}}
                 promptStates={{ 'promo-card-0': false }} // Don't show promo card prompt bubble until FlightProgress controls it
                 animationProgress={animationProgress}
+                cruiseLabelShown={cruiseLabelShown}
+                middleCardPromptClosed={middleCardPromptClosed}
               />
               
               {/* Recommended for you section */}
@@ -209,65 +290,29 @@ export default function LandingPage() {
                   className="grid grid-cols-4 gap-6"
                   style={{ width: '100%' }}
                 >
-                  {/* Tile 1 */}
-                  <div
-                    className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
-                    style={{ 
-                      width: '100%', 
-                      height: '184px',
-                      background: mockThemeColor,
-                      borderTopLeftRadius: '8px',
-                      borderTopRightRadius: '8px',
-                      borderBottomLeftRadius: '0px',
-                      borderBottomRightRadius: '0px'
-                    }}
-                  >
-                  </div>
-                  
-                  {/* Tile 2 */}
-                  <div
-                    className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
-                    style={{ 
-                      width: '100%', 
-                      height: '184px',
-                      background: mockThemeColor,
-                      borderTopLeftRadius: '8px',
-                      borderTopRightRadius: '8px',
-                      borderBottomLeftRadius: '0px',
-                      borderBottomRightRadius: '0px'
-                    }}
-                  >
-                  </div>
-                  
-                  {/* Tile 3 */}
-                  <div
-                    className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
-                    style={{ 
-                      width: '100%', 
-                      height: '184px',
-                      background: mockThemeColor,
-                      borderTopLeftRadius: '8px',
-                      borderTopRightRadius: '8px',
-                      borderBottomLeftRadius: '0px',
-                      borderBottomRightRadius: '0px'
-                    }}
-                  >
-                  </div>
-                  
-                  {/* Tile 4 */}
-                  <div
-                    className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
-                    style={{ 
-                      width: '100%', 
-                      height: '184px',
-                      background: mockThemeColor,
-                      borderTopLeftRadius: '8px',
-                      borderTopRightRadius: '8px',
-                      borderBottomLeftRadius: '0px',
-                      borderBottomRightRadius: '0px'
-                    }}
-                  >
-                  </div>
+                  {recommendedTiles.map((tile) => (
+                    <div
+                      key={tile.id}
+                      draggable
+                      className="bg-black overflow-clip relative shrink-0 flex items-center justify-center cursor-move hover:opacity-80 transition-opacity"
+                      style={{ 
+                        width: '100%', 
+                        height: '184px',
+                        background: tile.color,
+                        borderTopLeftRadius: '8px',
+                        borderTopRightRadius: '8px',
+                        borderBottomLeftRadius: '0px',
+                        borderBottomRightRadius: '0px',
+                        opacity: draggedTile === tile.id ? 0.5 : 1
+                      }}
+                      onDragStart={(e) => handleDragStart(e, tile.id)}
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDrop(e, tile.id)}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <span className="text-white text-sm font-medium">Tile {tile.id}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

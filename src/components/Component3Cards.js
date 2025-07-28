@@ -5,7 +5,7 @@ const imgAutumnMeal = "http://localhost:3845/assets/67867be324b149fdbc2f5cc31419
 const imgAddAnAutumnMovie = "http://localhost:3845/assets/8ea70f2052f6ce510170e999f000793ea6f8a1cb.png";
 const img2 = "http://localhost:3845/assets/1bd3170f3986d13a6502916089cd682ffee55e02.svg";
 
-export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], isPromptMode = false, onPromptHover, onPromptClick, promptStates = {}, animationProgress = 0 }) {
+export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], isPromptMode = false, onPromptHover, onPromptClick, promptStates = {}, animationProgress = 0, cruiseLabelShown = false, middleCardPromptClosed = false }) {
   // Skeleton component for loading state
   const SkeletonCard = () => (
     <div
@@ -22,9 +22,41 @@ export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], i
   // Show skeleton state based on routes length
   const showAllSkeletons = routes.length < 2; // Keep skeletons until 2+ routes
 
-  // Determine card content based on animation progress
+  // Determine card content based on animation progress and cruise label state
   const getCardContent = (cardIndex) => {
-    if (animationProgress >= 0.20) {
+    if (middleCardPromptClosed) {
+      // When middle card prompt is closed, update both middle and left cards
+      if (cardIndex === 0) {
+        // Left card - French cuisine
+        return {
+          text: "Enjoy French cuisine",
+          backgroundImage: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=416&h=200&fit=crop&crop=center&auto=format",
+          bgColor: "#f3f4f6"
+        };
+      } else if (cardIndex === 1) {
+        // Middle card - Croissants
+        return {
+          text: "Croissants at 3€",
+          backgroundImage: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=416&h=200&fit=crop&crop=center&auto=format",
+          bgColor: "#f3f4f6"
+        };
+      } else {
+        // Right card - keep original content
+        return {
+          text: "Connect your device",
+          backgroundImage: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=416&h=200&fit=crop&crop=center&auto=format",
+          bgColor: "#f3f4f6"
+        };
+      }
+    } else if (cruiseLabelShown && !middleCardPromptClosed) {
+      // When Cruise label has appeared - show "add text" (but only if middle card prompt hasn't closed)
+      const cruiseContent = [
+        { text: "add text", bgColor: themeColor },
+        { text: "add text", bgColor: themeColor },
+        { text: "add text", bgColor: themeColor }
+      ];
+      return cruiseContent[cardIndex];
+    } else if (animationProgress >= 0.20) {
       // At 20% progress - themed state
       const themedContent = [
         { text: "Welcome drink", bgColor: themeColor },
@@ -42,7 +74,7 @@ export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], i
         },
         { 
           text: "Settle in", 
-          backgroundImage: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=416&h=200&fit=crop&crop=center&auto=format",
+          backgroundImage: "https://images.unsplash.com/photo-1556388158-158ea5ccacbd?w=416&h=200&fit=crop&crop=center&auto=format",
           bgColor: "#f3f4f6"
         },
         { 
@@ -81,8 +113,10 @@ export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], i
               background: getCardContent(0).bgColor,
               backgroundImage: getCardContent(0).backgroundImage ? `url(${getCardContent(0).backgroundImage})` : 'none',
               backgroundSize: 'cover',
-              backgroundPosition: 'center'
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat'
             }}
+
             data-name="croissants at 4€"
             id="node-82_35814"
             onMouseEnter={(e) => {
@@ -107,7 +141,7 @@ export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], i
               }
             }}
           >
-            {promptStates['promo-card-0'] ? (
+            {promptStates['promo-card-0'] && !middleCardPromptClosed ? (
               <div className="relative h-full w-full">
                 <img 
                   src="https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=416&h=200&fit=crop&crop=center" 
@@ -123,7 +157,14 @@ export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], i
             ) : (
               <div className="relative h-full w-full flex items-center justify-center">
                 {getCardContent(0).backgroundImage && (
-                  <div className="absolute inset-0 bg-black bg-opacity-30 rounded-lg"></div>
+                  <>
+                    <img 
+                      src={getCardContent(0).backgroundImage}
+                      alt="Background"
+                      className="absolute inset-0 w-full h-full object-cover rounded-lg"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-30 rounded-lg"></div>
+                  </>
                 )}
                 <p className="block text-center font-bold relative z-10" 
                    style={{ 
@@ -134,6 +175,7 @@ export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], i
                    }}>
                   {getCardContent(0).text}
                 </p>
+
               </div>
             )}
           </div>
