@@ -336,7 +336,7 @@ export default function LandingPage() {
                   Personalize in-flight experiences.
                 </h1>
                 <p className="relative mt-6 text-lg leading-8 text-gray-600 sm:max-w-md lg:max-w-none text-center whitespace-nowrap">
-                  Customize the in-flight entertainment experience based on their destination.
+                  Curate experiences your passengers would love.
                 </p>
                 <div className="mt-10 flex items-center justify-center">
                   <div

@@ -44,6 +44,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
   const [promptBubbleLoading, setPromptBubbleLoading] = useState(false);
   const [movePointerToSecondTile, setMovePointerToSecondTile] = useState(false);
   const [secondTilePosition, setSecondTilePosition] = useState({ x: 0, y: 0 });
+  const lastProgressRef = useRef(0.02);
   const [movePointerToMiddleCard, setMovePointerToMiddleCard] = useState(false);
   const [middleCardPosition, setMiddleCardPosition] = useState({ x: 0, y: 0 });
   const [showPlusButtonAtMiddleCard, setShowPlusButtonAtMiddleCard] = useState(false);
@@ -171,7 +172,10 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
     const startAnimation = () => {
       const animationDuration = 8000; // 8 seconds to reach 20% (increased from 3 seconds)
       const startTime = Date.now();
-      const startProgress = Math.max(0.02, animationProgress); // Start from current progress or 2%, whichever is higher
+      // Always start from the highest progress we've achieved to prevent backward movement
+      const currentProgress = Math.max(0.02, animationProgress);
+      const startProgress = Math.max(currentProgress, lastProgressRef.current);
+      lastProgressRef.current = startProgress;
 
       const animate = () => {
         const elapsed = Date.now() - startTime;
@@ -181,6 +185,9 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
         // Update both progress and icon position in the same frame
         setAnimationProgress(newProgress);
         
+        // Update the last progress ref to track the highest progress achieved
+        lastProgressRef.current = Math.max(lastProgressRef.current, newProgress);
+        
         // Debug: Log animation progress (only log occasionally to avoid spam)
         if (newProgress % 0.05 < 0.01) { // Log every 5% progress
           console.log('=== ANIMATION PROGRESS ===', {
@@ -188,7 +195,8 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
             progressRatio,
             startProgress,
             newProgress,
-            percentage: (newProgress * 100).toFixed(1) + '%'
+            percentage: (newProgress * 100).toFixed(1) + '%',
+            lastProgress: lastProgressRef.current
           });
         }
         
