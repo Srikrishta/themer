@@ -181,3 +181,18 @@ code {
 .themer-animated-border[style*='100px']:before {
   border-radius: 100px;
 }
+
+/* Skeleton shimmer (no opacity pulsing to avoid layout breathing) */
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-line {
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 37%, #e5e7eb 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.2s ease-in-out infinite;
+  will-change: background-position;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}

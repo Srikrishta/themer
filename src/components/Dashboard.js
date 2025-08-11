@@ -6,7 +6,7 @@ import Component3Cards from './Component3Cards';
 import PlusIconCursor from './PlusIconCursor';
 import PromptBubble from './PromptBubble';
 import MousePointer from './MousePointer';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 function formatTime(minutes) {
   const h = Math.floor(minutes / 60);
@@ -19,7 +19,15 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
     <div style={{ position: 'relative', zIndex: 2, width: 1302, margin: '92px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
       <div className="fjb-fps-container" style={{ width: 1328, maxWidth: 1328, marginLeft: -2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, background: themeColor + '14', borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 16, paddingTop: 80, paddingBottom: 40, marginTop: 4 }}>
         <div style={{ width: '100%', marginTop: -32, display: 'flex', flexDirection: 'column', gap: 28 }}>
-          <FlightJourneyBar origin={origin} destination={destination} minutesLeft={minutesLeft} themeColor={themeColor} />
+          <FlightJourneyBar 
+            origin={origin} 
+            destination={destination} 
+            minutesLeft={minutesLeft} 
+            themeColor={themeColor} 
+            isPromptMode={isPromptMode}
+            onPromptHover={onPromptHover}
+            onPromptClick={onPromptClick}
+          />
           <FlightProgress 
             landingIn={landingIn} 
             maxFlightMinutes={maxFlightMinutes} 
@@ -51,69 +59,86 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         </p>
         
         {/* 4 Recommended Tiles */}
-        <div
-          className="grid grid-cols-4 gap-6"
-          style={{ width: '100%' }}
-        >
-          {/* Tile 1 */}
-          <div
-            className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
-            style={{ 
-              width: '100%', 
-              height: '184px',
-              background: themeColor,
-              borderTopLeftRadius: '8px',
-              borderTopRightRadius: '8px',
-              borderBottomLeftRadius: '0px',
-              borderBottomRightRadius: '0px'
-            }}
-          >
-          </div>
-          
-          {/* Tile 2 */}
-          <div
-            className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
-            style={{ 
-              width: '100%', 
-              height: '184px',
-              background: themeColor,
-              borderTopLeftRadius: '8px',
-              borderTopRightRadius: '8px',
-              borderBottomLeftRadius: '0px',
-              borderBottomRightRadius: '0px'
-            }}
-          >
-          </div>
-          
-          {/* Tile 3 */}
-          <div
-            className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
-            style={{ 
-              width: '100%', 
-              height: '184px',
-              background: themeColor,
-              borderTopLeftRadius: '8px',
-              borderTopRightRadius: '8px',
-              borderBottomLeftRadius: '0px',
-              borderBottomRightRadius: '0px'
-            }}
-          >
-          </div>
-          
-          {/* Tile 4 */}
-          <div
-            className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
-            style={{ 
-              width: '100%', 
-              height: '184px',
-              background: themeColor,
-              borderTopLeftRadius: '8px',
-              borderTopRightRadius: '8px',
-              borderBottomLeftRadius: '0px',
-              borderBottomRightRadius: '0px'
-            }}
-          >
-          </div>
+        <div className="grid grid-cols-4 gap-6" style={{ width: '100%' }}>
+          {routes.length === 0 ? (
+            // Skeleton tiles when no routes added
+            <>
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="overflow-clip relative shrink-0 flex items-center justify-center bg-gray-200"
+                  style={{
+                    width: '100%',
+                    height: '184px',
+                    borderTopLeftRadius: '8px',
+                    borderTopRightRadius: '8px',
+                    borderBottomLeftRadius: '0px',
+                    borderBottomRightRadius: '0px'
+                  }}
+                >
+                  <div className="space-y-3 text-center w-3/4">
+                    <div className="h-6 bg-gray-300 rounded w-3/4 mx-auto"></div>
+                    <div className="h-4 bg-gray-300 rounded w-1/2 mx-auto"></div>
+                  </div>
+                </div>
+              ))}
+            </>
+          ) : (
+            <>
+              {/* Tile 1 */}
+              <div
+                className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
+                style={{
+                  width: '100%',
+                  height: '184px',
+                  background: themeColor,
+                  borderTopLeftRadius: '8px',
+                  borderTopRightRadius: '8px',
+                  borderBottomLeftRadius: '0px',
+                  borderBottomRightRadius: '0px'
+                }}
+              ></div>
+              {/* Tile 2 */}
+              <div
+                className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
+                style={{
+                  width: '100%',
+                  height: '184px',
+                  background: themeColor,
+                  borderTopLeftRadius: '8px',
+                  borderTopRightRadius: '8px',
+                  borderBottomLeftRadius: '0px',
+                  borderBottomRightRadius: '0px'
+                }}
+              ></div>
+              {/* Tile 3 */}
+              <div
+                className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
+                style={{
+                  width: '100%',
+                  height: '184px',
+                  background: themeColor,
+                  borderTopLeftRadius: '8px',
+                  borderTopRightRadius: '8px',
+                  borderBottomLeftRadius: '0px',
+                  borderBottomRightRadius: '0px'
+                }}
+              ></div>
+              {/* Tile 4 */}
+              <div
+                className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
+                style={{
+                  width: '100%',
+                  height: '184px',
+                  background: themeColor,
+                  borderTopLeftRadius: '8px',
+                  borderTopRightRadius: '8px',
+                  borderBottomLeftRadius: '0px',
+                  borderBottomRightRadius: '0px'
+                }}
+              ></div>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -122,7 +147,6 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
 
 export default function Dashboard() {
   const location = useLocation();
-  const navigate = useNavigate();
   const minimizeThemeCreator = location.state?.minimizeThemeCreator;
   // Lifted state for routes
   const [routes, setRoutes] = useState([]);
@@ -146,13 +170,7 @@ export default function Dashboard() {
   // Mouse pointer state
   const [showMousePointer, setShowMousePointer] = useState(false);
   
-  // Scroll state management
-  const [scrollY, setScrollY] = useState(0);
-  const [scrollDirection, setScrollDirection] = useState('up');
-  const [isScrollCollapsed, setIsScrollCollapsed] = useState(false);
-  // Track ThemeCreator state before scroll collapse
-  const [preScrollThemeCreatorState, setPreScrollThemeCreatorState] = useState(null);
-  const [preScrollFlightCreationState, setPreScrollFlightCreationState] = useState(false);
+  // Removed scroll-collapsed header behavior
 
   // Use selected segment's origin/destination if set, else default to full route
   const origin = selectedSegment?.origin || (routes.length > 0 ? routes[0] : null);
@@ -192,10 +210,15 @@ export default function Dashboard() {
 
   const handlePromptClick = (elementType, elementData, position) => {
     if (isPromptMode) {
-      // Generate unique key for FPS position
-      const positionKey = elementType === 'flight-icon' 
-        ? `fps-${Math.round(elementData.progress * 1000)}` // Use progress as unique identifier
-        : `${elementType}-${elementData.cardIndex || 0}`;
+      // Generate unique key for different element types
+      let positionKey;
+      if (elementType === 'flight-icon') {
+        positionKey = `fps-${Math.round(elementData.progress * 1000)}`; // Use progress as unique identifier
+      } else if (elementType === 'flight-journey-bar') {
+        positionKey = 'fjb-dashboard'; // Single key for FJB on dashboard
+      } else {
+        positionKey = `${elementType}-${elementData.cardIndex || 0}`;
+      }
       
       // Get existing text for this position
       const existingText = fpsPrompts[positionKey] || '';
@@ -257,137 +280,32 @@ export default function Dashboard() {
     return () => window.removeEventListener('mouseup', handleUp);
   }, [dragging]);
 
-  // Scroll detection
-  useEffect(() => {
-    let lastScrollY = window.scrollY;
-
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      const direction = currentScrollY > lastScrollY ? 'down' : 'up';
-      
-      setScrollY(currentScrollY);
-      setScrollDirection(direction);
-      
-      // Collapse when scrolling down past 150px, expand when scrolling up to near the top (20px)
-      if (direction === 'down' && currentScrollY > 150 && !isScrollCollapsed) {
-        // The state has already been captured by onStateChange callback
-        // Now collapse to header
-        setIsScrollCollapsed(true);
-      } else if (direction === 'up' && currentScrollY <= 20 && isScrollCollapsed) {
-        // Restore to main position - the saved state will be used automatically
-        setIsScrollCollapsed(false);
-      }
-      
-      lastScrollY = currentScrollY;
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [isScrollCollapsed]);
+  // Removed scroll detection and header collapse behavior
 
   return (
     <div className="min-h-screen">
             {/* Dashboard Header */}
-      <header 
-        className={`bg-white border-b border-gray-200 px-8 fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
-          isScrollCollapsed ? 'py-2' : 'py-3'
-        }`} 
-        style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}
-      >
-        <div className="flex items-center justify-between h-full">
-          <div className="flex items-center">
-            <span
-              className="text-2xl font-bold themer-gradient cursor-pointer"
-              onClick={() => navigate('/')}
-              title="Go to landing page"
-            >
-              Themer
-            </span>
-          </div>
-          
-          {/* Collapsed ThemeCreator in header when scrolling */}
-          {isScrollCollapsed && (
-            <div className="flex justify-center flex-1 transition-all duration-300 ease-in-out">
-                          <ThemeCreator
-              routes={routes}
-              setRoutes={setRoutes}
-              initialMinimized={true}
-              initialWidth={318}
-              initialFlightCreationMode={preScrollFlightCreationState}
-              onColorCardSelect={segment => setSelectedSegment(segment)}
-              onThemeColorChange={color => setCurrentThemeColor(color)}
-              onExpand={() => {
-                setIsScrollCollapsed(false);
-                // Don't clear the saved states - let them restore naturally when the main ThemeCreator mounts
-              }}
-              onEnterPromptMode={(segmentId) => {
-                setIsPromptMode(true);
-                setActiveSegmentId(segmentId);
-                
-                // Auto-scroll to default position for scrolled state
-                const targetScrollPosition = 800; // Scroll to optimal position shown in design
-                window.scrollTo({
-                  top: targetScrollPosition,
-                  behavior: 'smooth'
-                });
-                
-                // Set collapsed state after a short delay to allow scroll to complete
-                setTimeout(() => {
-                  setIsScrollCollapsed(true);
-                }, 500);
-              }}
-              onFilterChipSelect={handleFilterChipSelect}
-              isPromptMode={isPromptMode}
-              activeSegmentId={activeSegmentId}
-              isInHeader={true}
-              key="header-tc" // Force re-render for header position
-            />
-            </div>
-          )}
-          
-          <div className="w-16"></div> {/* Spacer for balance */}
-        </div>
-      </header>
-      {/* ThemeCreator positioned below header */}
-      {!isScrollCollapsed && (
-        <div className="w-full flex justify-center transition-all duration-300" style={{ marginTop: 80 }}>
-          <ThemeCreator
-            routes={routes}
-            setRoutes={setRoutes}
-            initialMinimized={preScrollThemeCreatorState !== null ? preScrollThemeCreatorState : minimizeThemeCreator}
-            initialWidth={(preScrollThemeCreatorState !== null ? preScrollThemeCreatorState : minimizeThemeCreator) ? 318 : undefined}
-            initialFlightCreationMode={preScrollFlightCreationState}
-            onColorCardSelect={segment => setSelectedSegment(segment)}
-            onThemeColorChange={color => setCurrentThemeColor(color)}
-            onStateChange={(isMinimized, isCreatingThemes) => {
-              // Save the current state when it changes, but only if not currently scroll-collapsed
-              if (!isScrollCollapsed) {
-                setPreScrollThemeCreatorState(isMinimized);
-                setPreScrollFlightCreationState(isCreatingThemes);
-              }
-            }}
-            onEnterPromptMode={(segmentId) => {
-              setIsPromptMode(true);
-              setActiveSegmentId(segmentId);
-              
-              // Auto-scroll to default position for scrolled state
-              const targetScrollPosition = 800; // Scroll to optimal position shown in design
-              window.scrollTo({
-                top: targetScrollPosition,
-                behavior: 'smooth'
-              });
-              
-              // Set collapsed state after a short delay to allow scroll to complete
-              setTimeout(() => {
-                setIsScrollCollapsed(true);
-              }, 500);
-            }}
-            onFilterChipSelect={handleFilterChipSelect}
-            isPromptMode={isPromptMode}
-            activeSegmentId={activeSegmentId}
-          />
-        </div>
-      )}
+      {/* Header removed as requested */}
+      {/* ThemeCreator positioned below header (always visible) */}
+      <div className="w-full flex justify-center transition-all duration-300" style={{ marginTop: 0 }}>
+        <ThemeCreator
+          routes={routes}
+          setRoutes={setRoutes}
+          initialMinimized={minimizeThemeCreator}
+          initialWidth={minimizeThemeCreator ? 318 : undefined}
+          initialFlightCreationMode={false}
+          onColorCardSelect={segment => setSelectedSegment(segment)}
+          onThemeColorChange={color => setCurrentThemeColor(color)}
+          onStateChange={() => {}}
+          onEnterPromptMode={(segmentId) => {
+            setIsPromptMode(true);
+            setActiveSegmentId(segmentId);
+          }}
+          onFilterChipSelect={handleFilterChipSelect}
+          isPromptMode={isPromptMode}
+          activeSegmentId={activeSegmentId}
+        />
+      </div>
       
       {/* Plus Icon Cursor for Prompt Mode */}
       <PlusIconCursor 
@@ -418,33 +336,31 @@ export default function Dashboard() {
         fpsPrompts={fpsPrompts}
       />
       
-      {/* Mobile Frame Wrapper - Only show when filter chip is selected */}
-      {isFilterChipSelected && (
-        <div className="w-full flex justify-center" style={{ marginTop: 8 }}>
-          <div style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
-            <img
-              src={process.env.PUBLIC_URL + '/ife-frame.svg'}
-              alt="Mobile Frame"
-              style={{ position: 'absolute', top: -40, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none' }}
-            />
-            <FrameContent
-              origin={origin}
-              destination={destination}
-              minutesLeft={minutesLeft}
-              landingIn={landingIn}
-              maxFlightMinutes={maxFlightMinutes}
-              handleProgressChange={handleProgressChange}
-              themeColor={currentThemeColor}
-              routes={routes}
-              isPromptMode={isPromptMode}
-              onPromptHover={handlePromptHover}
-              onPromptClick={handlePromptClick}
-              fpsPrompts={fpsPrompts}
+      {/* IFE Frame Wrapper - Always show below ThemeCreator; skeletons render until data is available */}
+      <div className="w-full flex justify-center" style={{ marginTop: 8 }}>
+        <div style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', contain: 'layout paint' }}>
+          <img
+            src={process.env.PUBLIC_URL + '/ife-frame.svg'}
+            alt="Mobile Frame"
+            style={{ position: 'absolute', top: -40, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none', willChange: 'transform', transform: 'translateZ(0)' }}
+          />
+          <FrameContent
+            origin={origin}
+            destination={destination}
+            minutesLeft={minutesLeft}
+            landingIn={landingIn}
+            maxFlightMinutes={maxFlightMinutes}
+            handleProgressChange={handleProgressChange}
+            themeColor={currentThemeColor}
+            routes={routes}
+            isPromptMode={isPromptMode}
+            onPromptHover={handlePromptHover}
+            onPromptClick={handlePromptClick}
+            fpsPrompts={fpsPrompts}
 
-            />
-          </div>
+          />
         </div>
-      )}
+      </div>
     </div>
   );
 } 

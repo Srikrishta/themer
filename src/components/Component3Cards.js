@@ -12,15 +12,15 @@ export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], i
     middleCardPromptClosed,
     hasOnPromptClick: !!onPromptClick
   });
-  // Skeleton component for loading state
+  // Skeleton component for loading state (static, no animation)
   const SkeletonCard = () => (
     <div
-      className="h-[200px] overflow-clip relative rounded-lg shrink-0 flex items-center justify-center bg-gray-200"
+      className="h-[200px] overflow-clip relative rounded-lg shrink-0 flex items-center justify-center bg-white/60 border border-gray-300"
       style={{ width: '416px' }}
     >
-      <div className="animate-pulse space-y-3 text-center">
-        <div className="h-8 bg-gray-300 rounded w-48 mx-auto"></div>
-        <div className="h-6 bg-gray-300 rounded w-32 mx-auto"></div>
+      <div className="space-y-3 text-center w-full px-6">
+        <div className="h-8 rounded w-48 mx-auto bg-gray-200"></div>
+        <div className="h-6 rounded w-32 mx-auto bg-gray-200"></div>
       </div>
     </div>
   );

@@ -6,7 +6,7 @@ const img4 = "http://localhost:3845/assets/12ff138a200ba4f26363bc8b4c9c314031978
 const img5 = "http://localhost:3845/assets/5b430c457bb1a36eac34c8197e3558b70a889106.svg";
 const img6 = "http://localhost:3845/assets/29fa6c4c59170f1b8aade086622c24fdce89c35a.svg";
 
-export default function FlightJourneyBar({ origin, destination, minutesLeft, themeColor = '#1E1E1E', isLandingPage = false }) {
+export default function FlightJourneyBar({ origin, destination, minutesLeft, themeColor = '#1E1E1E', isLandingPage = false, isPromptMode = false, onPromptHover, onPromptClick }) {
   console.log('FlightJourneyBar - received minutesLeft:', minutesLeft);
   function formatTime(minutes) {
     const h = Math.floor(minutes / 60);
@@ -14,26 +14,24 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
     return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
   }
 
-  // Skeleton component for loading state
+  // Skeleton component for loading state (shimmer, no opacity pulsing)
   const SkeletonCard = ({ width, alignment = 'left' }) => (
     <div
-      className="backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] h-[88px] relative rounded-2xl shrink-0 flex items-center justify-center"
+      className="h-[88px] relative rounded-2xl shrink-0 flex items-center justify-center bg-white/60 border border-gray-300"
       style={{ width }}
     >
-      <div className="animate-pulse space-y-2">
-        <div className={`h-6 bg-gray-300 rounded ${alignment === 'left' ? 'w-32' : 'w-28'}`}></div>
-        <div className={`h-4 bg-gray-300 rounded ${alignment === 'left' ? 'w-24' : 'w-20'}`}></div>
+      <div className="space-y-2 w-full px-6">
+        <div className={`h-6 rounded ${alignment === 'left' ? 'w-32' : 'w-28'} ${alignment === 'right' ? 'ml-auto' : ''} bg-gray-200`}></div>
+        <div className={`h-4 rounded ${alignment === 'left' ? 'w-24' : 'w-20'} ${alignment === 'right' ? 'ml-auto' : ''} bg-gray-200`}></div>
       </div>
     </div>
   );
 
   const SkeletonLandingCard = () => (
-    <div
-      className="backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] h-[88px] relative rounded-2xl shrink-0 w-[294px] flex items-center justify-center"
-    >
-      <div className="animate-pulse space-y-2 text-center">
-        <div className="h-6 bg-gray-300 rounded w-32 mx-auto"></div>
-        <div className="h-4 bg-gray-300 rounded w-24 mx-auto"></div>
+    <div className="h-[88px] relative rounded-2xl shrink-0 w-[294px] flex items-center justify-center bg-white/60 border border-gray-300">
+      <div className="space-y-2 text-center w-full px-6">
+        <div className="h-6 rounded w-32 mx-auto bg-gray-200"></div>
+        <div className="h-4 rounded w-24 mx-auto bg-gray-200"></div>
       </div>
     </div>
   );
@@ -45,6 +43,157 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
         data-name="flight journey bar"
         id="node-77_5469"
       >
+        {/* Background hover areas for prompt mode - positioned between functional elements */}
+        {isPromptMode && (
+          <>
+            {/* Left background area - behind logo placeholder */}
+            <div
+              className="absolute left-0 top-0 bottom-0 w-[120px] z-0"
+              onMouseEnter={(e) => {
+                if (onPromptHover) {
+                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (onPromptHover) {
+                  onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+              onMouseMove={(e) => {
+                if (onPromptHover) {
+                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+              onClick={(e) => {
+                if (onPromptClick) {
+                  onPromptClick('flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+            />
+            
+            {/* Gap areas between cards */}
+            <div
+              className="absolute left-[128px] top-0 bottom-0 w-6 z-0"
+              onMouseEnter={(e) => {
+                if (onPromptHover) {
+                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (onPromptHover) {
+                  onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+              onMouseMove={(e) => {
+                if (onPromptHover) {
+                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+              onClick={(e) => {
+                if (onPromptClick) {
+                  onPromptClick('flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+            />
+            
+            <div
+              className="absolute left-[534px] top-0 bottom-0 w-6 z-0"
+              onMouseEnter={(e) => {
+                if (onPromptHover) {
+                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (onPromptHover) {
+                  onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+              onMouseMove={(e) => {
+                if (onPromptHover) {
+                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+              onClick={(e) => {
+                if (onPromptClick) {
+                  onPromptClick('flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+            />
+            
+            <div
+              className="absolute left-[834px] top-0 bottom-0 w-6 z-0"
+              onMouseEnter={(e) => {
+                if (onPromptHover) {
+                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (onPromptHover) {
+                  onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+              onMouseMove={(e) => {
+                if (onPromptHover) {
+                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+              onClick={(e) => {
+                if (onPromptClick) {
+                  onPromptClick('flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+            />
+            
+            {/* Top/bottom background areas that don't interfere with cards */}
+            <div
+              className="absolute left-0 right-0 top-0 h-2 z-0"
+              onMouseEnter={(e) => {
+                if (onPromptHover) {
+                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (onPromptHover) {
+                  onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+              onMouseMove={(e) => {
+                if (onPromptHover) {
+                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+              onClick={(e) => {
+                if (onPromptClick) {
+                  onPromptClick('flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+            />
+            
+            <div
+              className="absolute left-0 right-0 bottom-0 h-2 z-0"
+              onMouseEnter={(e) => {
+                if (onPromptHover) {
+                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (onPromptHover) {
+                  onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+              onMouseMove={(e) => {
+                if (onPromptHover) {
+                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+              onClick={(e) => {
+                if (onPromptClick) {
+                  onPromptClick('flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                }
+              }}
+            />
+          </>
+        )}
         {/* Logo Placeholder */}
         <div
           className={`h-[88px] relative rounded-2xl shrink-0 w-[120px] flex items-center justify-center ${isLandingPage ? '' : 'backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)]'}`}

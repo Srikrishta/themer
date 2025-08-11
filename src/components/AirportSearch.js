@@ -520,12 +520,12 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
   }, [routes.length, inputFieldRef, isMinimized]); // <-- add isMinimized
 
   return (
-    <div className="space-y-4 relative">
+    <div className="space-y-8 relative">
       {/* Timeline line - from input field center to last card center */}
       {/* Input field and toggle button container */}
       <div className="flex items-start gap-3">
         {/* Input field and badges */}
-        <div className="relative w-[484px]" ref={dropdownRef}>
+        <div className="relative w-[55%]" ref={dropdownRef}>
           {/* Custom input container with badges - offset to avoid timeline overlap */}
           <div ref={inputFieldRef} className="relative min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-0 w-full">
                           {/* Airport badges - showing only available airports (not in routes) */}
@@ -582,16 +582,17 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
           {/* Label - adjusted for offset container */}
           <label 
             htmlFor="airport-search" 
-            className="absolute -top-2.5 bg-gray-50 px-2 text-sm font-medium text-gray-600 left-3"
+            className="absolute -top-2.5 px-2 text-sm font-medium text-white left-3"
+            style={{ backgroundColor: '#1E1E1E' }}
           >
             Add route
           </label>
         </div>
         
         {/* Date picker input field - styled like add route input field */}
-        <div className="relative w-[400px]">
+        <div className="relative w-[45%] flex items-center gap-3">
           {/* Custom input container for date picker */}
-          <div className="relative min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-0 w-full cursor-pointer" onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}>
+          <div className="relative min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-0 flex-1 cursor-pointer" onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}>
             {/* Date display */}
             <div className="flex items-center w-full">
               <CalendarIcon className="w-4 h-4 text-gray-400 mr-2" />
@@ -603,7 +604,8 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
           
           {/* Label for date picker */}
           <label 
-            className="absolute -top-2.5 bg-gray-50 px-2 text-sm font-medium text-gray-600 left-3"
+            className="absolute -top-2.5 px-2 text-sm font-medium text-white left-3"
+            style={{ backgroundColor: '#1E1E1E' }}
           >
             Add date
           </label>
@@ -625,56 +627,26 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
               />
             </div>
           )}
+
+          {/* Generate flights button moved here */}
+          <button
+            className={`h-10 px-4 rounded-full transition-colors flex items-center justify-center w-[240px] ${
+              routes.length >= 2 
+                ? 'bg-black text-white hover:bg-gray-800' 
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+            disabled={routes.length < 2}
+            onClick={() => {
+              const event = new CustomEvent('airport-search-generate-flights');
+              window.dispatchEvent(event);
+            }}
+            title="Generate flights"
+          >
+            Generate flights
+          </button>
         </div>
         
-        {/* Toggle button - positioned outside and to the right of input field */}
-        <button
-          type="button"
-          className={`inline-flex items-center p-2 rounded-md text-sm font-bold transition-all duration-200 hover:bg-gray-100 flex-shrink-0 ${
-            isMinimized 
-              ? 'text-gray-600 hover:text-gray-900'
-              : 'text-indigo-600 hover:text-indigo-900' 
-          }`}
-          onClick={() => {
-            if (typeof onToggleMinimized === 'function') {
-              onToggleMinimized();
-            }
-          }}
-          title={isMinimized ? "Expand ThemeCreator" : "Collapse ThemeCreator"}
-        >
-          {/* Custom toggle icon */}
-          <svg 
-            className="w-6 h-6" 
-            viewBox="0 0 24 16" 
-            fill="none" 
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            {/* Main rectangle with rounded corners */}
-            <rect 
-              x="1" 
-              y="1" 
-              width="22" 
-              height="14" 
-              rx="3" 
-              stroke="currentColor" 
-              strokeWidth="1.5" 
-              fill="none"
-            />
-            {/* Vertical divider line */}
-            <line 
-              x1="8" 
-              y1="2" 
-              x2="8" 
-              y2="14" 
-              stroke="currentColor" 
-              strokeWidth="1.5"
-            />
-            {/* Three horizontal lines in left section */}
-            <line x1="3" y1="5" x2="6" y2="5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            <line x1="3" y1="8" x2="6" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            <line x1="3" y1="11" x2="6" y2="11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
-        </button>
+        {/* Toggle button removed per request */}
       </div>
 
       {/* Route Cards with Drag and Drop - now below input field */}

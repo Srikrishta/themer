@@ -4,8 +4,13 @@ import AirportSearch from './AirportSearch';
 import DatePicker from './DatePicker';
 import festivalsData from '../data/festivals.json';
 import { HexColorPicker } from 'react-colorful';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { useNavigate } from 'react-router-dom';
 
 export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader }) {
+  const navigate = useNavigate();
+  const DEFAULT_THEME_COLOR = '#1E1E1E';
   // Get current date in Berlin timezone for initial state
   const getBerlinTodayString = () => {
     const now = new Date();
@@ -216,6 +221,13 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
     setInputValue('');
   };
 
+  // Listen for AirportSearch-local button to trigger generate flights
+  useEffect(() => {
+    const handler = () => handleCreateFlightThemes();
+    window.addEventListener('airport-search-generate-flights', handler);
+    return () => window.removeEventListener('airport-search-generate-flights', handler);
+  }, []);
+
   // NEW: Handle back to route creation
   const handleBackToRouteCreation = () => {
     setIsCreatingThemes(false);
@@ -247,6 +259,23 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
   const [selectedThemes, setSelectedThemes] = useState({});
   const [timelineHeight, setTimelineHeight] = useState('calc(100% + 80px)');
   const hasInitializedThemes = useRef(false);
+
+  const SEGMENT_ITEM_TYPE = 'FLIGHT_SEGMENT';
+
+  const moveSegment = (fromIndex, toIndex) => {
+    setFlightSegments(prev => {
+      const updated = [...prev];
+      const [removed] = updated.splice(fromIndex, 1);
+      updated.splice(toIndex, 0, removed);
+      return updated;
+    });
+    setActiveFlightIndex(idx => {
+      if (idx === fromIndex) return toIndex;
+      if (fromIndex < idx && idx <= toIndex) return idx - 1;
+      if (toIndex <= idx && idx < fromIndex) return idx + 1;
+      return idx;
+    });
+  };
 
   // Update flight segments and selected themes only when entering theme creation mode for the first time
   useEffect(() => {
@@ -331,6 +360,77 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
       setTimelineLine({ top, height });
     }
   }, [isCreatingThemes, flightSegments.length, selectedThemes, isMinimized]); // <-- add isMinimized
+
+  function FlightChip({ segment, index, activeFlightIndex, selectedThemeId, onSelect }) {
+    const ref = useRef(null);
+    const [{ handlerId }, drop] = useDrop({
+      accept: SEGMENT_ITEM_TYPE,
+      collect: monitor => ({ handlerId: monitor.getHandlerId() }),
+      hover(item, monitor) {
+        if (!ref.current) return;
+        const dragIndex = item.index;
+        const hoverIndex = index;
+        if (dragIndex === hoverIndex) return;
+        const hoverBoundingRect = ref.current.getBoundingClientRect();
+        const hoverMiddleX = (hoverBoundingRect.right - hoverBoundingRect.left) / 2;
+        const clientOffset = monitor.getClientOffset();
+        const hoverClientX = clientOffset.x - hoverBoundingRect.left;
+        if (dragIndex < hoverIndex && hoverClientX < hoverMiddleX) return;
+        if (dragIndex > hoverIndex && hoverClientX > hoverMiddleX) return;
+        moveSegment(dragIndex, hoverIndex);
+        item.index = hoverIndex;
+      }
+    });
+
+    const [{ isDragging }, drag] = useDrag({
+      type: SEGMENT_ITEM_TYPE,
+      item: () => ({ id: segment.id, index }),
+      collect: monitor => ({ isDragging: monitor.isDragging() })
+    });
+
+    const themeOptions = [
+      { id: 0, name: 'Default', color: '#1E1E1E' },
+      { id: 1, name: `${segment.destination.airport.city} Theme`, color: '#EF4444' },
+      { id: 3, name: 'Time of the Day', color: '#F59E0B' }
+    ];
+    const selectedTheme = themeOptions.find(t => t.id === selectedThemeId);
+    const dotColor = selectedTheme ? selectedTheme.color : '#1E1E1E';
+
+    drag(drop(ref));
+
+    return (
+      <div
+        ref={ref}
+        data-handler-id={handlerId}
+        className={`bg-white p-4 rounded-full border shadow-sm transition-all cursor-move w-full ${
+          activeFlightIndex === index ? 'border-blue-300 shadow-lg' : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+        }`}
+        style={{ opacity: isDragging ? 0.5 : 1, minWidth: 0 }}
+        onClick={() => onSelect(index, segment)}
+      >
+        <div className="flex justify-between items-start">
+          <div className="flex items-start space-x-3 flex-1 min-w-0">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                  style={{ backgroundColor: dotColor }}
+                >
+                  {index + 1}
+                </div>
+                <h3 className="text-base font-medium text-gray-900 break-words">
+                  {segment.origin.airport.city} → {segment.destination.airport.city}
+                </h3>
+              </div>
+              <div className="text-xs text-gray-400 mt-1 flex items-center gap-3 flex-wrap break-words">
+                <span className="flex items-center gap-1 font-semibold">Flight {index + 1}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Color Card Component
   const ColorCard = ({ segment, index, activeFlightIndex, setActiveFlightIndex }) => {
@@ -615,18 +715,21 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
   return (
     <div 
       ref={containerRef}
-      className={`bg-gray-50 rounded-lg p-4 border border-gray-200 shadow-lg mx-auto ${isMinimized ? 'min-h-0 themer-animated-border' : ''}`}
+      className={`p-10 border border-gray-200 ${isMinimized ? 'min-h-0 themer-animated-border' : ''}`}
       style={{
-        width: isMinimized ? `${containerWidth}px` : `${IFE_FRAME_WIDTH}px`,
-        minWidth: isMinimized ? `${minWidth}px` : `${IFE_FRAME_WIDTH}px`,
-        maxWidth: isMinimized ? `${maxWidth}px` : `${IFE_FRAME_WIDTH}px`,
+        width: isMinimized ? `${containerWidth}px` : '100%',
+        minWidth: isMinimized ? `${minWidth}px` : '100%',
+        maxWidth: isMinimized ? `${maxWidth}px` : '100%',
         height: isMinimized ? '48px' : 'auto',
         maxHeight: isMinimized ? '48px' : 'none',
         transition: 'width 0.2s, height 0.2s',
-        padding: isMinimized && containerWidth === minWidth ? '12px 20px' : undefined,
-        backgroundColor: isMinimized ? 'white' : undefined, // Solid white fill when minimized
-        borderRadius: isMinimized ? '100px' : undefined, // 100px radius when minimized
-        marginTop: isInHeader ? '0' : '24px', // No margin when in header, 24px space from header when below
+        padding: isMinimized && containerWidth === minWidth ? '16px 24px' : undefined,
+        paddingLeft: !isMinimized ? '170px' : (containerWidth === minWidth ? '24px' : undefined),
+        paddingRight: !isMinimized ? '170px' : (containerWidth === minWidth ? '24px' : undefined),
+        backgroundColor: isMinimized ? 'white' : DEFAULT_THEME_COLOR,
+        borderRadius: undefined,
+        marginTop: isInHeader ? '0' : '0px',
+        contain: 'layout paint',
       }}
     >
 
@@ -647,9 +750,23 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
             }
           }}
           title={isMinimized ? "Expand" : "Collapse"}
+          style={{ zIndex: 20, willChange: 'transform', transform: 'translateZ(0)', WebkitBackfaceVisibility: 'hidden', backfaceVisibility: 'hidden' }}
         >
           <ViewColumnsIcon className="w-5 h-5 text-gray-500" />
         </button>
+      )}
+
+      {/* Logo above flights view */}
+      {isCreatingThemes && !isMinimized && (
+        <div className="mb-4">
+          <span
+            className="text-2xl font-bold themer-gradient cursor-pointer"
+            title="Go to landing page"
+            onClick={() => navigate('/')}
+          >
+            Themer
+          </span>
+        </div>
       )}
 
       {/* Header - Changes based on state */}
@@ -718,67 +835,34 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
         
         {/* Filter Chips Row - Full Width */}
         {isCreatingThemes && !isMinimized && (
-          <div className="w-full mt-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              {flightSegments.map((segment, index) => {
+              <div className="w-full mt-3">
+                <DndProvider backend={HTML5Backend}>
+                  <div className="flex items-stretch gap-2 w-full">
+                {flightSegments.map((segment, index) => {
                 // Safety checks for segment data
                 if (!segment || !segment.origin || !segment.destination || !segment.origin.airport || !segment.destination.airport) {
                   return null;
                 }
-                
-                const selectedThemeId = selectedThemes[segment.id];
-                const themeOptions = [
-                  { id: 0, name: 'Default', color: '#1E1E1E' },
-                  { id: 1, name: `${segment.destination.airport.city} Theme`, color: '#EF4444' },
-                  { id: 3, name: 'Time of the Day', color: '#F59E0B' }
-                ];
-                const selectedTheme = themeOptions.find(t => t.id === selectedThemeId);
-                const dotColor = selectedTheme ? selectedTheme.color : '#1E1E1E';
-                
-                return (
-                 <div
-                    key={segment.id}
-                    className={`bg-white p-4 rounded-full border shadow-sm transition-all cursor-pointer flex-shrink-0 ${
-                      activeFlightIndex === index
-                       ? 'border-blue-300 shadow-lg'
-                       : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
-                    }`}
-                    onClick={() => {
-                      setActiveFlightIndex(index);
-                      if (typeof onColorCardSelect === 'function') {
-                        onColorCardSelect(segment);
-                      }
-                      if (typeof onFilterChipSelect === 'function') {
-                        onFilterChipSelect(true);
-                      }
-                    }}
-                  >
-                   <div className="flex justify-between items-start">
-                     <div className="flex items-start space-x-3 flex-1 min-w-0">
-                       <div className="flex-1 min-w-0">
-                         <div className="flex items-center gap-2">
-                           <div 
-                             className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                             style={{ backgroundColor: dotColor }}
-                           >
-                             {index + 1}
-                           </div>
-                           <h3 className="text-base font-medium text-gray-900 break-words">
-                             {segment.origin.airport.city} → {segment.destination.airport.city}
-                           </h3>
-                         </div>
-                         <div className="text-xs text-gray-400 mt-1 flex items-center gap-3 flex-wrap break-words">
-                           <span className="flex items-center gap-1 font-semibold">
-                             Flight {index + 1}
-                           </span>
-                         </div>
-                       </div>
-                     </div>
+                  const selectedThemeId = selectedThemes[segment.id];
+                  return (
+                    <div className="flex-1 min-w-0">
+                      <FlightChip
+                      key={segment.id}
+                      segment={segment}
+                      index={index}
+                      activeFlightIndex={activeFlightIndex}
+                      selectedThemeId={selectedThemeId}
+                      onSelect={(idx, seg) => {
+                        setActiveFlightIndex(idx);
+                        if (typeof onColorCardSelect === 'function') onColorCardSelect(seg);
+                        if (typeof onFilterChipSelect === 'function') onFilterChipSelect(true);
+                      }}
+                      />
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            </DndProvider>
           </div>
         )}
       </div>
@@ -861,9 +945,22 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
         <>
           {/* Date Picker Dropdown removed; now handled in AirportSearch */}
 
+          {/* Brand logo above Add Route input (visible on dashboard inside theme container) */}
+          {!isMinimized && dates.length > 0 && (
+            <div className="mt-2 mb-6">
+              <span
+                className="text-2xl font-bold themer-gradient cursor-pointer"
+                title="Go to landing page"
+                onClick={() => navigate('/')}
+              >
+                Themer
+              </span>
+            </div>
+          )}
+
           {/* Add Route Label and Input */}
           {dates.length > 0 && (
-            <div className="mt-4 relative w-full">
+            <div className="mt-2 relative w-full">
               <AirportSearch
                 routes={routes}
                 setRoutes={handleRoutesUpdate}
@@ -894,32 +991,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
             </div>
           )}
 
-          {/* Action Buttons */}
-          {routes.length > 0 && (
-            <div className="mt-8 flex flex-row gap-3 justify-start">
-              <button
-                className="w-10 h-10 rounded-full transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 flex items-center justify-center"
-                onClick={() => {
-                  // Handle add new route logic here
-                  console.log('Adding new route...');
-                }}
-                title="Add new route"
-              >
-                <PlusIcon className="w-5 h-5" />
-              </button>
-              <button
-                className={`w-[160px] h-10 px-4 rounded-full transition-colors flex items-center justify-center ${
-                  routes.length >= 2 
-                    ? 'bg-black text-white hover:bg-gray-800' 
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                }`}
-                disabled={routes.length < 2}
-                onClick={handleCreateFlightThemes}
-              >
-                Generate flights
-              </button>
-            </div>
-          )}
+          {/* Action Buttons moved next to date input (inside AirportSearch) */}
         </>
       ))}
     </div>
