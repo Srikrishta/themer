@@ -721,6 +721,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
         minWidth: isMinimized ? `${minWidth}px` : '100%',
         maxWidth: isMinimized ? `${maxWidth}px` : '100%',
         height: isMinimized ? '48px' : 'auto',
+        minHeight: isMinimized ? '48px' : '380px',
         maxHeight: isMinimized ? '48px' : 'none',
         transition: 'width 0.2s, height 0.2s',
         padding: isMinimized && containerWidth === minWidth ? '16px 24px' : undefined,
@@ -729,7 +730,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
         backgroundColor: isMinimized ? 'white' : DEFAULT_THEME_COLOR,
         borderRadius: undefined,
         marginTop: isInHeader ? '0' : '0px',
-        contain: 'layout paint',
+        overflow: 'visible',
       }}
     >
 

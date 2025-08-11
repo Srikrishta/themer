@@ -591,42 +591,43 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
         
         {/* Date picker input field - styled like add route input field */}
         <div className="relative w-[45%] flex items-center gap-3">
-          {/* Custom input container for date picker */}
-          <div className="relative min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-0 flex-1 cursor-pointer" onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}>
-            {/* Date display */}
-            <div className="flex items-center w-full">
-              <CalendarIcon className="w-4 h-4 text-gray-400 mr-2" />
-              <span className="text-gray-900 text-sm">
-                {dates.length === 2 ? `${dates[0]} to ${dates[1]}` : dates.length === 1 ? dates[0] : 'Select date'}
-              </span>
+          {/* Date input + centered dropdown wrapper */}
+          <div className="relative flex-1">
+            {/* Custom input container for date picker */}
+            <div className="relative min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-0 w-full cursor-pointer" onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}>
+              {/* Date display */}
+              <div className="flex items-center w-full">
+                <CalendarIcon className="w-4 h-4 text-gray-400 mr-2" />
+                <span className="text-gray-900 text-sm">
+                  {dates.length === 2 ? `${dates[0]} to ${dates[1]}` : dates.length === 1 ? dates[0] : 'Select date'}
+                </span>
+              </div>
             </div>
+            {/* Label for date picker */}
+            <label 
+              className="absolute -top-2.5 px-2 text-sm font-medium text-white left-3"
+              style={{ backgroundColor: '#1E1E1E' }}
+            >
+              Add date
+            </label>
+            {/* Date Picker Dropdown - centered to input */}
+            {isDatePickerOpen && (
+              <div className="absolute left-1/2 -translate-x-1/2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 top-full mt-1" style={{ width: '400px' }}>
+                <DatePicker
+                  currentDate={currentDate}
+                  onNavigateMonth={navigateMonth}
+                  selectedDates={dates}
+                  onDateClick={handleDateClick}
+                  onCreateTheme={handleCreateTheme}
+                  onEditDates={handleEditDates}
+                  inputValue={inputValue}
+                  onInputChange={handleInputChange}
+                  setCurrentDate={setCurrentDate}
+                  berlinToday={new Date()}
+                />
+              </div>
+            )}
           </div>
-          
-          {/* Label for date picker */}
-          <label 
-            className="absolute -top-2.5 px-2 text-sm font-medium text-white left-3"
-            style={{ backgroundColor: '#1E1E1E' }}
-          >
-            Add date
-          </label>
-          
-          {/* Date Picker Dropdown */}
-          {isDatePickerOpen && (
-            <div className="absolute right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 top-full mt-1" style={{ width: '400px' }}>
-              <DatePicker
-                currentDate={currentDate}
-                onNavigateMonth={navigateMonth}
-                selectedDates={dates}
-                onDateClick={handleDateClick}
-                onCreateTheme={handleCreateTheme}
-                onEditDates={handleEditDates}
-                inputValue={inputValue}
-                onInputChange={handleInputChange}
-                setCurrentDate={setCurrentDate}
-                berlinToday={new Date()}
-              />
-            </div>
-          )}
 
           {/* Generate flights button moved here */}
           <button

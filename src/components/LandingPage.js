@@ -22,16 +22,10 @@ export default function LandingPage() {
   const [promoCardLoading, setPromoCardLoading] = useState(false);
   const [promoCardFinishedLoading, setPromoCardFinishedLoading] = useState(false);
   const [animationProgress, setAnimationProgress] = useState(0);
-  // Theme colors that will cycle every 3 seconds
+  // Theme colors for landing page (brand blue)
+  // Using a single brand color to avoid cycling and ensure consistency
   const themeColors = [
-    '#3b82f6', // blue-500
-    '#1d4ed8', // blue-700
-    '#1e40af', // blue-800
-    '#1e3a8a', // blue-900
-    '#60a5fa', // blue-400
-    '#93c5fd', // blue-300
-    '#2563eb', // blue-600
-    '#1e40af'  // blue-800
+    '#1E73AF'
   ];
   
   const [cruiseLabelShown, setCruiseLabelShown] = useState(false);
@@ -451,7 +445,7 @@ export default function LandingPage() {
                       onDrop={(e) => handleDrop(e, tile.id)}
                       onDragEnd={handleDragEnd}
                     >
-                      <span className="text-black text-sm font-medium">Tile {tile.id}</span>
+                      <span className="text-white text-sm font-medium">Tile {tile.id}</span>
                     </div>
                   ))}
                 </div>
