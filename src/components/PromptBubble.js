@@ -38,6 +38,36 @@ export default function PromptBubble({
   const bubbleRef = useRef(null);
   const inputRef = useRef(null);
 
+  // Determine text/icon color for readability on promo-card bubbles (dashboard)
+  const isGradient = typeof themeColor === 'string' && themeColor.includes('gradient');
+  const parseHex = (hex) => {
+    if (!hex || typeof hex !== 'string') return { r: 0, g: 0, b: 0 };
+    const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+    if (!m) return { r: 0, g: 0, b: 0 };
+    return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+  };
+  const getLuminance = ({ r, g, b }) => {
+    const srgb = [r, g, b].map(v => {
+      const c = v / 255;
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
+  };
+  const shouldUseLightText = () => {
+    if (isGradient) return true;
+    if (typeof themeColor === 'string' && themeColor.startsWith('#') && (themeColor.length === 7)) {
+      const lum = getLuminance(parseHex(themeColor));
+      return lum < 0.5; // dark bg => light text
+    }
+    // Fallback to light text
+    return true;
+  };
+  // Decide readable text/icon color for ALL bubble types
+  const useLightText = (() => {
+    if (positionKey === 'middle-card-landing' || positionKey === 'fjb-landing') return true;
+    return shouldUseLightText();
+  })();
+
   // Flight phase chips for FPS
   const flightPhaseChips = [
     { id: 'takeoff', label: 'Takeoff', color: '#6B7280' },
@@ -78,22 +108,15 @@ export default function PromptBubble({
         setStickyPosition(newStickyPosition);
         return;
       } else if (elementType === 'promo-card' || positionKey === 'middle-card-demo' || positionKey === 'middle-card-landing') {
-        // Middle card prompt bubbles: use direct positioning for landing page
-        if (positionKey === 'middle-card-landing') {
-          // Convert viewport coordinates to document coordinates for landing page
-          const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
-          const scrollY = window.pageYOffset || document.documentElement.scrollTop;
-          
-          const newStickyPosition = {
-            x: position.x + scrollX,
-            y: position.y + scrollY
-          };
-          setStickyPosition(newStickyPosition);
-          return;
-        } else {
-          // Use flight progress bar container for demo mode
-          containerSelector = '.flight-progress-bar-container';
-        }
+        // Promo-card bubbles on dashboard and landing: use direct viewport -> document positioning
+        const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
+        const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+        const newStickyPosition = {
+          x: position.x + scrollX,
+          y: position.y + scrollY
+        };
+        setStickyPosition(newStickyPosition);
+        return;
       } else {
         // Default fallback to flight progress bar container
         containerSelector = '.flight-progress-bar-container';
@@ -157,8 +180,9 @@ export default function PromptBubble({
       const viewportX = stickyPosition.x - scrollX;
       const viewportY = stickyPosition.y - scrollY;
       
-      const finalX = Math.max(10, Math.min(viewportX - 160, window.innerWidth - 400));
-      const finalY = Math.max(10, Math.min(viewportY - 60, window.innerHeight - 200));
+      // Position bubble at the pointer with minimal clamping (no offsets)
+      const finalX = Math.max(4, Math.min(viewportX, window.innerWidth - 260));
+      const finalY = Math.max(4, Math.min(viewportY, window.innerHeight - 200));
       
       console.log('=== PROMPT BUBBLE SCROLL POSITION ===', {
         stickyPosition,
@@ -513,10 +537,10 @@ export default function PromptBubble({
       className="fixed z-50 shadow-xl border-2 p-3 backdrop-blur-[10px] backdrop-filter"
       style={{
         backgroundColor: elementType === 'promo-card' && positionKey === 'middle-card-demo' 
-          ? 'rgba(255,255,255,0.2)' // FJB color: semi-transparent white
+          ? 'rgba(255,255,255,0.2)'
           : themeColor,
         borderColor: elementType === 'promo-card' && positionKey === 'middle-card-demo'
-          ? 'rgba(0,0,0,0.2)' // FJB border color
+          ? 'rgba(0,0,0,0.2)'
           : themeColor,
         borderTopLeftRadius: 0,
         borderTopRightRadius: '24px',
@@ -530,7 +554,7 @@ export default function PromptBubble({
       <div className="flex items-center justify-end mb-2">
         <button
           onClick={onClose}
-          className={`${positionKey === 'middle-card-landing' || positionKey === 'fjb-landing' ? 'text-white/70 hover:text-white' : elementType === 'promo-card' ? 'text-black/70 hover:text-black' : 'text-white/70 hover:text-white'} transition-colors p-1`}
+          className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors p-1`}
         >
           <XMarkIcon className="w-4 h-4" />
         </button>
@@ -547,7 +571,7 @@ export default function PromptBubble({
             onChange={(e) => setPromptText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={isLoading && elementType !== 'promo-card' ? "loading..." : elementType === 'promo-card' ? "add image and text" : elementType === 'flight-journey-bar' ? "change theme or add animation" : "add flight phase"}
-            className={`bg-transparent border-0 text-sm ${positionKey === 'middle-card-landing' || positionKey === 'fjb-landing' ? 'text-white placeholder-white/60' : elementType === 'promo-card' ? 'text-black placeholder-black/60' : 'text-white placeholder-white/60'} resize-none focus:ring-0 focus:outline-none`}
+            className={`bg-transparent border-0 text-sm ${useLightText ? 'text-white placeholder-white/60' : 'text-black placeholder-black/60'} resize-none focus:ring-0 focus:outline-none`}
             style={{
               width: '200px',
               maxWidth: '200px',
@@ -643,7 +667,7 @@ export default function PromptBubble({
                   // TODO: Implement image upload logic
                 }
               }}
-              className={`${positionKey === 'middle-card-landing' || positionKey === 'fjb-landing' ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors flex-shrink-0`}
+              className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors flex-shrink-0`}
             >
               {elementType === 'flight-journey-bar' ? (
                 <div className="flex items-center gap-2 px-2 py-1 border border-white/20 rounded-full">
@@ -667,7 +691,7 @@ export default function PromptBubble({
                     <circle cx="12" cy="12" r="10" fill="url(#colorWheelSpectrum)" stroke="#333" strokeWidth="0.5"/>
                     <circle cx="12" cy="12" r="3" fill="url(#colorWheelGradient)"/>
                   </svg>
-                  <span className={`text-xs font-mono font-bold ${positionKey === 'middle-card-landing' || positionKey === 'fjb-landing' ? 'text-white/70' : 'text-black/70'}`}>{selectedColor}</span>
+                  <span className={`text-xs font-mono font-bold ${useLightText ? 'text-white/70' : 'text-black/70'}`}>{selectedColor}</span>
                 </div>
               ) : (
                 <PhotoIcon className="w-4 h-4" />
@@ -677,9 +701,9 @@ export default function PromptBubble({
             <button
               type="submit"
               disabled={!promptText.trim() || isLoading}
-              className={`${positionKey === 'middle-card-landing' || positionKey === 'fjb-landing' ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0`}
+              className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0`}
               style={{
-                color: positionKey === 'middle-card-landing' || positionKey === 'fjb-landing' ? '#FFFFFF' : positionKey === 'middle-card-demo' ? '#000000' : 'rgba(0, 0, 0, 0.7)'
+                color: useLightText ? '#FFFFFF' : 'rgba(0, 0, 0, 0.7)'
               }}
             >
               <PaperAirplaneIcon className="w-4 h-4" />
@@ -705,7 +729,7 @@ export default function PromptBubble({
             disabled={!promptText.trim() || isLoading}
             className="transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 self-end"
             style={{
-              color: selectedChip === 'cruise' ? '#10B981' : 'rgba(255, 255, 255, 0.7)'
+              color: selectedChip === 'cruise' ? '#10B981' : (useLightText ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)')
             }}
           >
             <PaperAirplaneIcon className="w-4 h-4" />

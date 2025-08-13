@@ -321,6 +321,30 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
     }
   }, [isCreatingThemes]);
 
+  // Keep flight segments in sync with routes while in flights-for-view
+  useEffect(() => {
+    if (!isCreatingThemes) return;
+    const segments = generateFlightSegments();
+    setFlightSegments(segments);
+
+    // Remap selected themes to new segment ids by index; default to 0 if new
+    setSelectedThemes(prev => {
+      const remapped = {};
+      segments.forEach((seg, i) => {
+        const key = `flight-${i + 1}`; // stable per index
+        remapped[seg.id] = prev[key] ?? prev[seg.id] ?? 0;
+      });
+      return remapped;
+    });
+
+    // Clamp active flight index
+    setActiveFlightIndex(prevIdx => {
+      if (segments.length === 0) return null;
+      if (prevIdx == null) return 0;
+      return Math.min(prevIdx, segments.length - 1);
+    });
+  }, [routes, isCreatingThemes]);
+
   // Calculate timeline height for color cards
   useEffect(() => {
     const calculateTimelineHeight = () => {
@@ -720,8 +744,8 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
         width: isMinimized ? `${containerWidth}px` : '100%',
         minWidth: isMinimized ? `${minWidth}px` : '100%',
         maxWidth: isMinimized ? `${maxWidth}px` : '100%',
-        height: isMinimized ? '48px' : 'auto',
-        minHeight: isMinimized ? '48px' : '380px',
+        height: isMinimized ? '48px' : (routes.length === 0 ? '240px' : '380px'),
+        minHeight: isMinimized ? '48px' : (routes.length === 0 ? '240px' : '380px'),
         maxHeight: isMinimized ? '48px' : 'none',
         transition: 'width 0.2s, height 0.2s',
         padding: isMinimized && containerWidth === minWidth ? '16px 24px' : undefined,
@@ -731,6 +755,9 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
         borderRadius: undefined,
         marginTop: isInHeader ? '0' : '0px',
         overflow: 'visible',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
       }}
     >
 
@@ -824,7 +851,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                   >
                     <ArrowLeftIcon className="w-5 h-5 text-gray-500" />
                   </button>
-                  <span className="text-lg font-semibold text-gray-700">Flights for route</span>
+                  <span className="text-lg font-semibold text-white">Flights for route</span>
                 </div>
               ) : (
                 // Route Creation Header - no date picker button

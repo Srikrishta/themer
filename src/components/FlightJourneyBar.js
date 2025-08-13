@@ -42,6 +42,34 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
         className="box-border content-stretch flex flex-row gap-8 items-center justify-between p-0 relative mx-auto w-full max-w-[1328px]"
         data-name="flight journey bar"
         id="node-77_5469"
+        onMouseEnter={(e) => {
+          if (isPromptMode && onPromptHover) {
+            onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (isPromptMode && onPromptHover) {
+            onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+          }
+        }}
+        onMouseMove={(e) => {
+          if (isPromptMode && onPromptHover) {
+            onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+          }
+        }}
+        onClick={(e) => {
+          if (isPromptMode && onPromptClick) {
+            // Ignore clicks on the flight progress bar region
+            const bar = document.querySelector('.flight-progress-bar-container');
+            if (bar) {
+              const rect = bar.getBoundingClientRect();
+              const x = e.clientX, y = e.clientY;
+              const withinBar = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+              if (withinBar) return;
+            }
+            onPromptClick('flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+          }
+        }}
       >
         {/* Background hover areas for prompt mode - positioned between functional elements */}
         {isPromptMode && (

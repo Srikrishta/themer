@@ -304,7 +304,7 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
             {/* Arrow between cards - show for all except the last card */}
             {index < routes.length - 1 && (
               <div className="flex items-center justify-center px-2 py-8">
-                <span className="text-gray-600 text-lg font-bold" style={{ fontSize: '18px', fontWeight: '300' }}>→</span>
+                <span className="text-white text-lg font-bold" style={{ fontSize: '18px', fontWeight: '300' }}>→</span>
               </div>
             )}
           </React.Fragment>

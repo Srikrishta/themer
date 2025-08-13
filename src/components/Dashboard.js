@@ -17,7 +17,39 @@ function formatTime(minutes) {
 function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts }) {
   return (
     <div style={{ position: 'relative', zIndex: 2, width: 1302, margin: '92px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
-      <div className="fjb-fps-container" style={{ width: 1328, maxWidth: 1328, marginLeft: -2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, background: themeColor + '14', borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 16, paddingTop: 80, paddingBottom: 40, marginTop: 4 }}>
+      <div
+        className="fjb-fps-container"
+        style={{ width: 1328, maxWidth: 1328, marginLeft: -2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, background: themeColor + '14', borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 16, paddingTop: 80, paddingBottom: 40, marginTop: 4, position: 'relative' }}
+        onMouseEnter={(e) => {
+          if (!isPromptMode) return;
+          const isOverProgress = e.target.closest('.flight-progress-bar-container') || e.target.closest('.flight-progress-icon');
+          if (!isOverProgress && typeof onPromptHover === 'function') {
+            onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+          }
+        }}
+        onMouseMove={(e) => {
+          if (!isPromptMode) return;
+          const isOverProgress = e.target.closest('.flight-progress-bar-container') || e.target.closest('.flight-progress-icon');
+          if (!isOverProgress && typeof onPromptHover === 'function') {
+            onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+          } else if (typeof onPromptHover === 'function') {
+            onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isPromptMode) return;
+          if (typeof onPromptHover === 'function') {
+            onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+          }
+        }}
+        onClick={(e) => {
+          if (!isPromptMode || typeof onPromptClick !== 'function') return;
+          const isOverProgress = e.target.closest('.flight-progress-bar-container') || e.target.closest('.flight-progress-icon');
+          if (!isOverProgress) {
+            onPromptClick('flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+          }
+        }}
+      >
         <div style={{ width: '100%', marginTop: -32, display: 'flex', flexDirection: 'column', gap: 28 }}>
           <FlightJourneyBar 
             origin={origin} 
@@ -169,6 +201,8 @@ export default function Dashboard() {
   
   // Mouse pointer state
   const [showMousePointer, setShowMousePointer] = useState(false);
+  // Hover hint bubble for FJB ("add theme")
+  const [fjbHoverTip, setFjbHoverTip] = useState({ visible: false, x: 0, y: 0 });
   
   // Removed scroll-collapsed header behavior
 
@@ -202,10 +236,21 @@ export default function Dashboard() {
     // elementType: 'flight-icon' or 'promo-card'
     // elementData: contains specific data about the element
     // position: { x, y } cursor position
-    if (isPromptMode && !promptBubble) { // Only show plus icon if no bubble is currently open
-      setShowPlusIcon(isHovering);
-      console.log('Prompt hover:', isHovering, elementType, elementData, position);
+    if (!isPromptMode) return;
+    // For FJB: show plus and a small hover bubble that invites adding theme
+    if (elementType === 'flight-journey-bar') {
+      if (!promptBubble) {
+        setShowPlusIcon(isHovering);
+        setFjbHoverTip(isHovering ? { visible: true, x: position.x, y: position.y } : { visible: false, x: 0, y: 0 });
+      }
+      return;
     }
+    if (promptBubble) return;
+    // Show cursor-following plus for promo cards and flight icon
+    if (elementType === 'promo-card' || elementType === 'flight-icon') {
+      setShowPlusIcon(isHovering);
+    }
+    console.log('Prompt hover:', isHovering, elementType, elementData, position);
   };
 
   const handlePromptClick = (elementType, elementData, position) => {
@@ -223,15 +268,53 @@ export default function Dashboard() {
       // Get existing text for this position
       const existingText = fpsPrompts[positionKey] || '';
       
-      setPromptBubble({
-        x: position.x,
-        y: position.y,
-        elementType,
-        elementData,
-        positionKey,
-        existingText
-      });
+      // Positioning per element type: FPS relative to container, others at viewport point
+      if (elementType === 'flight-icon') {
+        const container = document.querySelector('.flight-progress-bar-container');
+        if (container) {
+          const rect = container.getBoundingClientRect();
+          const relX = Math.max(0, Math.min(position.x - rect.left + 2, rect.width));
+          const relY = Math.max(0, position.y - rect.top + 10);
+          setPromptBubble({
+            x: relX,
+            y: relY,
+            elementType,
+            elementData,
+            positionKey,
+            existingText
+          });
+        } else {
+          setPromptBubble({
+            x: position.x,
+            y: position.y,
+            elementType,
+            elementData,
+            positionKey,
+            existingText
+          });
+        }
+      } else if (elementType === 'promo-card') {
+        // For promo-card, place exactly at pointer (Viewport -> document handled in PromptBubble)
+        setPromptBubble({
+          x: position.x,
+          y: position.y,
+          elementType,
+          elementData,
+          positionKey,
+          existingText
+        });
+      } else {
+        setPromptBubble({
+          x: position.x,
+          y: position.y,
+          elementType,
+          elementData,
+          positionKey,
+          existingText
+        });
+      }
       setShowPlusIcon(false); // Hide plus icon when bubble appears
+      setFjbHoverTip({ visible: false, x: 0, y: 0 });
     }
   };
 
@@ -330,11 +413,39 @@ export default function Dashboard() {
         elementData={promptBubble?.elementData}
         onClose={handlePromptBubbleClose}
         onSubmit={handlePromptBubbleSubmit}
-        themeColor={promptBubble?.elementType === 'promo-card' ? '#FFFFFF' : currentThemeColor}
+        themeColor={currentThemeColor}
         existingText={promptBubble?.existingText || ''}
         positionKey={promptBubble?.positionKey}
         fpsPrompts={fpsPrompts}
+        onThemeColorChange={(color) => {
+          if (typeof color === 'string' && color.length > 0) setCurrentThemeColor(color);
+        }}
       />
+
+      {/* FJB hover tip bubble: shows label and plus; click opens color PB */}
+      {isPromptMode && fjbHoverTip.visible && !promptBubble && (
+        <div
+          className="fixed z-40"
+          style={{ left: fjbHoverTip.x, top: fjbHoverTip.y }}
+        >
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-2xl border-2 shadow-md"
+            style={{ backgroundColor: currentThemeColor, borderColor: currentThemeColor }}
+          >
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePromptClick('flight-journey-bar', { themeColor: currentThemeColor }, { x: fjbHoverTip.x, y: fjbHoverTip.y });
+              }}
+              className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white"
+              title="Add theme"
+            >
+              +
+            </button>
+            <span className="text-white text-xs font-medium">add theme</span>
+          </div>
+        </div>
+      )}
       
       {/* IFE Frame Wrapper - Always show below ThemeCreator; skeletons render until data is available */}
       <div className="w-full flex justify-center" style={{ marginTop: 8 }}>

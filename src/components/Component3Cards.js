@@ -25,8 +25,8 @@ export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], i
     </div>
   );
 
-  // Show skeleton state based on routes length
-  const showAllSkeletons = routes.length < 2; // Keep skeletons until 2+ routes
+  // Show skeletons only when not in prompt mode; in prompt mode, render interactive cards for hover/click
+  const showAllSkeletons = routes.length < 2 && !isPromptMode; // Keep skeletons until 2+ routes unless prompting
 
   // Determine card content based on animation progress and cruise label state
   const getCardContent = (cardIndex) => {
