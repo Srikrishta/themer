@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CalendarIcon, ArrowLeftIcon, ChevronDownIcon, ChevronUpIcon, ChevronLeftIcon, ChevronRightIcon, ViewColumnsIcon, PlusIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { CalendarIcon, ChevronDownIcon, ChevronUpIcon, ChevronLeftIcon, ChevronRightIcon, ViewColumnsIcon, PlusIcon, PencilIcon } from '@heroicons/react/24/outline';
 import AirportSearch from './AirportSearch';
 import DatePicker from './DatePicker';
 import festivalsData from '../data/festivals.json';
@@ -8,7 +8,7 @@ import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useNavigate } from 'react-router-dom';
 
-export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader }) {
+export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips }) {
   const navigate = useNavigate();
   const DEFAULT_THEME_COLOR = '#1E1E1E';
   // Get current date in Berlin timezone for initial state
@@ -259,6 +259,8 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
   const [selectedThemes, setSelectedThemes] = useState({});
   const [timelineHeight, setTimelineHeight] = useState('calc(100% + 80px)');
   const hasInitializedThemes = useRef(false);
+  // Track whether we've pushed a history state for flights view
+  const hasPushedFlightsViewHistoryRef = useRef(false);
 
   const SEGMENT_ITEM_TYPE = 'FLIGHT_SEGMENT';
 
@@ -319,6 +321,24 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
     if (!isCreatingThemes) {
       hasInitializedThemes.current = false;
     }
+  }, [isCreatingThemes]);
+
+  // Browser back: when in flights view, pressing back exits to dashboard (keeps routes/state)
+  useEffect(() => {
+    if (!isCreatingThemes) return;
+    // Push a history entry only once per entry into flights view
+    if (!hasPushedFlightsViewHistoryRef.current) {
+      try {
+        window.history.pushState({ flightsView: true }, '');
+        hasPushedFlightsViewHistoryRef.current = true;
+      } catch {}
+    }
+    const handlePop = () => {
+      setIsCreatingThemes(false);
+      hasPushedFlightsViewHistoryRef.current = false;
+    };
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
   }, [isCreatingThemes]);
 
   // Keep flight segments in sync with routes while in flights-for-view
@@ -430,7 +450,19 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
           activeFlightIndex === index ? 'border-blue-300 shadow-lg' : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
         }`}
         style={{ opacity: isDragging ? 0.5 : 1, minWidth: 0 }}
-        onClick={() => onSelect(index, segment)}
+        onClick={() => {
+          onSelect(index, segment);
+          try {
+            if (typeof onExposeThemeChips === 'function') {
+              const chips = [
+                { label: 'Default', color: '#1E1E1E' },
+                { label: `${segment.destination.airport.city} Theme`, color: '#EF4444' },
+                { label: 'Time of the Day', color: '#F59E0B' }
+              ];
+              onExposeThemeChips(chips);
+            }
+          } catch {}
+        }}
       >
         <div className="flex justify-between items-start">
           <div className="flex items-start space-x-3 flex-1 min-w-0">
@@ -539,6 +571,13 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
             const selectedTheme = themeOptions.find(t => t.id === selectedThemeId);
             onThemeColorChange(selectedTheme ? selectedTheme.color : '#1E1E1E');
           }
+          // Also expose chips for this segment to the dashboard for PB
+          try {
+            if (typeof onExposeThemeChips === 'function') {
+              const chips = themeOptions.map(t => ({ label: t.name, color: t.color }));
+              onExposeThemeChips(chips);
+            }
+          } catch {}
         }}
         style={{ cursor: 'pointer' }}
       >
@@ -842,21 +881,8 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              {isCreatingThemes ? (
-                // Themes Creation Header - just back button
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={handleBackToRouteCreation}
-                    className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                  >
-                    <ArrowLeftIcon className="w-5 h-5 text-gray-500" />
-                  </button>
-                  <span className="text-lg font-semibold text-white">Flights for route</span>
-                </div>
-              ) : (
-                // Route Creation Header - no date picker button
-                <div></div>
-              )}
+              {/* Header removed (back navigation and title) */}
+              <div></div>
             </div>
           )}
         </div>
@@ -865,7 +891,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
         {isCreatingThemes && !isMinimized && (
               <div className="w-full mt-3">
                 <DndProvider backend={HTML5Backend}>
-                  <div className="flex items-stretch gap-2 w-full">
+                  <div className="flex items-stretch gap-12 w-full">
                 {flightSegments.map((segment, index) => {
                 // Safety checks for segment data
                 if (!segment || !segment.origin || !segment.destination || !segment.origin.airport || !segment.destination.airport) {
@@ -873,19 +899,25 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                 }
                   const selectedThemeId = selectedThemes[segment.id];
                   return (
-                    <div className="flex-1 min-w-0">
-                      <FlightChip
-                      key={segment.id}
-                      segment={segment}
-                      index={index}
-                      activeFlightIndex={activeFlightIndex}
-                      selectedThemeId={selectedThemeId}
-                      onSelect={(idx, seg) => {
-                        setActiveFlightIndex(idx);
-                        if (typeof onColorCardSelect === 'function') onColorCardSelect(seg);
-                        if (typeof onFilterChipSelect === 'function') onFilterChipSelect(true);
-                      }}
-                      />
+                    <div key={segment.id} className="flex items-center gap-6 flex-1 min-w-0">
+                      <div className="flex-1 min-w-0">
+                        <FlightChip
+                          segment={segment}
+                          index={index}
+                          activeFlightIndex={activeFlightIndex}
+                          selectedThemeId={selectedThemeId}
+                          onSelect={(idx, seg) => {
+                            setActiveFlightIndex(idx);
+                            if (typeof onColorCardSelect === 'function') onColorCardSelect(seg);
+                            if (typeof onFilterChipSelect === 'function') onFilterChipSelect(true);
+                          }}
+                        />
+                      </div>
+                      {index < flightSegments.length - 1 && (
+                        <div className="flex items-center justify-center flex-shrink-0">
+                          <ChevronRightIcon className="w-5 h-5 text-gray-400" />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -920,24 +952,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
               </div>
             )}
           </div>
-          {/* Color Card - Show only the selected one */}
-          <div ref={colorCardsRef} className="flex flex-row items-start relative z-10" style={{ width: '60%', maxWidth: '400px' }}>
-            {flightSegments.length > 0 && 
-             activeFlightIndex >= 0 && 
-             activeFlightIndex < flightSegments.length && 
-             flightSegments[activeFlightIndex] &&
-             flightSegments[activeFlightIndex].origin &&
-             flightSegments[activeFlightIndex].destination && (
-              <div className="w-full">
-                <ColorCard 
-                  segment={flightSegments[activeFlightIndex]} 
-                  index={activeFlightIndex}
-                  activeFlightIndex={activeFlightIndex}
-                  setActiveFlightIndex={setActiveFlightIndex}
-                />
-              </div>
-            )}
-          </div>
+          {/* Color Card removed: theme selection happens via prompt bubble now */}
 
           {/* Theme via Prompt Button below color cards */}
           <div className="mt-8 flex flex-row justify-start gap-3">
@@ -964,7 +979,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                 }
               }}
             >
-              Theme via prompt
+              Build theme
             </button>
           </div>
         </>

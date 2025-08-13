@@ -15,7 +15,8 @@ export default function PromptBubble({
   fpsPrompts = {},
   onLoadingStateChange,
   onVisibilityChange,
-  onThemeColorChange
+  onThemeColorChange,
+  themeChips = []
 }) {
   console.log('=== PROMPT BUBBLE RENDER ===', {
     isVisible,
@@ -26,7 +27,7 @@ export default function PromptBubble({
   });
 
   const [promptText, setPromptText] = useState(elementType === 'flight-icon' && positionKey === 'landing-demo' ? 'Cruise' : (elementType === 'promo-card' ? '' : ''));
-  const [isLoading, setIsLoading] = useState(elementType === 'promo-card' ? true : false);
+  const [isLoading, setIsLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [typedText, setTypedText] = useState('');
   const [autoTyping, setAutoTyping] = useState(false);
@@ -67,6 +68,9 @@ export default function PromptBubble({
     if (positionKey === 'middle-card-landing' || positionKey === 'fjb-landing') return true;
     return shouldUseLightText();
   })();
+
+  // Choose a contrasting border color so the bubble edge is always visible
+  const contrastingBorderColor = useLightText ? 'rgba(255, 255, 255, 0.35)' : 'rgba(0, 0, 0, 0.35)';
 
   // Flight phase chips for FPS
   const flightPhaseChips = [
@@ -422,16 +426,12 @@ export default function PromptBubble({
         setTimeout(() => {
           startTypingAnimation('add eiffel tower animation');
         }, 500); // Small delay before starting typing animation
-      } else if (elementType === 'promo-card' && existingText === '' && positionKey !== 'middle-card-landing') {
-        setIsLoading(true);
-        // Start typing animation after loading is done
+      } else if (elementType === 'promo-card' && positionKey === 'middle-card-demo') {
+        // Only demo card should auto type; dashboard promo cards should not
+        setIsLoading(false);
         setTimeout(() => {
-          setIsLoading(false);
-          // Start typing animation immediately after loading is done
-          setTimeout(() => {
-            startTypingAnimation('Croissants at 3€');
-          }, 100); // Small delay after loading ends
-        }, 1000); // 1 second loading time instead of 3 seconds
+          startTypingAnimation('Croissants at 3€');
+        }, 300);
       } else {
         console.log('=== PROMPT BUBBLE FALLBACK CASE ===', { elementType, positionKey, existingText });
         setIsLoading(false);
@@ -541,7 +541,7 @@ export default function PromptBubble({
           : themeColor,
         borderColor: elementType === 'promo-card' && positionKey === 'middle-card-demo'
           ? 'rgba(0,0,0,0.2)'
-          : themeColor,
+          : contrastingBorderColor,
         borderTopLeftRadius: 0,
         borderTopRightRadius: '24px',
         borderBottomLeftRadius: '24px',
@@ -640,20 +640,43 @@ export default function PromptBubble({
           <div className="flex items-center gap-3 justify-end">
             {/* Color chips for FJB */}
             {elementType === 'flight-journey-bar' && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => handleColorChange('#3b82f6')}
-                  className="w-6 h-6 rounded-full border-2 border-white/20 hover:scale-110 transition-transform"
-                  style={{ backgroundColor: '#3b82f6' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => handleColorChange('#96e6a1')}
-                  className="w-6 h-6 rounded-full border-2 border-white/20 hover:scale-110 transition-transform"
-                  style={{ background: 'linear-gradient(120deg, #d4fc79 0%, #96e6a1 100%)' }}
-                />
-              </>
+              <div className="flex flex-wrap gap-2 flex-1">
+                {(themeChips && themeChips.length > 0
+                  ? themeChips
+                  : [
+                      { label: 'Default', color: '#1E1E1E' },
+                      { label: 'Milan Theme', color: '#EF4444' },
+                      { label: 'Time of the Day', color: '#F59E0B' }
+                    ]
+                ).map((chip, idx) => {
+                  const chipColor = typeof chip === 'object' ? chip.color : String(chip);
+                  const label = typeof chip === 'object'
+                    ? chip.label
+                    : (String(chipColor).includes('gradient') ? 'Gradient' : String(chipColor));
+                  const isGrad = String(chipColor).includes('gradient');
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleColorChange(chipColor)}
+                      className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors`}
+                      title={label}
+                    >
+                      <div className="flex items-center gap-2 px-2 py-1 border border-white/20 rounded-full">
+                        <div
+                          className="w-4 h-4 rounded-full border"
+                          style={{
+                            background: isGrad ? chipColor : undefined,
+                            backgroundColor: isGrad ? undefined : chipColor,
+                            borderColor: 'rgba(255,255,255,0.3)'
+                          }}
+                        />
+                        <span className={`text-xs font-mono font-bold ${useLightText ? 'text-white/70' : 'text-black/70'}`}>{label}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             )}
             
             <button

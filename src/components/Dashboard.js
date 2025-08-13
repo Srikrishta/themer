@@ -203,6 +203,34 @@ export default function Dashboard() {
   const [showMousePointer, setShowMousePointer] = useState(false);
   // Hover hint bubble for FJB ("add theme")
   const [fjbHoverTip, setFjbHoverTip] = useState({ visible: false, x: 0, y: 0 });
+  // Theme chips (colors) exposed from ThemeCreator for the active flight
+  const [fjbThemeChips, setFjbThemeChips] = useState([]);
+  // Hover hint bubble for FPS ("Add flight phase")
+  const [fpsHoverTip, setFpsHoverTip] = useState({ visible: false, x: 0, y: 0, progress: 0 });
+  // Hover hint bubble for Promo Cards ("Edit promo card")
+  const [pcHoverTip, setPcHoverTip] = useState({ visible: false, x: 0, y: 0, elementData: null });
+
+  // Compute contrasting border color for hover tip PBs (same logic as main PB)
+  const isGradientTheme = typeof currentThemeColor === 'string' && currentThemeColor.includes('gradient');
+  const parseHex = (hex) => {
+    if (!hex || typeof hex !== 'string') return { r: 0, g: 0, b: 0 };
+    const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+    if (!m) return { r: 0, g: 0, b: 0 };
+    return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+  };
+  const getLuminance = ({ r, g, b }) => {
+    const srgb = [r, g, b].map(v => {
+      const c = v / 255;
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
+  };
+  const hoverUseLightText = isGradientTheme
+    ? true
+    : (typeof currentThemeColor === 'string' && currentThemeColor.startsWith('#') && currentThemeColor.length === 7
+        ? getLuminance(parseHex(currentThemeColor)) < 0.5
+        : true);
+  const hoverBorderColor = hoverUseLightText ? 'rgba(255, 255, 255, 0.35)' : 'rgba(0, 0, 0, 0.35)';
   
   // Removed scroll-collapsed header behavior
 
@@ -237,19 +265,61 @@ export default function Dashboard() {
     // elementData: contains specific data about the element
     // position: { x, y } cursor position
     if (!isPromptMode) return;
-    // For FJB: show plus and a small hover bubble that invites adding theme
+    // For FJB: do NOT show the icon-only plus; show hover bubble with "+ add theme"
     if (elementType === 'flight-journey-bar') {
       if (!promptBubble) {
-        setShowPlusIcon(isHovering);
-        setFjbHoverTip(isHovering ? { visible: true, x: position.x, y: position.y } : { visible: false, x: 0, y: 0 });
+        // Avoid flicker by only updating when moved enough pixels
+        setShowPlusIcon(false);
+        setFjbHoverTip(prev => {
+          if (!isHovering) return { visible: false, x: 0, y: 0 };
+          const dx = Math.abs(prev.x - position.x);
+          const dy = Math.abs(prev.y - position.y);
+          if (!prev.visible || dx > 4 || dy > 4) {
+            return { visible: true, x: position.x, y: position.y };
+          }
+          return prev;
+        });
+      } else {
+        setFjbHoverTip({ visible: false, x: 0, y: 0 });
+      }
+      return;
+    }
+    if (elementType === 'flight-icon') {
+      if (!promptBubble) {
+        // Replace cursor plus with hover tip for FPS
+        setShowPlusIcon(false);
+        setFpsHoverTip(prev => {
+          if (!isHovering) return { visible: false, x: 0, y: 0, progress: 0 };
+          const dx = Math.abs(prev.x - position.x);
+          const dy = Math.abs(prev.y - position.y);
+          if (!prev.visible || dx > 4 || dy > 4 || Math.abs((prev.progress || 0) - (elementData?.progress || 0)) > 0.01) {
+            return { visible: true, x: position.x, y: position.y, progress: elementData?.progress || prev.progress || 0 };
+          }
+          return prev;
+        });
+      } else {
+        setFpsHoverTip({ visible: false, x: 0, y: 0, progress: 0 });
+      }
+      return;
+    }
+    if (elementType === 'promo-card') {
+      if (!promptBubble) {
+        setShowPlusIcon(false);
+        setPcHoverTip(prev => {
+          if (!isHovering) return { visible: false, x: 0, y: 0, elementData: null };
+          const dx = Math.abs(prev.x - position.x);
+          const dy = Math.abs(prev.y - position.y);
+          const changed = !prev.visible || dx > 4 || dy > 4;
+          if (changed) return { visible: true, x: position.x, y: position.y, elementData };
+          return prev;
+        });
+      } else {
+        setPcHoverTip({ visible: false, x: 0, y: 0, elementData: null });
       }
       return;
     }
     if (promptBubble) return;
-    // Show cursor-following plus for promo cards and flight icon
-    if (elementType === 'promo-card' || elementType === 'flight-icon') {
-      setShowPlusIcon(isHovering);
-    }
+    // Default behavior for other elements (none for now)
     console.log('Prompt hover:', isHovering, elementType, elementData, position);
   };
 
@@ -315,6 +385,8 @@ export default function Dashboard() {
       }
       setShowPlusIcon(false); // Hide plus icon when bubble appears
       setFjbHoverTip({ visible: false, x: 0, y: 0 });
+      setFpsHoverTip({ visible: false, x: 0, y: 0, progress: 0 });
+      setPcHoverTip({ visible: false, x: 0, y: 0, elementData: null });
     }
   };
 
@@ -328,6 +400,7 @@ export default function Dashboard() {
   const handlePromptBubbleClose = () => {
     setPromptBubble(null);
     setShowPlusIcon(false); // Ensure plus icon is hidden when bubble closes
+    setFjbHoverTip({ visible: false, x: 0, y: 0 });
   };
 
   const handlePromptBubbleSubmit = (promptText, elementType, elementData, positionKey) => {
@@ -387,6 +460,7 @@ export default function Dashboard() {
           onFilterChipSelect={handleFilterChipSelect}
           isPromptMode={isPromptMode}
           activeSegmentId={activeSegmentId}
+          onExposeThemeChips={(chips) => setFjbThemeChips(chips || [])}
         />
       </div>
       
@@ -420,17 +494,25 @@ export default function Dashboard() {
         onThemeColorChange={(color) => {
           if (typeof color === 'string' && color.length > 0) setCurrentThemeColor(color);
         }}
+        themeChips={promptBubble?.elementType === 'flight-journey-bar' ? fjbThemeChips : []}
       />
 
       {/* FJB hover tip bubble: shows label and plus; click opens color PB */}
       {isPromptMode && fjbHoverTip.visible && !promptBubble && (
         <div
           className="fixed z-40"
-          style={{ left: fjbHoverTip.x, top: fjbHoverTip.y }}
+          style={{ left: fjbHoverTip.x, top: fjbHoverTip.y, pointerEvents: 'none' }}
         >
           <div
             className="flex items-center gap-2 px-3 py-2 rounded-2xl border-2 shadow-md"
-            style={{ backgroundColor: currentThemeColor, borderColor: currentThemeColor }}
+            style={{
+              ...(typeof currentThemeColor === 'string' && currentThemeColor.includes('gradient')
+                ? { background: currentThemeColor }
+                : { backgroundColor: currentThemeColor }),
+              borderColor: hoverBorderColor,
+              opacity: 1,
+              borderTopLeftRadius: 0
+            }}
           >
             <button
               onClick={(e) => {
@@ -439,10 +521,89 @@ export default function Dashboard() {
               }}
               className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white"
               title="Add theme"
+              style={{ pointerEvents: 'auto' }}
             >
               +
             </button>
-            <span className="text-white text-xs font-medium">add theme</span>
+            <span className="text-white text-xs font-bold">Add theme</span>
+          </div>
+        </div>
+      )}
+
+      {/* FPS hover tip bubble: shows label and plus; click opens FPS PB */}
+      {isPromptMode && fpsHoverTip.visible && !promptBubble && (
+        <div
+          className="fixed z-40"
+          style={{ left: fpsHoverTip.x, top: fpsHoverTip.y, pointerEvents: 'none' }}
+        >
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-2xl border-2 shadow-md"
+            style={{
+              ...(typeof currentThemeColor === 'string' && currentThemeColor.includes('gradient')
+                ? { background: currentThemeColor }
+                : { backgroundColor: currentThemeColor }),
+              borderColor: hoverBorderColor,
+              opacity: 1,
+              borderTopLeftRadius: 0
+            }}
+          >
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                // Compute progress for click if available
+                let progress = fpsHoverTip.progress || 0;
+                try {
+                  const container = document.querySelector('.flight-progress-bar-container');
+                  if (container) {
+                    const rect = container.getBoundingClientRect();
+                    const barWidth = 1302;
+                    const offsetX = fpsHoverTip.x - rect.left;
+                    progress = Math.max(0, Math.min(1, offsetX / barWidth));
+                  }
+                } catch {}
+                handlePromptClick('flight-icon', { progress, minutesLeft }, { x: fpsHoverTip.x, y: fpsHoverTip.y });
+              }}
+              className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white"
+              title="Add flight phase"
+              style={{ pointerEvents: 'auto' }}
+            >
+              +
+            </button>
+            <span className="text-white text-xs font-bold">Add flight phase</span>
+          </div>
+        </div>
+      )}
+
+      {/* Promo Card hover tip bubble: shows label and plus; click opens PC PB */}
+      {isPromptMode && pcHoverTip.visible && !promptBubble && (
+        <div
+          className="fixed z-40"
+          style={{ left: pcHoverTip.x, top: pcHoverTip.y, pointerEvents: 'none' }}
+        >
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-2xl border-2 shadow-md"
+            style={{
+              ...(typeof currentThemeColor === 'string' && currentThemeColor.includes('gradient')
+                ? { background: currentThemeColor }
+                : { backgroundColor: currentThemeColor }),
+              borderColor: hoverBorderColor,
+              opacity: 1,
+              borderTopLeftRadius: 0
+            }}
+          >
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const ed = pcHoverTip.elementData || { cardIndex: 0, cardType: 'meal' };
+                handlePromptClick('promo-card', ed, { x: pcHoverTip.x, y: pcHoverTip.y });
+              }}
+              className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white"
+              title="Edit promo card"
+              style={{ pointerEvents: 'auto' }}
+            >
+              +
+            </button>
+            <span className="text-white text-xs font-bold">Edit promo card</span>
           </div>
         </div>
       )}
