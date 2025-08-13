@@ -49,6 +49,9 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
   const datePickerRef = useRef(null);
   const containerRef = useRef(null);
   const colorCardsRef = useRef(null);
+  const flightChipsRef = useRef(null);
+  const chipsInitialBottomRef = useRef(null);
+  const [isChipsCollapsed, setIsChipsCollapsed] = useState(false);
 
   // NEW: Badge hover state
   const [isBadgeHovered, setIsBadgeHovered] = useState(false);
@@ -244,6 +247,19 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
     setHasStartedThemeBuild(true);
     setIsDatePickerOpen(false);
     setInputValue('');
+    // Smooth scroll to flight chips (and build theme button)
+    setTimeout(() => {
+      try {
+        const node = flightChipsRef.current;
+        if (node) {
+          const rect = node.getBoundingClientRect();
+          const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+          // Position chips a bit below top for breathing room
+          const targetY = rect.top + scrollY - 24;
+          window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+        }
+      } catch {}
+    }, 150);
     try {
       // If we have at least two routes, expose chips including festival (if any)
       const segments = generateFlightSegments();
@@ -269,6 +285,37 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
     window.addEventListener('airport-search-generate-flights', handler);
     return () => window.removeEventListener('airport-search-generate-flights', handler);
   }, []);
+
+  // Collapse flight chips to compact (dots) view when scrolled past the chips
+  useEffect(() => {
+    if (!isCreatingThemes) {
+      setIsChipsCollapsed(false);
+      return;
+    }
+    const updateThreshold = () => {
+      const node = flightChipsRef.current;
+      if (!node) return;
+      const rect = node.getBoundingClientRect();
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+      chipsInitialBottomRef.current = rect.top + scrollY + rect.height;
+    };
+    // Initialize threshold
+    updateThreshold();
+    const handleScroll = () => {
+      if (!chipsInitialBottomRef.current) return;
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+      // Collapse once user has scrolled 100px past the initial bottom of chips
+      setIsChipsCollapsed(scrollY > chipsInitialBottomRef.current + 100);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', updateThreshold);
+    // Run once
+    handleScroll();
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', updateThreshold);
+    };
+  }, [isCreatingThemes]);
 
   // NEW: Handle back to route creation
   const handleBackToRouteCreation = () => {
@@ -447,7 +494,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
     }
   }, [isCreatingThemes, flightSegments.length, selectedThemes, isMinimized]); // <-- add isMinimized
 
-  function FlightChip({ segment, index, activeFlightIndex, selectedThemeId, onSelect }) {
+  function FlightChip({ segment, index, activeFlightIndex, selectedThemeId, onSelect, collapsed }) {
     const ref = useRef(null);
     const [{ handlerId }, drop] = useDrop({
       accept: SEGMENT_ITEM_TYPE,
@@ -491,10 +538,10 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
       <div
         ref={ref}
         data-handler-id={handlerId}
-        className={`bg-white/80 p-4 rounded-full border shadow-sm transition-all cursor-move w-full ${
+        className={`backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] p-4 rounded-full shadow-sm transition-all cursor-move w-full ${
           activeFlightIndex === index 
-            ? 'border-blue-500 ring-2 ring-blue-400/50 shadow-lg bg-blue-50' 
-            : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+            ? 'shadow-lg ring-2 ring-white/50' 
+            : 'hover:shadow-md'
         }`}
         style={{ opacity: isDragging ? 0.5 : 1, minWidth: 0 }}
         onClick={() => {
@@ -507,23 +554,27 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
           } catch {}
         }}
       >
-        <div className="flex justify-between items-start">
+        <div className={`flex justify-between items-start ${activeFlightIndex === index ? 'opacity-100' : 'opacity-70'}`}>
           <div className="flex items-start space-x-3 flex-1 min-w-0">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <div
-                  className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
                   style={{ backgroundColor: dotColor }}
                 >
                   {index + 1}
                 </div>
-                <h3 className="text-base font-medium text-gray-900 break-words">
-                  {segment.origin.airport.city} → {segment.destination.airport.city}
-                </h3>
+                {!collapsed && (
+                  <h3 className="text-base font-semibold text-white break-words">
+                    {segment.origin.airport.city} → {segment.destination.airport.city}
+                  </h3>
+                )}
               </div>
-              <div className="text-xs text-gray-400 mt-1 flex items-center gap-3 flex-wrap break-words">
-                <span className="flex items-center gap-1 font-semibold">Flight {index + 1}</span>
-              </div>
+              {!collapsed && (
+                <div className="text-xs text-white mt-1 flex items-center gap-3 flex-wrap break-words pl-8">
+                  <span className="flex items-center gap-1 font-semibold">Flight {index + 1}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -821,17 +872,18 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
   return (
     <div 
       ref={containerRef}
-      className={`p-10 border border-gray-200`}
+      className={`p-10 border border-gray-200 ${isCreatingThemes ? 'sticky top-0 z-40' : ''}`}
       style={{
         width: '100%',
         minWidth: '100%',
         maxWidth: '100%',
-        height: routes.length === 0 ? '240px' : '380px',
-        minHeight: routes.length === 0 ? '240px' : '380px',
+        height: isCreatingThemes ? '300px' : (routes.length === 0 ? '240px' : '380px'),
+        minHeight: isCreatingThemes ? '300px' : (routes.length === 0 ? '240px' : '380px'),
         maxHeight: 'none',
         transition: 'width 0.2s, height 0.2s',
         paddingLeft: '170px',
         paddingRight: '170px',
+        paddingBottom: isCreatingThemes ? '8px' : undefined,
         backgroundColor: DEFAULT_THEME_COLOR,
         borderRadius: undefined,
         marginTop: isInHeader ? '0' : '0px',
@@ -891,7 +943,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
         
         {/* Filter Chips Row - Full Width */}
         {isCreatingThemes && !isMinimized && (
-              <div className="w-full mt-3">
+              <div ref={flightChipsRef} className="w-full mt-3">
                 <DndProvider backend={HTML5Backend}>
                   <div className="flex items-stretch gap-12 w-full">
                 {flightSegments.map((segment, index) => {
@@ -908,16 +960,22 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                           index={index}
                           activeFlightIndex={activeFlightIndex}
                           selectedThemeId={selectedThemeId}
+                          collapsed={isChipsCollapsed}
                           onSelect={(idx, seg) => {
                             setActiveFlightIndex(idx);
                             if (typeof onColorCardSelect === 'function') onColorCardSelect(seg);
                             if (typeof onFilterChipSelect === 'function') onFilterChipSelect(true);
+                            // Enter prompt mode immediately when a flight chip is selected
+                            try {
+                              if (typeof onStartThemeBuild === 'function') onStartThemeBuild(true);
+                              if (typeof onEnterPromptMode === 'function') onEnterPromptMode(seg?.id);
+                            } catch {}
                           }}
                         />
                       </div>
                       {index < flightSegments.length - 1 && (
-                        <div className="flex items-center justify-center flex-shrink-0">
-                          <ChevronRightIcon className="w-5 h-5 text-gray-400" />
+                        <div className="flex items-center justify-center flex-shrink-0 px-2 py-8">
+                          <span className="text-white text-lg font-bold opacity-60" style={{ fontSize: '18px', fontWeight: '300' }}>→</span>
                         </div>
                       )}
                     </div>
@@ -956,38 +1014,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
           </div>
           {/* Color Card removed: theme selection happens via prompt bubble now */}
 
-          {/* Theme via Prompt Button below color cards */}
-          <div className="mt-8 flex flex-row justify-start gap-3">
-            <button
-              disabled={activeFlightIndex === null || activeFlightIndex < 0 || activeFlightIndex >= flightSegments.length}
-              className={`w-[160px] h-10 px-4 rounded-full transition-colors flex items-center justify-center text-sm font-medium ${
-                activeFlightIndex === null || activeFlightIndex < 0 || activeFlightIndex >= flightSegments.length
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : isPromptMode && flightSegments.length > 0 && activeFlightIndex >= 0 && activeFlightIndex < flightSegments.length && activeSegmentId === flightSegments[activeFlightIndex]?.id
-                    ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                    : 'bg-black text-white hover:bg-gray-800'
-              }`}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (activeFlightIndex === null || activeFlightIndex < 0 || activeFlightIndex >= flightSegments.length) {
-                  return;
-                }
-                if (flightSegments.length > 0 && activeFlightIndex >= 0 && activeFlightIndex < flightSegments.length) {
-                  const currentSegment = flightSegments[activeFlightIndex];
-                  console.log(`Entering prompt mode for ${currentSegment?.origin?.airport?.city || 'Unknown'} → ${currentSegment?.destination?.airport?.city || 'Unknown'}`);
-                  // Mark theme build as started for dashboard (enables full UI opacity and content)
-                  if (typeof onStartThemeBuild === 'function') {
-                    onStartThemeBuild(true);
-                  }
-                  if (typeof onEnterPromptMode === 'function') {
-                    onEnterPromptMode(currentSegment.id);
-                  }
-                }
-              }}
-            >
-              Build theme
-            </button>
-          </div>
+          {/* Build theme button removed: prompt mode starts when a chip is selected */}
         </>
       ) : (
         // Route Creation Content

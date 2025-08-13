@@ -800,7 +800,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
             position: 'absolute',
             left: `${barWidth * 0.05}px`, // 5% position
             top: '40px',
-            color: onColor,
+            color: getElementColor(),
             fontSize: '10px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
@@ -842,7 +842,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
             position: 'absolute',
             left: `${barWidth * 0.20}px`, // Fixed 20% position
             top: '40px', // Same spacing as Takeoff label
-            color: onColor,
+            color: getElementColor(),
             fontSize: '10px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
@@ -955,7 +955,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               position: 'absolute',
               left: `${promptLeft + 8}px`, // Fixed position based on original progress
               top: '40px',
-              color: onColor,
+              color: getElementColor(),
               fontSize: '10px',
               fontWeight: 'bold',
               textTransform: 'uppercase',

@@ -119,57 +119,57 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
             </>
           ) : (
             <>
-              {/* Tile 1 */}
-              <div
-                className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
-                style={{
-                  width: '100%',
-                  height: '184px',
-                  background: themeColor,
-                  borderTopLeftRadius: '8px',
-                  borderTopRightRadius: '8px',
-                  borderBottomLeftRadius: '0px',
-                  borderBottomRightRadius: '0px'
-                }}
+          {/* Tile 1 */}
+          <div
+            className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
+            style={{ 
+              width: '100%', 
+              height: '184px',
+              background: themeColor,
+              borderTopLeftRadius: '8px',
+              borderTopRightRadius: '8px',
+              borderBottomLeftRadius: '0px',
+              borderBottomRightRadius: '0px'
+            }}
               ></div>
-              {/* Tile 2 */}
-              <div
-                className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
-                style={{
-                  width: '100%',
-                  height: '184px',
-                  background: themeColor,
-                  borderTopLeftRadius: '8px',
-                  borderTopRightRadius: '8px',
-                  borderBottomLeftRadius: '0px',
-                  borderBottomRightRadius: '0px'
-                }}
+          {/* Tile 2 */}
+          <div
+            className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
+            style={{ 
+              width: '100%', 
+              height: '184px',
+              background: themeColor,
+              borderTopLeftRadius: '8px',
+              borderTopRightRadius: '8px',
+              borderBottomLeftRadius: '0px',
+              borderBottomRightRadius: '0px'
+            }}
               ></div>
-              {/* Tile 3 */}
-              <div
-                className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
-                style={{
-                  width: '100%',
-                  height: '184px',
-                  background: themeColor,
-                  borderTopLeftRadius: '8px',
-                  borderTopRightRadius: '8px',
-                  borderBottomLeftRadius: '0px',
-                  borderBottomRightRadius: '0px'
-                }}
+          {/* Tile 3 */}
+          <div
+            className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
+            style={{ 
+              width: '100%', 
+              height: '184px',
+              background: themeColor,
+              borderTopLeftRadius: '8px',
+              borderTopRightRadius: '8px',
+              borderBottomLeftRadius: '0px',
+              borderBottomRightRadius: '0px'
+            }}
               ></div>
-              {/* Tile 4 */}
-              <div
-                className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
-                style={{
-                  width: '100%',
-                  height: '184px',
-                  background: themeColor,
-                  borderTopLeftRadius: '8px',
-                  borderTopRightRadius: '8px',
-                  borderBottomLeftRadius: '0px',
-                  borderBottomRightRadius: '0px'
-                }}
+          {/* Tile 4 */}
+          <div
+            className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
+            style={{ 
+              width: '100%', 
+              height: '184px',
+              background: themeColor,
+              borderTopLeftRadius: '8px',
+              borderTopRightRadius: '8px',
+              borderBottomLeftRadius: '0px',
+              borderBottomRightRadius: '0px'
+            }}
               ></div>
             </>
           )}
@@ -271,7 +271,7 @@ export default function Dashboard() {
     // elementData: contains specific data about the element
     // position: { x, y } cursor position
     if (!isPromptMode) return;
-    // For FJB: do NOT show the icon-only plus; show hover bubble with "+ add theme"
+    // For FJB: show a labeled hover bubble; for logo area, label should say "Add logo animation"
     if (elementType === 'flight-journey-bar') {
       if (!promptBubble) {
         // Avoid flicker by only updating when moved enough pixels
@@ -281,12 +281,12 @@ export default function Dashboard() {
           const dx = Math.abs(prev.x - position.x);
           const dy = Math.abs(prev.y - position.y);
           if (!prev.visible || dx > 4 || dy > 4) {
-            return { visible: true, x: position.x, y: position.y };
+            return { visible: true, x: position.x, y: position.y, area: elementData?.area };
           }
           return prev;
         });
       } else {
-        setFjbHoverTip({ visible: false, x: 0, y: 0 });
+        setFjbHoverTip({ visible: false, x: 0, y: 0, area: undefined });
       }
       return;
     }
@@ -380,14 +380,14 @@ export default function Dashboard() {
           existingText
         });
       } else {
-        setPromptBubble({
-          x: position.x,
-          y: position.y,
-          elementType,
-          elementData,
-          positionKey,
-          existingText
-        });
+      setPromptBubble({
+        x: position.x,
+        y: position.y,
+        elementType,
+        elementData,
+        positionKey,
+        existingText
+      });
       }
       setShowPlusIcon(false); // Hide plus icon when bubble appears
       setFjbHoverTip({ visible: false, x: 0, y: 0 });
@@ -450,26 +450,26 @@ export default function Dashboard() {
       {/* Header removed as requested */}
       {/* ThemeCreator positioned below header (always visible) */}
       <div className="w-full flex justify-center transition-all duration-300" style={{ marginTop: 0 }}>
-        <ThemeCreator
-          routes={routes}
-          setRoutes={setRoutes}
+                          <ThemeCreator
+              routes={routes}
+              setRoutes={setRoutes}
           initialMinimized={minimizeThemeCreator}
           initialWidth={minimizeThemeCreator ? 318 : undefined}
           initialFlightCreationMode={false}
-          onColorCardSelect={segment => setSelectedSegment(segment)}
-          onThemeColorChange={color => setCurrentThemeColor(color)}
+              onColorCardSelect={segment => setSelectedSegment(segment)}
+              onThemeColorChange={color => setCurrentThemeColor(color)}
           onStateChange={() => {}}
-          onEnterPromptMode={(segmentId) => {
-            setIsPromptMode(true);
-            setActiveSegmentId(segmentId);
-          }}
-          onFilterChipSelect={handleFilterChipSelect}
-          isPromptMode={isPromptMode}
-          activeSegmentId={activeSegmentId}
+              onEnterPromptMode={(segmentId) => {
+                setIsPromptMode(true);
+                setActiveSegmentId(segmentId);
+              }}
+              onFilterChipSelect={handleFilterChipSelect}
+              isPromptMode={isPromptMode}
+              activeSegmentId={activeSegmentId}
           onExposeThemeChips={(chips) => setFjbThemeChips(chips || [])}
           onStartThemeBuild={() => setIsThemeBuildStarted(true)}
-        />
-      </div>
+          />
+        </div>
       
       {/* Plus Icon Cursor for Prompt Mode */}
       <PlusIconCursor 
@@ -527,12 +527,12 @@ export default function Dashboard() {
                 handlePromptClick('flight-journey-bar', { themeColor: currentThemeColor }, { x: fjbHoverTip.x, y: fjbHoverTip.y });
               }}
               className="w-6 h-6 rounded-full border-2 flex items-center justify-center"
-              title="Add theme"
+              title={fjbHoverTip.area === 'logo' ? 'Add logo animation' : 'Add theme'}
               style={{ pointerEvents: 'auto', borderColor: hoverOnColor, color: hoverOnColor }}
             >
               +
             </button>
-            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Add theme</span>
+            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>{fjbHoverTip.area === 'logo' ? 'Add logo animation' : 'Add theme'}</span>
           </div>
         </div>
       )}
@@ -616,30 +616,30 @@ export default function Dashboard() {
       )}
       
       {/* IFE Frame Wrapper - Always show below ThemeCreator; skeletons render until data is available */}
-      <div className="w-full flex justify-center" style={{ marginTop: 8 }}>
+        <div className="w-full flex justify-center" style={{ marginTop: 8 }}>
         <div style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', contain: 'layout paint' }}>
-          <img
-            src={process.env.PUBLIC_URL + '/ife-frame.svg'}
-            alt="Mobile Frame"
+            <img
+              src={process.env.PUBLIC_URL + '/ife-frame.svg'}
+              alt="Mobile Frame"
             style={{ position: 'absolute', top: -40, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none', willChange: 'transform', transform: 'translateZ(0)' }}
-          />
-          <FrameContent
-            origin={origin}
-            destination={destination}
-            minutesLeft={minutesLeft}
-            landingIn={landingIn}
-            maxFlightMinutes={maxFlightMinutes}
-            handleProgressChange={handleProgressChange}
-            themeColor={currentThemeColor}
-            routes={routes}
-            isPromptMode={isPromptMode}
-            onPromptHover={handlePromptHover}
-            onPromptClick={handlePromptClick}
-            fpsPrompts={fpsPrompts}
+            />
+            <FrameContent
+              origin={origin}
+              destination={destination}
+              minutesLeft={minutesLeft}
+              landingIn={landingIn}
+              maxFlightMinutes={maxFlightMinutes}
+              handleProgressChange={handleProgressChange}
+              themeColor={currentThemeColor}
+              routes={routes}
+              isPromptMode={isPromptMode}
+              onPromptHover={handlePromptHover}
+              onPromptClick={handlePromptClick}
+              fpsPrompts={fpsPrompts}
             isThemeBuildStarted={isThemeBuildStarted}
-          />
+            />
+          </div>
         </div>
-      </div>
     </div>
   );
 } 

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { getReadableOnColor } from '../utils/color';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { CalendarIcon, PlusIcon, MapPinIcon, ClockIcon, Bars3Icon, ChevronRightIcon } from '@heroicons/react/24/outline';
@@ -51,7 +52,7 @@ const getFestivalsForCityAndDates = (city, selectedDates) => {
   return festivals;
 };
 
-function RouteCard({ route, index, moveCard, onRemove, selectedDates = [], defaultLabel, dotRef, cardRef }) {
+function RouteCard({ route, index, moveCard, onRemove, selectedDates = [], defaultLabel, dotRef, cardRef, isLast = false }) {
   const ref = useRef(null);
   
   // Get festivals for this route's city
@@ -143,12 +144,12 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [], defau
     
     // Schedule pattern based on the provided table
     const schedulePattern = [
-      { departure: '01:30 AM', arrival: '02:45 AM' }, // Leg 1
-      { departure: '03:30 AM', arrival: '04:15 AM' }, // Leg 2  
-      { departure: '05:00 AM', arrival: '05:55 AM' }, // Leg 3
-      { departure: '06:45 AM', arrival: '08:15 AM' }, // Leg 4
-      { departure: '09:00 AM', arrival: '09:55 AM' }, // Leg 5
-      { departure: '10:40 AM', arrival: '11:35 AM' }, // Leg 6
+      { departure: '01:30', arrival: '02:45' }, // Leg 1
+      { departure: '03:30', arrival: '04:15' }, // Leg 2  
+      { departure: '05:00', arrival: '05:55' }, // Leg 3
+      { departure: '06:45', arrival: '08:15' }, // Leg 4
+      { departure: '09:00', arrival: '09:55' }, // Leg 5
+      { departure: '10:40', arrival: '11:35' }, // Leg 6
     ];
     
     // For routes beyond the predefined schedule, continue the pattern
@@ -166,9 +167,7 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [], defau
       const arrMin = arrivalMinutes % 60;
       
       const formatTime = (hour, minute) => {
-        const period = hour >= 12 ? 'PM' : 'AM';
-        const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-        return `${String(displayHour).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${period}`;
+        return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
       };
       
       return {
@@ -191,6 +190,7 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [], defau
 
   // Determine circle color based on festivals
   const circleColor = routeFestivals.length > 0 ? routeFestivals[0].color : '#000';
+  const circleOnColor = getReadableOnColor(circleColor);
 
   return (
     <div
@@ -222,31 +222,31 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [], defau
         
         <div 
           ref={dragRef}
-          className={`bg-white/80 p-4 rounded-full border shadow-sm transition-all cursor-grab active:cursor-grabbing hover:cursor-grab w-full ${
-            isDragging ? 'border-indigo-300 shadow-lg' : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+          className={`backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] p-4 rounded-full shadow-sm transition-all cursor-grab active:cursor-grabbing hover:cursor-grab w-full ${
+            isDragging ? 'shadow-lg' : 'hover:shadow-md'
           }`}
         >
-          <div className="flex justify-between items-start">
+          <div className={`${isLast ? 'flex justify-between' : 'flex justify-start gap-1'} items-start opacity-70`}>
             <div className="flex items-start space-x-3 flex-1 min-w-0">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <div 
-                    className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                    style={{ backgroundColor: circleColor }}
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                    style={{ backgroundColor: circleColor, color: circleOnColor, border: `2px solid ${circleOnColor}` }}
                   >
                     {index + 1}
                   </div>
-                  <h3 className="text-base font-medium text-gray-900 break-words">
+                  <h3 className="text-base font-semibold text-white break-words">
                     {route.airport.city} ({route.airport.code})
                   </h3>
                 </div>
-                <div className="text-xs text-gray-400 mt-1 flex items-center gap-3 flex-wrap break-words">
-                  <span className="flex items-center gap-1 font-semibold">
-                    <MapPinIcon className="w-3 h-3" />
+                <div className="text-xs text-white mt-1 flex items-center gap-3 flex-wrap break-words pl-8">
+                  <span className="flex items-center gap-1 font-semibold text-white">
+                    <MapPinIcon className="w-3 h-3 text-white" />
                     {route.type.charAt(0).toUpperCase() + route.type.slice(1)}
                   </span>
-                  <span className="flex items-center gap-1 font-semibold">
-                    <ClockIcon className="w-3 h-3" />
+                  <span className="flex items-center gap-1 font-semibold text-white">
+                    <ClockIcon className="w-3 h-3 text-white" />
                     {getScheduledTime(index, route.type)}
                   </span>
                 </div>
@@ -299,12 +299,13 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
                 selectedDates={selectedDates}
                 defaultLabel={defaultLabel}
                 cardRef={index === routes.length - 1 ? lastCardRef : undefined}
+                isLast={index === routes.length - 1}
               />
             </div>
             {/* Arrow between cards - show for all except the last card */}
             {index < routes.length - 1 && (
               <div className="flex items-center justify-center px-2 py-8">
-                <span className="text-white text-lg font-bold" style={{ fontSize: '18px', fontWeight: '300' }}>→</span>
+                <span className="text-white text-lg font-bold opacity-60" style={{ fontSize: '18px', fontWeight: '300' }}>→</span>
               </div>
             )}
           </React.Fragment>
@@ -528,11 +529,13 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     <div className="space-y-12 relative">
       {/* Timeline line - from input field center to last card center */}
       {/* Input field and toggle button container */}
-      <div className="flex items-start gap-3">
+      <div className="flex items-end gap-3">
         {/* Input field and badges */}
         <div className="relative w-[55%]" ref={dropdownRef}>
+          {/* Label above Add route input */}
+          <div className="mb-1 text-white text-sm font-medium">Add route</div>
           {/* Custom input container with badges - offset to avoid timeline overlap */}
-          <div ref={inputFieldRef} className="relative min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white/80 focus-within:border-blue-500 focus-within:ring-0 w-full">
+          <div ref={inputFieldRef} className="relative min-h-[3rem] px-4 py-3 rounded-lg backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] focus-within:ring-0 w-full">
                           {/* Airport badges - showing only available airports (not in routes) */}
               <div className="flex flex-wrap gap-2 items-center w-full">
                 {AIRPORTS.filter(airport => !routes.some(route => route.airport.code === airport.code)).map((airport) => {
@@ -541,7 +544,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                   return (
                     <span 
                       key={airport.code} 
-                      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all cursor-pointer bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 hover:text-gray-600 relative group"
+                      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all cursor-pointer bg-gray-50 text-gray-500 border border-gray-400 hover:border-gray-500 hover:bg-gray-100 hover:text-gray-600 relative group"
                       onClick={() => handleBadgeClick(airport, false)}
                       title={`${airport.name}, ${airport.city}, ${airport.country}`}
                     >
@@ -579,42 +582,31 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
               )}
               {/* Show message if all airports are selected */}
               {AIRPORTS.every(airport => routes.some(route => route.airport.code === airport.code)) && !searchTerm && (
-                <span className="text-gray-300 text-sm select-none">All airports have been selected</span>
+                <span className="text-gray-500 text-sm font-semibold select-none">All airports have been selected</span>
               )}
             </div>
           </div>
           
-          {/* Label - adjusted for offset container */}
-          <label 
-            htmlFor="airport-search" 
-            className="absolute -top-2.5 px-2 text-sm font-medium text-white left-3"
-            style={{ backgroundColor: '#1E1E1E' }}
-          >
-            Add route
-          </label>
+          {/* Former inline label removed; now rendered above input */}
         </div>
         
         {/* Date picker input field - styled like add route input field */}
-        <div className="relative w-[45%] flex items-center gap-3">
+        <div className="relative w-[45%] flex items-end gap-3">
           {/* Date input + centered dropdown wrapper */}
           <div className="relative flex-1">
+            {/* Label above Add date input */}
+            <div className="mb-1 text-white text-sm font-medium">Add date</div>
             {/* Custom input container for date picker */}
-            <div className="relative min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white/80 focus-within:border-blue-500 focus-within:ring-0 w-full cursor-pointer" onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}>
+            <div className="relative min-h-[3rem] px-4 py-3 rounded-lg backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] focus-within:ring-0 w-full cursor-pointer" onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}>
               {/* Date display */}
               <div className="flex items-center w-full">
                 <CalendarIcon className="w-4 h-4 text-gray-400 mr-2" />
-                <span className="text-gray-900 text-sm">
+                <span className="text-gray-500 text-sm font-semibold">
                   {dates.length === 2 ? `${dates[0]} to ${dates[1]}` : dates.length === 1 ? dates[0] : 'Select date'}
                 </span>
               </div>
             </div>
-            {/* Label for date picker */}
-            <label 
-              className="absolute -top-2.5 px-2 text-sm font-medium text-white left-3"
-              style={{ backgroundColor: '#1E1E1E' }}
-            >
-              Add date
-            </label>
+            {/* Former inline label removed; now rendered above input */}
             {/* Date Picker Dropdown - centered to input */}
             {isDatePickerOpen && (
               <div className="absolute left-1/2 -translate-x-1/2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 top-full mt-1" style={{ width: '400px' }}>
@@ -636,9 +628,9 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
 
           {/* Generate flights button moved here */}
           <button
-            className={`h-10 px-4 rounded-full transition-colors flex items-center justify-center w-[240px] ${
+            className={`h-12 px-4 rounded-tl-[0px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px] transition-colors flex items-center justify-center w-[240px] ${
               routes.length >= 2 
-                ? 'bg-black text-white hover:bg-gray-800' 
+                ? 'bg-blue-600 text-white hover:bg-blue-700' 
                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
             }`}
             disabled={routes.length < 2}

@@ -79,22 +79,22 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               className="absolute left-0 top-0 bottom-0 w-[120px] z-0"
               onMouseEnter={(e) => {
                 if (onPromptHover) {
-                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  onPromptHover(true, 'flight-journey-bar', { themeColor, area: 'logo' }, { x: e.clientX, y: e.clientY });
                 }
               }}
               onMouseLeave={(e) => {
                 if (onPromptHover) {
-                  onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  onPromptHover(false, 'flight-journey-bar', { themeColor, area: 'logo' }, { x: e.clientX, y: e.clientY });
                 }
               }}
               onMouseMove={(e) => {
                 if (onPromptHover) {
-                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  onPromptHover(true, 'flight-journey-bar', { themeColor, area: 'logo' }, { x: e.clientX, y: e.clientY });
                 }
               }}
               onClick={(e) => {
                 if (onPromptClick) {
-                  onPromptClick('flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  onPromptClick('flight-journey-bar', { themeColor, area: 'logo' }, { x: e.clientX, y: e.clientY });
                 }
               }}
             />

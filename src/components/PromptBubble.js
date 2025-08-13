@@ -618,23 +618,17 @@ export default function PromptBubble({
                     type="button"
                     data-chip={chip.id}
                     onClick={() => handleChipClick(chip.label)}
-                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium transition-all cursor-pointer border"
+                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs transition-all cursor-pointer border ${isSelected ? 'border-2 font-bold' : 'font-medium'}`}
                     style={{
-                      backgroundColor: isSelected ? '#10B981' : `${chip.color}20`,
-                      borderColor: isSelected ? '#10B981' : onBorder20,
-                      color: isSelected ? '#FFFFFF' : onText70,
-                      transform: isSelected ? 'scale(0.9)' : 'scale(1)',
-                      boxShadow: isSelected ? '0 4px 8px rgba(16, 185, 129, 0.4)' : 'none'
+                      backgroundColor: `${chip.color}10`,
+                      borderColor: onBorder20,
+                      color: onText70
                     }}
                     onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.target.style.backgroundColor = `${chip.color}40`;
-                      }
+                      e.target.style.backgroundColor = `${chip.color}25`;
                     }}
                     onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.target.style.backgroundColor = `${chip.color}20`;
-                      }
+                      e.target.style.backgroundColor = `${chip.color}10`;
                     }}
                   >
                     {chip.label}

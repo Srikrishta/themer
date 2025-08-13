@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
+import { getReadableOnColor } from '../utils/color';
 import FlightJourneyBar from './FlightJourneyBar';
 import FlightProgress from './FlightProgress';
 import Component3Cards from './Component3Cards';
@@ -308,7 +309,7 @@ export default function LandingPage() {
   console.log('LandingPage - minutesLeft:', minutesLeft, 'landingIn:', landingIn);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen" style={{ backgroundColor: '#E9EFF5' }}>
       {/* Header */}
       <header className="absolute inset-x-0 top-0 z-50">
         <nav className="flex items-center justify-between p-6 lg:px-8">
@@ -339,17 +340,28 @@ export default function LandingPage() {
                       console.log('=== NAVIGATING TO DASHBOARD ===');
                       navigate('/dashboard');
                     }}
-                    className="bg-black cursor-pointer transition-all duration-200 themer-animated-border"
+                    className="shadow-md cursor-pointer transition-all duration-200 hover:opacity-90"
                     style={{
                       width: '200px',
                       height: '48px',
-                      borderRadius: '100px',
+                      borderTopLeftRadius: '0px',
+                      borderTopRightRadius: '24px',
+                      borderBottomLeftRadius: '24px',
+                      borderBottomRightRadius: '24px',
+                      ...(typeof mockThemeColor === 'string' && mockThemeColor.includes('gradient')
+                        ? { background: mockThemeColor }
+                        : { backgroundColor: mockThemeColor }),
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}
                   >
-                    <span className="text-lg font-semibold text-white">Create</span>
+                    <span
+                      className="text-lg font-semibold"
+                      style={{ color: getReadableOnColor(mockThemeColor) }}
+                    >
+                      Build themes
+                    </span>
                   </div>
                 </div>
               </div>

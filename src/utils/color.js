@@ -38,16 +38,26 @@ function extractFirstHexFromGradient(input) {
   return hexMatch ? `#${hexMatch[1]}` : null;
 }
 
+function normalizeHex(input) {
+  if (typeof input !== 'string') return null;
+  // Expand 3-digit hex to 6-digit
+  const short = input.match(/^#([0-9a-fA-F]{3})$/);
+  if (short) {
+    const s = short[1];
+    return `#${s[0]}${s[0]}${s[1]}${s[1]}${s[2]}${s[2]}`;
+  }
+  const long = input.match(/^#([0-9a-fA-F]{6})$/);
+  return long ? `#${long[1]}` : null;
+}
+
 export function getReadableOnColor(background) {
   if (!background || typeof background !== 'string') return '#000000';
 
   // Handle gradients by sampling the first hex stop
-  const bgHex = background.includes('gradient')
+  const bgCandidate = background.includes('gradient')
     ? extractFirstHexFromGradient(background) || '#ffffff'
     : background;
-
-  // Fallback if not a hex
-  if (!/^#([0-9a-fA-F]{6})$/.test(bgHex)) return '#000000';
+  const bgHex = normalizeHex(bgCandidate) || '#ffffff';
 
   const bgArgb = argbFromHex(bgHex);
   const cWhite = contrastRatioFromArgb(bgArgb, WHITE_ARGB);
