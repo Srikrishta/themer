@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { getReadableOnColor } from '../utils/color';
 import ThemeCreator from './ThemeCreator';
 import FlightJourneyBar from './FlightJourneyBar';
 import FlightProgress from './FlightProgress';
@@ -14,7 +15,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted }) {
   return (
     <div style={{ position: 'relative', zIndex: 2, width: 1302, margin: '92px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
       <div
@@ -79,6 +80,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         isPromptMode={isPromptMode}
         onPromptHover={onPromptHover}
         onPromptClick={onPromptClick}
+        isThemeBuildStarted={isThemeBuildStarted}
       />
       
       {/* Recommended for you section */}
@@ -86,13 +88,13 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         className="flex flex-col items-start"
         style={{ width: '1302px', gap: '24px' }}
       >
-        <p className="block text-left text-black font-bold" style={{ fontSize: '28px', lineHeight: '36px', margin: 0 }}>
+        <p className={`block text-left font-bold ${!isThemeBuildStarted ? 'text-black/60' : 'text-black'}`} style={{ fontSize: '28px', lineHeight: '36px', margin: 0 }}>
           Recommended for you
         </p>
         
         {/* 4 Recommended Tiles */}
         <div className="grid grid-cols-4 gap-6" style={{ width: '100%' }}>
-          {routes.length === 0 ? (
+          {!isThemeBuildStarted ? (
             // Skeleton tiles when no routes added
             <>
               {[0, 1, 2, 3].map((i) => (
@@ -182,6 +184,8 @@ export default function Dashboard() {
   const minimizeThemeCreator = location.state?.minimizeThemeCreator;
   // Lifted state for routes
   const [routes, setRoutes] = useState([]);
+  // Track if user has started building theme (enables 3PCs content and PB)
+  const [isThemeBuildStarted, setIsThemeBuildStarted] = useState(false);
   // NEW: State for selected segment (color card)
   const [selectedSegment, setSelectedSegment] = useState(null);
   // NEW: State for current theme color
@@ -231,6 +235,8 @@ export default function Dashboard() {
         ? getLuminance(parseHex(currentThemeColor)) < 0.5
         : true);
   const hoverBorderColor = hoverUseLightText ? 'rgba(255, 255, 255, 0.35)' : 'rgba(0, 0, 0, 0.35)';
+  // Material-based readable on-color for text/icons over currentThemeColor
+  const hoverOnColor = getReadableOnColor(currentThemeColor);
   
   // Removed scroll-collapsed header behavior
 
@@ -461,6 +467,7 @@ export default function Dashboard() {
           isPromptMode={isPromptMode}
           activeSegmentId={activeSegmentId}
           onExposeThemeChips={(chips) => setFjbThemeChips(chips || [])}
+          onStartThemeBuild={() => setIsThemeBuildStarted(true)}
         />
       </div>
       
@@ -519,13 +526,13 @@ export default function Dashboard() {
                 e.stopPropagation();
                 handlePromptClick('flight-journey-bar', { themeColor: currentThemeColor }, { x: fjbHoverTip.x, y: fjbHoverTip.y });
               }}
-              className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white"
+              className="w-6 h-6 rounded-full border-2 flex items-center justify-center"
               title="Add theme"
-              style={{ pointerEvents: 'auto' }}
+              style={{ pointerEvents: 'auto', borderColor: hoverOnColor, color: hoverOnColor }}
             >
               +
             </button>
-            <span className="text-white text-xs font-bold">Add theme</span>
+            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Add theme</span>
           </div>
         </div>
       )}
@@ -563,13 +570,13 @@ export default function Dashboard() {
                 } catch {}
                 handlePromptClick('flight-icon', { progress, minutesLeft }, { x: fpsHoverTip.x, y: fpsHoverTip.y });
               }}
-              className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white"
+              className="w-6 h-6 rounded-full border-2 flex items-center justify-center"
               title="Add flight phase"
-              style={{ pointerEvents: 'auto' }}
+              style={{ pointerEvents: 'auto', borderColor: hoverOnColor, color: hoverOnColor }}
             >
               +
             </button>
-            <span className="text-white text-xs font-bold">Add flight phase</span>
+            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Add flight phase</span>
           </div>
         </div>
       )}
@@ -597,13 +604,13 @@ export default function Dashboard() {
                 const ed = pcHoverTip.elementData || { cardIndex: 0, cardType: 'meal' };
                 handlePromptClick('promo-card', ed, { x: pcHoverTip.x, y: pcHoverTip.y });
               }}
-              className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white"
+              className="w-6 h-6 rounded-full border-2 flex items-center justify-center"
               title="Edit promo card"
-              style={{ pointerEvents: 'auto' }}
+              style={{ pointerEvents: 'auto', borderColor: hoverOnColor, color: hoverOnColor }}
             >
               +
             </button>
-            <span className="text-white text-xs font-bold">Edit promo card</span>
+            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Edit promo card</span>
           </div>
         </div>
       )}
@@ -629,7 +636,7 @@ export default function Dashboard() {
             onPromptHover={handlePromptHover}
             onPromptClick={handlePromptClick}
             fpsPrompts={fpsPrompts}
-
+            isThemeBuildStarted={isThemeBuildStarted}
           />
         </div>
       </div>

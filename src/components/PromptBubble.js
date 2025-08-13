@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { XMarkIcon, PaperAirplaneIcon, PlusIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { HexColorPicker } from 'react-colorful';
+import { getReadableOnColor } from '../utils/color';
 
 export default function PromptBubble({ 
   isVisible, 
@@ -71,6 +72,16 @@ export default function PromptBubble({
 
   // Choose a contrasting border color so the bubble edge is always visible
   const contrastingBorderColor = useLightText ? 'rgba(255, 255, 255, 0.35)' : 'rgba(0, 0, 0, 0.35)';
+  // Compute Material readable on-color for chip borders/text
+  const onHex = getReadableOnColor(themeColor);
+  const onRgb = (() => {
+    const { r, g, b } = parseHex(onHex);
+    return { r, g, b };
+  })();
+  const onText70 = `rgba(${onRgb.r}, ${onRgb.g}, ${onRgb.b}, 0.7)`;
+  const onBorder20 = `rgba(${onRgb.r}, ${onRgb.g}, ${onRgb.b}, 0.2)`;
+  // Bubble width (wider for FJB to accommodate more chips)
+  const bubbleWidth = elementType === 'flight-journey-bar' ? 360 : 250;
 
   // Flight phase chips for FPS
   const flightPhaseChips = [
@@ -185,7 +196,7 @@ export default function PromptBubble({
       const viewportY = stickyPosition.y - scrollY;
       
       // Position bubble at the pointer with minimal clamping (no offsets)
-      const finalX = Math.max(4, Math.min(viewportX, window.innerWidth - 260));
+      const finalX = Math.max(4, Math.min(viewportX, window.innerWidth - (bubbleWidth + 10)));
       const finalY = Math.max(4, Math.min(viewportY, window.innerHeight - 200));
       
       console.log('=== PROMPT BUBBLE SCROLL POSITION ===', {
@@ -546,8 +557,8 @@ export default function PromptBubble({
         borderTopRightRadius: '24px',
         borderBottomLeftRadius: '24px',
         borderBottomRightRadius: '24px',
-        width: '250px',
-        maxWidth: '250px'
+        width: `${bubbleWidth}px`,
+        maxWidth: `${bubbleWidth}px`
       }}
     >
       {/* Header */}
@@ -610,8 +621,8 @@ export default function PromptBubble({
                     className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium transition-all cursor-pointer border"
                     style={{
                       backgroundColor: isSelected ? '#10B981' : `${chip.color}20`,
-                      borderColor: isSelected ? '#10B981' : chip.color,
-                      color: isSelected ? 'white' : (positionKey === 'middle-card-landing' || positionKey === 'fjb-landing' ? '#FFFFFF' : elementType === 'promo-card' ? '#000000' : '#FFFFFF'),
+                      borderColor: isSelected ? '#10B981' : onBorder20,
+                      color: isSelected ? '#FFFFFF' : onText70,
                       transform: isSelected ? 'scale(0.9)' : 'scale(1)',
                       boxShadow: isSelected ? '0 4px 8px rgba(16, 185, 129, 0.4)' : 'none'
                     }}
@@ -635,65 +646,53 @@ export default function PromptBubble({
           )}
         </div>
         
-        {/* Button Row - Show for promo cards (PCs) and flight journey bar (FJB) */}
-        {(elementType === 'promo-card' || elementType === 'flight-journey-bar') && (
-          <div className="flex items-center gap-3 justify-end">
-            {/* Color chips for FJB */}
-            {elementType === 'flight-journey-bar' && (
-              <div className="flex flex-wrap gap-2 flex-1">
-                {(themeChips && themeChips.length > 0
-                  ? themeChips
-                  : [
-                      { label: 'Default', color: '#1E1E1E' },
-                      { label: 'Milan Theme', color: '#EF4444' },
-                      { label: 'Time of the Day', color: '#F59E0B' }
-                    ]
-                ).map((chip, idx) => {
-                  const chipColor = typeof chip === 'object' ? chip.color : String(chip);
-                  const label = typeof chip === 'object'
-                    ? chip.label
-                    : (String(chipColor).includes('gradient') ? 'Gradient' : String(chipColor));
-                  const isGrad = String(chipColor).includes('gradient');
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => handleColorChange(chipColor)}
-                      className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors`}
-                      title={label}
-                    >
-                      <div className="flex items-center gap-2 px-2 py-1 border border-white/20 rounded-full">
-                        <div
-                          className="w-4 h-4 rounded-full border"
-                          style={{
-                            background: isGrad ? chipColor : undefined,
-                            backgroundColor: isGrad ? undefined : chipColor,
-                            borderColor: 'rgba(255,255,255,0.3)'
-                          }}
-                        />
-                        <span className={`text-xs font-mono font-bold ${useLightText ? 'text-white/70' : 'text-black/70'}`}>{label}</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            
-            <button
-              type="button"
-              onClick={() => {
-                if (elementType === 'flight-journey-bar') {
-                  setShowColorPicker(!showColorPicker);
-                } else {
-                  // Handle image upload functionality
-                  console.log('Image upload clicked');
-                  // TODO: Implement image upload logic
-                }
-              }}
-              className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors flex-shrink-0`}
-            >
-              {elementType === 'flight-journey-bar' ? (
-                <div className="flex items-center gap-2 px-2 py-1 border border-white/20 rounded-full">
+        {/* Actions for promo cards and flight journey bar */}
+        {elementType === 'flight-journey-bar' && (
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap gap-2">
+              {(themeChips && themeChips.length > 0
+                ? themeChips
+                : [
+                    { label: 'Default', color: '#1E1E1E' },
+                    { label: 'Milan Theme', color: '#EF4444' },
+                    { label: 'Time of the Day', color: '#F59E0B' }
+                  ]
+              ).map((chip, idx) => {
+                const chipColor = typeof chip === 'object' ? chip.color : String(chip);
+                const label = typeof chip === 'object'
+                  ? chip.label
+                  : (String(chipColor).includes('gradient') ? 'Gradient' : String(chipColor));
+                const isGrad = String(chipColor).includes('gradient');
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleColorChange(chipColor)}
+                    className={`transition-colors`}
+                    title={label}
+                  >
+                    <div className="flex items-center gap-2 px-2 py-1 border rounded-full max-w-full" style={{ borderColor: onBorder20 }}>
+                      <div
+                        className="w-4 h-4 rounded-full border flex-shrink-0"
+                        style={{
+                          background: isGrad ? chipColor : undefined,
+                          backgroundColor: isGrad ? undefined : chipColor,
+                          borderColor: onBorder20
+                        }}
+                      />
+                      <span className={`text-xs font-mono font-bold break-words`} style={{ color: onText70 }}>{label}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowColorPicker(!showColorPicker)}
+                className={`transition-colors flex-shrink-0`}
+              >
+                <div className="flex items-center gap-2 px-2 py-1 border rounded-full" style={{ borderColor: onBorder20 }}>
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                     <defs>
                       <radialGradient id="colorWheelGradient" cx="50%" cy="50%" r="50%">
@@ -714,13 +713,35 @@ export default function PromptBubble({
                     <circle cx="12" cy="12" r="10" fill="url(#colorWheelSpectrum)" stroke="#333" strokeWidth="0.5"/>
                     <circle cx="12" cy="12" r="3" fill="url(#colorWheelGradient)"/>
                   </svg>
-                  <span className={`text-xs font-mono font-bold ${useLightText ? 'text-white/70' : 'text-black/70'}`}>{selectedColor}</span>
+                  <span className={`text-xs font-mono font-bold`} style={{ color: onText70 }}>{selectedColor}</span>
                 </div>
-              ) : (
-                <PhotoIcon className="w-4 h-4" />
-              )}
+              </button>
+              <button
+                type="submit"
+                disabled={!promptText.trim() || isLoading}
+                className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0`}
+                style={{
+                  color: useLightText ? '#FFFFFF' : 'rgba(0, 0, 0, 0.7)'
+                }}
+              >
+                <PaperAirplaneIcon className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {elementType === 'promo-card' && (
+          <div className="flex items-center gap-3 justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                // Image upload placeholder for promo-card
+                console.log('Image upload clicked');
+              }}
+              className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors flex-shrink-0`}
+            >
+              <PhotoIcon className="w-4 h-4" />
             </button>
-            
             <button
               type="submit"
               disabled={!promptText.trim() || isLoading}

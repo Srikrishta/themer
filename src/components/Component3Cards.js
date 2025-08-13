@@ -1,3 +1,4 @@
+import { getReadableOnColor } from '../utils/color';
 const imgAddAnImageOfShoppingForAutumn = "http://localhost:3845/assets/1266af881a7ac302ff4354e6e0ba4679fe254e8e.png";
 const img = "http://localhost:3845/assets/2fdc952022798f520df8d037b66e1f103b6d7faa.png";
 const img1 = "http://localhost:3845/assets/8d7d40ef4f429a13e10999470feaad2d251c67ed.png";
@@ -5,7 +6,7 @@ const imgAutumnMeal = "http://localhost:3845/assets/67867be324b149fdbc2f5cc31419
 const imgAddAnAutumnMovie = "http://localhost:3845/assets/8ea70f2052f6ce510170e999f000793ea6f8a1cb.png";
 const img2 = "http://localhost:3845/assets/1bd3170f3986d13a6502916089cd682ffee55e02.svg";
 
-export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], isPromptMode = false, onPromptHover, onPromptClick, promptStates = {}, animationProgress = 0, cruiseLabelShown = false, middleCardPromptClosed = false }) {
+export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], isPromptMode = false, onPromptHover, onPromptClick, promptStates = {}, animationProgress = 0, cruiseLabelShown = false, middleCardPromptClosed = false, isThemeBuildStarted = true }) {
   console.log('=== COMPONENT3CARDS RENDER ===', { 
     isPromptMode, 
     cruiseLabelShown, 
@@ -26,7 +27,8 @@ export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], i
   );
 
   // Show skeletons only when not in prompt mode; in prompt mode, render interactive cards for hover/click
-  const showAllSkeletons = routes.length < 2 && !isPromptMode; // Keep skeletons until 2+ routes unless prompting
+  // Stay skeleton until Build theme clicked, but allow prompt mode to render interactive PB wrappers
+  const showAllSkeletons = ((!isThemeBuildStarted && !isPromptMode) || (routes.length < 2 && !isPromptMode));
 
   // Determine card content based on animation progress and cruise label state
   const getCardContent = (cardIndex) => {
@@ -96,6 +98,9 @@ export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], i
       return { text: "Add title", bgColor: themeColor };
     }
   };
+
+  // Compute readable text/icon color for themed backgrounds
+  const onColor = getReadableOnColor(themeColor);
 
   return (
     <div
@@ -178,7 +183,7 @@ export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], i
                      fontSize: '28px', 
                      lineHeight: '36px', 
                      margin: 0,
-                     color: getCardContent(0).backgroundImage ? 'white' : 'white'
+                     color: getCardContent(0).backgroundImage ? 'white' : onColor
                    }}>
                   {getCardContent(0).text}
                 </p>
@@ -240,7 +245,7 @@ export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], i
                    fontSize: '28px', 
                    lineHeight: '36px', 
                    margin: 0,
-                   color: getCardContent(1).backgroundImage ? 'white' : 'white'
+                   color: getCardContent(1).backgroundImage ? 'white' : onColor
                  }}>
                 {getCardContent(1).text}
               </p>
@@ -288,7 +293,7 @@ export default function Component3Cards({ themeColor = '#1E1E1E', routes = [], i
                    fontSize: '28px', 
                    lineHeight: '36px', 
                    margin: 0,
-                   color: getCardContent(2).backgroundImage ? 'white' : 'white'
+                   color: getCardContent(2).backgroundImage ? 'white' : onColor
                  }}>
                 {getCardContent(2).text}
               </p>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CalendarIcon, ChevronDownIcon, ChevronUpIcon, ChevronLeftIcon, ChevronRightIcon, ViewColumnsIcon, PlusIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { CalendarIcon, ChevronDownIcon, ChevronUpIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon, PencilIcon } from '@heroicons/react/24/outline';
 import AirportSearch from './AirportSearch';
 import DatePicker from './DatePicker';
 import festivalsData from '../data/festivals.json';
@@ -8,7 +8,7 @@ import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useNavigate } from 'react-router-dom';
 
-export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips }) {
+export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips, onStartThemeBuild }) {
   const navigate = useNavigate();
   const DEFAULT_THEME_COLOR = '#1E1E1E';
   // Get current date in Berlin timezone for initial state
@@ -33,16 +33,17 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
 
   // NEW: Theme creation state
   const [isCreatingThemes, setIsCreatingThemes] = useState(initialFlightCreationMode || false);
+  const [hasStartedThemeBuild, setHasStartedThemeBuild] = useState(false);
   
-  // Minimize/maximize state
-  const [isMinimized, setIsMinimized] = useState(initialMinimized || false);
+  // Minimize/maximize state removed; always expanded
+  const [isMinimized, setIsMinimized] = useState(false);
 
   // Notify parent when minimized state or flight creation state changes
   useEffect(() => {
     if (typeof onStateChange === 'function') {
-      onStateChange(isMinimized, isCreatingThemes);
+      onStateChange(false, isCreatingThemes);
     }
-  }, [isMinimized, isCreatingThemes, onStateChange]);
+  }, [isCreatingThemes, onStateChange]);
 
   // Refs
   const datePickerRef = useRef(null);
@@ -54,7 +55,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
 
   // Add after isMinimized state
   const IFE_FRAME_WIDTH = 1400;
-  const [containerWidth, setContainerWidth] = useState(initialWidth || 480); // px
+  const [containerWidth, setContainerWidth] = useState(480); // px
   const minWidth = 318;
   const maxWidth = 480;
 
@@ -65,6 +66,29 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
 
   // Active color card state
   const [activeFlightIndex, setActiveFlightIndex] = useState(null);
+
+  // Helper to get festival for a city and selected dates (shared)
+  const getFestivalForCityAndDate = (city, selectedDates) => {
+    if (!selectedDates || selectedDates.length === 0) return null;
+    const results = [];
+    selectedDates.forEach(dateString => {
+      const [year, month, day] = dateString.split('-');
+      const monthName = new Date(year, month - 1, day).toLocaleString('en-US', { month: 'long' }).toLowerCase();
+      const dayOfMonth = parseInt(day, 10);
+      const monthFestivals = festivalsData[monthName];
+      if (monthFestivals) {
+        monthFestivals.forEach(festival => {
+          // Match city (case-insensitive, ignore emoji/flag)
+          if (festival.location.toLowerCase().includes((city || '').toLowerCase())) {
+            if (dayOfMonth >= festival.startDay && dayOfMonth <= festival.endDay) {
+              results.push(festival);
+            }
+          }
+        });
+      }
+    });
+    return results.length > 0 ? results[0] : null;
+  };
 
   // Function to calculate dropdown position
   const calculateDropdownPosition = () => {
@@ -217,8 +241,26 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
   // NEW: Handle create flight themes button click
   const handleCreateFlightThemes = () => {
     setIsCreatingThemes(true);
+    setHasStartedThemeBuild(true);
     setIsDatePickerOpen(false);
     setInputValue('');
+    try {
+      // If we have at least two routes, expose chips including festival (if any)
+      const segments = generateFlightSegments();
+      if (segments.length > 0) {
+        const currentSeg = segments[0];
+        const destCity = currentSeg?.destination?.airport?.city;
+        const festival = getFestivalForCityAndDate(destCity, dates);
+        const chips = [
+          { label: 'Default', color: '#1E1E1E' },
+          { label: `${destCity || 'City'} Theme`, color: '#EF4444' },
+          ...(festival ? [{ label: festival.name, color: festival.color || '#10B981' }] : []),
+          { label: 'Time of the Day', color: '#F59E0B' }
+        ];
+        if (typeof onExposeThemeChips === 'function') onExposeThemeChips(chips);
+        if (typeof onStartThemeBuild === 'function') onStartThemeBuild(true);
+      }
+    } catch {}
   };
 
   // Listen for AirportSearch-local button to trigger generate flights
@@ -432,9 +474,12 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
       collect: monitor => ({ isDragging: monitor.isDragging() })
     });
 
+    const destinationCity = segment?.destination?.airport?.city;
+    const possibleFestival = getFestivalForCityAndDate(destinationCity, dates);
     const themeOptions = [
       { id: 0, name: 'Default', color: '#1E1E1E' },
       { id: 1, name: `${segment.destination.airport.city} Theme`, color: '#EF4444' },
+      ...(possibleFestival ? [{ id: 2, name: possibleFestival.name, color: possibleFestival.color || '#10B981' }] : []),
       { id: 3, name: 'Time of the Day', color: '#F59E0B' }
     ];
     const selectedTheme = themeOptions.find(t => t.id === selectedThemeId);
@@ -446,19 +491,17 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
       <div
         ref={ref}
         data-handler-id={handlerId}
-        className={`bg-white p-4 rounded-full border shadow-sm transition-all cursor-move w-full ${
-          activeFlightIndex === index ? 'border-blue-300 shadow-lg' : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+        className={`bg-white/80 p-4 rounded-full border shadow-sm transition-all cursor-move w-full ${
+          activeFlightIndex === index 
+            ? 'border-blue-500 ring-2 ring-blue-400/50 shadow-lg bg-blue-50' 
+            : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
         }`}
         style={{ opacity: isDragging ? 0.5 : 1, minWidth: 0 }}
         onClick={() => {
           onSelect(index, segment);
           try {
             if (typeof onExposeThemeChips === 'function') {
-              const chips = [
-                { label: 'Default', color: '#1E1E1E' },
-                { label: `${segment.destination.airport.city} Theme`, color: '#EF4444' },
-                { label: 'Time of the Day', color: '#F59E0B' }
-              ];
+              const chips = themeOptions.map(t => ({ label: t.name, color: t.color }));
               onExposeThemeChips(chips);
             }
           } catch {}
@@ -778,19 +821,18 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
   return (
     <div 
       ref={containerRef}
-      className={`p-10 border border-gray-200 ${isMinimized ? 'min-h-0 themer-animated-border' : ''}`}
+      className={`p-10 border border-gray-200`}
       style={{
-        width: isMinimized ? `${containerWidth}px` : '100%',
-        minWidth: isMinimized ? `${minWidth}px` : '100%',
-        maxWidth: isMinimized ? `${maxWidth}px` : '100%',
-        height: isMinimized ? '48px' : (routes.length === 0 ? '240px' : '380px'),
-        minHeight: isMinimized ? '48px' : (routes.length === 0 ? '240px' : '380px'),
-        maxHeight: isMinimized ? '48px' : 'none',
+        width: '100%',
+        minWidth: '100%',
+        maxWidth: '100%',
+        height: routes.length === 0 ? '240px' : '380px',
+        minHeight: routes.length === 0 ? '240px' : '380px',
+        maxHeight: 'none',
         transition: 'width 0.2s, height 0.2s',
-        padding: isMinimized && containerWidth === minWidth ? '16px 24px' : undefined,
-        paddingLeft: !isMinimized ? '170px' : (containerWidth === minWidth ? '24px' : undefined),
-        paddingRight: !isMinimized ? '170px' : (containerWidth === minWidth ? '24px' : undefined),
-        backgroundColor: isMinimized ? 'white' : DEFAULT_THEME_COLOR,
+        paddingLeft: '170px',
+        paddingRight: '170px',
+        backgroundColor: DEFAULT_THEME_COLOR,
         borderRadius: undefined,
         marginTop: isInHeader ? '0' : '0px',
         overflow: 'visible',
@@ -800,28 +842,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
       }}
     >
 
-      {/* Toggle Icon - Positioned based on state */}
-      {!(isMinimized && containerWidth === minWidth) && (
-        <button
-          className={`absolute top-4 p-1 rounded-full hover:bg-gray-100 transition-colors z-10 ${
-            isMinimized ? 'right-2' : 'right-4'
-          }`}
-          onClick={e => {
-            e.stopPropagation();
-            setIsMinimized(!isMinimized);
-            if (!isMinimized) {
-              setIsDatePickerOpen(false);
-              setInputValue('');
-              setIsTyping(false);
-              setContainerWidth(minWidth); // Always set to minWidth (318px) when minimizing
-            }
-          }}
-          title={isMinimized ? "Expand" : "Collapse"}
-          style={{ zIndex: 20, willChange: 'transform', transform: 'translateZ(0)', WebkitBackfaceVisibility: 'hidden', backfaceVisibility: 'hidden' }}
-        >
-          <ViewColumnsIcon className="w-5 h-5 text-gray-500" />
-        </button>
-      )}
+      {/* Collapse/expand icon removed */}
 
       {/* Logo above flights view */}
       {isCreatingThemes && !isMinimized && (
@@ -857,26 +878,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                 {routes.length === 0 ? 'Create route' : 'Route creator'}
               </span>
               {routes.length > 0 && (
-                <button
-                  onClick={e => {
-                    e.stopPropagation();
-                    if (isMinimized && onExpand) {
-                      onExpand();
-                    } else {
-                      setIsMinimized(!isMinimized);
-                      if (!isMinimized) {
-                        setIsDatePickerOpen(false);
-                        setInputValue('');
-                        setIsTyping(false);
-                        setContainerWidth(minWidth);
-                      }
-                    }
-                  }}
-                  className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                  title="Expand"
-                >
-                  <ViewColumnsIcon className="w-5 h-5 text-gray-500" />
-                </button>
+                <div></div>
               )}
             </div>
           ) : (
@@ -973,6 +975,10 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                 if (flightSegments.length > 0 && activeFlightIndex >= 0 && activeFlightIndex < flightSegments.length) {
                   const currentSegment = flightSegments[activeFlightIndex];
                   console.log(`Entering prompt mode for ${currentSegment?.origin?.airport?.city || 'Unknown'} → ${currentSegment?.destination?.airport?.city || 'Unknown'}`);
+                  // Mark theme build as started for dashboard (enables full UI opacity and content)
+                  if (typeof onStartThemeBuild === 'function') {
+                    onStartThemeBuild(true);
+                  }
                   if (typeof onEnterPromptMode === 'function') {
                     onEnterPromptMode(currentSegment.id);
                   }
@@ -1010,6 +1016,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                 usedAirports={routes.map(r => r.airport.code)}
                 selectedRegion={selectedRegion}
                 selectedDates={dates}
+                onSelectedDatesChange={(newDates) => setDates(newDates)}
                 onRemoveRoute={(index) => {
                   const newRoutes = [...routes];
                   newRoutes.splice(index, 1);

@@ -1,6 +1,7 @@
 import './FlightProgress.css';
 import { useEffect, useRef, useState } from 'react';
 import PromptBubble from './PromptBubble';
+import { getReadableOnColor } from '../utils/color';
 
 function parseTime(str) {
   // Example: "LANDING IN 2H 55M"
@@ -24,6 +25,8 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
   const getElementColor = () => {
     return themeColor.includes('gradient') ? '#000000' : themeColor;
   };
+  // Readable on-color for text/icons over theme surfaces
+  const onColor = getReadableOnColor(themeColor);
   
   const barWidth = 1302;
   const [dragging, setDragging] = useState(false);
@@ -585,7 +588,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
       >
         {/* Inline SVG for flight icon */}
         <svg width="23" height="22" viewBox="0 0 23 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M5.38928 1.85868C4.90331 0.817318 6.26994 -0.0872904 7.0387 0.766884L14.2535 8.78446H18.2301C18.4449 8.7845 18.6582 8.81911 18.8619 8.887L21.7086 9.83524C22.62 10.1392 22.6198 11.4286 21.7086 11.7327L18.8619 12.6819C18.6582 12.7498 18.4448 12.7844 18.2301 12.7845H14.2535L7.0387 20.802C6.26994 21.6562 4.90331 20.7516 5.38928 19.7102L8.70081 12.6136L4.45764 11.7649C4.18241 11.7099 3.97824 11.5673 3.84436 11.3831L2.49866 15.2308C2.12666 16.2933 0.554321 16.0255 0.554321 14.8997V6.66825C0.554625 5.54267 2.12677 5.27563 2.49866 6.33817L3.84436 10.1849C3.97825 10.0009 4.18265 9.85899 4.45764 9.80399L8.70081 8.95438L5.38928 1.85868Z" fill="white"/>
+          <path d="M5.38928 1.85868C4.90331 0.817318 6.26994 -0.0872904 7.0387 0.766884L14.2535 8.78446H18.2301C18.4449 8.7845 18.6582 8.81911 18.8619 8.887L21.7086 9.83524C22.62 10.1392 22.6198 11.4286 21.7086 11.7327L18.8619 12.6819C18.6582 12.7498 18.4448 12.7844 18.2301 12.7845H14.2535L7.0387 20.802C6.26994 21.6562 4.90331 20.7516 5.38928 19.7102L8.70081 12.6136L4.45764 11.7649C4.18241 11.7099 3.97824 11.5673 3.84436 11.3831L2.49866 15.2308C2.12666 16.2933 0.554321 16.0255 0.554321 14.8997V6.66825C0.554625 5.54267 2.12677 5.27563 2.49866 6.33817L3.84436 10.1849C3.97825 10.0009 4.18265 9.85899 4.45764 9.80399L8.70081 8.95438L5.38928 1.85868Z" fill={onColor}/>
         </svg>
       </div>
       
@@ -797,7 +800,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
             position: 'absolute',
             left: `${barWidth * 0.05}px`, // 5% position
             top: '40px',
-            color: getElementColor(),
+            color: onColor,
             fontSize: '10px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
@@ -839,7 +842,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
             position: 'absolute',
             left: `${barWidth * 0.20}px`, // Fixed 20% position
             top: '40px', // Same spacing as Takeoff label
-            color: getElementColor(),
+            color: onColor,
             fontSize: '10px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
@@ -952,7 +955,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               position: 'absolute',
               left: `${promptLeft + 8}px`, // Fixed position based on original progress
               top: '40px',
-              color: themeColor,
+              color: onColor,
               fontSize: '10px',
               fontWeight: 'bold',
               textTransform: 'uppercase',

@@ -222,7 +222,7 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [], defau
         
         <div 
           ref={dragRef}
-          className={`bg-white p-4 rounded-full border shadow-sm transition-all cursor-grab active:cursor-grabbing hover:cursor-grab w-full ${
+          className={`bg-white/80 p-4 rounded-full border shadow-sm transition-all cursor-grab active:cursor-grabbing hover:cursor-grab w-full ${
             isDragging ? 'border-indigo-300 shadow-lg' : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
           }`}
         >
@@ -314,7 +314,7 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
   );
 }
 
-function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized }) {
+function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized, onSelectedDatesChange }) {
   // Date picker state and logic (moved from ThemeCreator)
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [dates, setDates] = useState(selectedDates || []);
@@ -342,23 +342,28 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     const currentDates = dates || [];
     if (fromTyping || isTyping) {
       setDates([dateString]);
+      if (onSelectedDatesChange) onSelectedDatesChange([dateString]);
       return;
     }
     if (currentDates.length === 0 || currentDates.includes(dateString)) {
       setDates([dateString]);
+      if (onSelectedDatesChange) onSelectedDatesChange([dateString]);
       return;
     }
     if (currentDates.length === 1) {
       const existingDate = new Date(currentDates[0] + 'T12:00:00');
       const newDate = new Date(dateString + 'T12:00:00');
       const sortedDates = [existingDate, newDate].sort((a, b) => a - b);
-      setDates([
+      const range = [
         dateToString(sortedDates[0]),
         dateToString(sortedDates[1])
-      ]);
+      ];
+      setDates(range);
+      if (onSelectedDatesChange) onSelectedDatesChange(range);
       return;
     }
     setDates([dateString]);
+    if (onSelectedDatesChange) onSelectedDatesChange([dateString]);
   };
 
   const handleInputChange = (value, navigateToDate) => {
@@ -520,14 +525,14 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
   }, [routes.length, inputFieldRef, isMinimized]); // <-- add isMinimized
 
   return (
-    <div className="space-y-8 relative">
+    <div className="space-y-12 relative">
       {/* Timeline line - from input field center to last card center */}
       {/* Input field and toggle button container */}
       <div className="flex items-start gap-3">
         {/* Input field and badges */}
         <div className="relative w-[55%]" ref={dropdownRef}>
           {/* Custom input container with badges - offset to avoid timeline overlap */}
-          <div ref={inputFieldRef} className="relative min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-0 w-full">
+          <div ref={inputFieldRef} className="relative min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white/80 focus-within:border-blue-500 focus-within:ring-0 w-full">
                           {/* Airport badges - showing only available airports (not in routes) */}
               <div className="flex flex-wrap gap-2 items-center w-full">
                 {AIRPORTS.filter(airport => !routes.some(route => route.airport.code === airport.code)).map((airport) => {
@@ -594,7 +599,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
           {/* Date input + centered dropdown wrapper */}
           <div className="relative flex-1">
             {/* Custom input container for date picker */}
-            <div className="relative min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-0 w-full cursor-pointer" onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}>
+            <div className="relative min-h-[3rem] px-4 py-3 border border-gray-300 rounded-lg bg-white/80 focus-within:border-blue-500 focus-within:ring-0 w-full cursor-pointer" onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}>
               {/* Date display */}
               <div className="flex items-center w-full">
                 <CalendarIcon className="w-4 h-4 text-gray-400 mr-2" />
