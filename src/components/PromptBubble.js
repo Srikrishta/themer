@@ -18,7 +18,8 @@ export default function PromptBubble({
   onVisibilityChange,
   onThemeColorChange,
   themeChips = [],
-  onLogoSelect
+  onLogoSelect,
+  flightsGenerated = false
 }) {
   console.log('=== PROMPT BUBBLE RENDER ===', {
     isVisible,
@@ -93,7 +94,8 @@ export default function PromptBubble({
     { id: 'climb', label: 'Climb', color: '#6B7280' },
     { id: 'cruise', label: 'Cruise', color: '#6B7280' },
     { id: 'descent', label: 'Descent', color: '#6B7280' },
-    { id: 'landing', label: 'Landing', color: '#6B7280' }
+    { id: 'landing', label: 'Landing', color: '#6B7280' },
+    { id: 'add-new', label: 'Add new', color: '#6B7280' }
   ];
   // Logo placeholder chips
   const logoChips = [
@@ -308,6 +310,11 @@ export default function PromptBubble({
     
     const usedPrompts = getUsedPrompts();
     const currentText = existingText.toLowerCase();
+    
+    // If flights are generated (showMovingIcon is true), show all chips as selected except "Add new"
+    if (flightsGenerated) {
+      return flightPhaseChips;
+    }
     
     return flightPhaseChips.filter(chip => {
       const chipLabel = chip.label.toLowerCase();
@@ -651,7 +658,10 @@ export default function PromptBubble({
           {elementType === 'flight-icon' && availableChips.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {availableChips.map((chip) => {
-                const isSelected = selectedChip === chip.id;
+                // Show all chips as selected when flights are generated, except "Add new"
+                const isSelected = flightsGenerated 
+                  ? chip.id !== 'add-new' 
+                  : selectedChip === chip.id;
                 return (
                   <button
                     key={chip.id}
@@ -745,7 +755,7 @@ export default function PromptBubble({
                           borderColor: onBorder20
                         }}
                       />
-                      <span className={`text-xs font-mono font-bold break-words`} style={{ color: onText70 }}>{label}</span>
+                      <span className={`text-xs font-medium break-words`} style={{ color: onText70 }}>{label}</span>
                     </div>
                   </button>
                 );

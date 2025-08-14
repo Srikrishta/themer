@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getReadableOnColor } from '../utils/color';
 import { createPortal } from 'react-dom';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import festivalsData from '../data/festivals.json';
@@ -20,7 +21,8 @@ const DatePicker = ({
   onInputChange,
   setCurrentDate,
   berlinToday,
-  onInputSubmit
+  onInputSubmit,
+  themeColor = '#1E1E1E'
 }) => {
   const [inputError, setInputError] = useState('');
   const [tooltip, setTooltip] = useState({
@@ -475,8 +477,10 @@ const DatePicker = ({
   const typedDate = findNearestDate(inputValue);
   const highlightDateString = typedDate ? dateToString(typedDate) : null;
 
+  const containerBg = themeColor || '#1E1E1E';
+  const containerText = getReadableOnColor(containerBg);
   return (
-    <div className="p-4">
+    <div className="p-4 rounded-lg" style={{ backgroundColor: containerBg, color: containerText }}>
       {/* Calendar Header */}
       <div className="flex items-center justify-between mb-4">
         <button 
@@ -486,9 +490,10 @@ const DatePicker = ({
           }}
           disabled={false}
           data-navigation="true"
-          className="hover:bg-gray-100 p-2 rounded bg-white cursor-pointer"
+          className="p-2 rounded cursor-pointer"
+          style={{ backgroundColor: 'transparent', color: containerText }}
         >
-          <ChevronLeftIcon className="w-5 h-5 text-gray-500" />
+          <ChevronLeftIcon className="w-5 h-5" />
         </button>
         <span className="text-xs font-medium">
           {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
@@ -500,16 +505,17 @@ const DatePicker = ({
           }}
           disabled={false}
           data-navigation="true"
-          className="hover:bg-gray-100 p-2 rounded bg-white cursor-pointer"
+          className="p-2 rounded cursor-pointer"
+          style={{ backgroundColor: 'transparent', color: containerText }}
         >
-          <ChevronRightIcon className="w-5 h-5 text-gray-500" />
+          <ChevronRightIcon className="w-5 h-5" />
         </button>
       </div>
 
       {/* Calendar Grid */}
       <div className="grid grid-cols-7 gap-y-2 gap-x-0">
         {DAYS.map((day, i) => (
-          <div key={i} className="text-center text-xs text-gray-500 py-2">
+          <div key={i} className="text-center text-xs py-2" style={{ color: `${containerText}99` }}>
             {day}
           </div>
         ))}
@@ -611,6 +617,13 @@ const DatePicker = ({
             console.log('Date has festivals:', day.day, 'festivals:', dayFestivals.map(f => f.name));
           }
 
+          // Determine day text color for readability on themed background
+          const dayTextColor = (() => {
+            if (!isInRange) return `${containerText}55`;
+            if (!day.isCurrentMonth) return `${containerText}88`;
+            return containerText;
+          })();
+
           return (
             <button
               key={i}
@@ -631,17 +644,17 @@ const DatePicker = ({
               title={dayFestivals.length > 0 ? createTooltipContent(dayFestivals) : ''}
               className={`
                 w-full h-10 text-xs flex flex-col items-center justify-center relative
-                ${day.isCurrentMonth ? (isInRange ? 'text-gray-900' : 'text-gray-300') : (isInRange ? 'text-gray-600' : 'text-gray-400')}
-                ${isSelected && selectedDates.length === 1 ? `bg-indigo-600/50 text-gray-900 ${borderRadiusClass}` : 
-                  isInSelectedRange ? `bg-indigo-600/50 text-gray-900 ${borderRadiusClass}` :
+                ${isSelected && selectedDates.length === 1 ? `bg-blue-600/50 ${borderRadiusClass}` : 
+                  isInSelectedRange ? `bg-blue-600/50 ${borderRadiusClass}` :
                   isHighlighted ? 'bg-yellow-200 ring-2 ring-yellow-400 rounded-2xl' :
-                  (isInRange ? 'hover:bg-gray-100 rounded-2xl' : '')}
+                  (isInRange ? 'rounded-2xl' : '')}
                 ${!isInRange ? 'cursor-not-allowed' : 'cursor-pointer'}
               `}
+              style={{ color: dayTextColor, ...(isInRange ? { '--hover-bg': `${containerText}22` } : {}) }}
             >
               <span className={dayFestivals.length > 0 ? 'mb-0.5' : ''}>{day.day}</span>
               {dayFestivals.length > 0 && (
-                <div className="flex items-end justify-center h-2 -space-x-1">
+            <div className="flex items-end justify-center h-2 -space-x-1">
                   {dayFestivals.slice(0, 3).map((festival, idx) => (
                     <div
                       key={`${festival.name}-${idx}`}
@@ -671,19 +684,21 @@ const DatePicker = ({
 
       {/* Portal Tooltip - renders outside sidebar */}
       {tooltip.show && tooltip.content.length > 0 && createPortal(
-        <div 
-          className="fixed bg-white rounded-xl shadow-2xl border border-gray-100 min-w-max pointer-events-none transition-all duration-300 ease-out backdrop-blur-sm"
+    <div 
+      className="fixed rounded-xl shadow-2xl min-w-max pointer-events-none transition-all duration-300 ease-out backdrop-blur-sm"
           style={{
             left: tooltip.position.x,
             top: tooltip.position.y,
             transform: tooltip.showBelow ? 'translateX(-50%)' : 'translateX(-50%) translateY(-100%)',
             zIndex: 999999,
-            maxWidth: '320px'
+        maxWidth: '320px',
+        backgroundColor: containerBg,
+        color: containerText
           }}
         >
           {/* Header */}
-          <div className="px-4 py-3 border-b border-gray-100">
-            <h3 className="text-xs font-medium text-gray-900 leading-tight">
+      <div className="px-4 py-3" style={{ borderBottom: `1px solid ${containerText}22` }}>
+        <h3 className="text-xs font-medium leading-tight" style={{ color: containerText }}>
               {tooltip.content.length === 1 ? 'Festival' : `${tooltip.content.length} Festivals`}
             </h3>
           </div>
@@ -695,22 +710,22 @@ const DatePicker = ({
                 <div key={`portal-tooltip-${festival.name}-${idx}`} className="flex items-start space-x-3 group">
                   <div className="flex-shrink-0 pt-0.5">
                     <div 
-                      className="w-3 h-3 rounded-full ring-2 ring-white shadow-sm"
+                  className="w-3 h-3 rounded-full shadow-sm"
                       style={{ backgroundColor: festival.color }}
                     />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm text-gray-900 truncate">
+                  <h4 className="text-sm truncate" style={{ color: containerText }}>
                         {festival.name}
                       </h4>
-                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">
+                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs" style={{ backgroundColor: `${containerText}22`, color: containerText }}>
                         {festival.type}
                       </span>
                     </div>
-                                         <p className="text-xs text-gray-500 mt-0.5">
-                       {festival.location.replace(/🇩🇪|🇫🇷|🇳🇱|🇮🇹/g, '').trim()}
-                     </p>
+                <p className="text-xs mt-0.5" style={{ color: containerText, opacity: 0.8 }}>
+                  {festival.location.replace(/🇩🇪|🇫🇷|🇳🇱|🇮🇹/g, '').trim()}
+                </p>
                   </div>
                 </div>
               ))}
@@ -726,7 +741,7 @@ const DatePicker = ({
               height: 0,
               borderLeft: '8px solid transparent',
               borderRight: '8px solid transparent',
-              [tooltip.showBelow ? 'borderBottom' : 'borderTop']: '8px solid white',
+          [tooltip.showBelow ? 'borderBottom' : 'borderTop']: `8px solid ${containerBg}`,
               filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.05))'
             }}
           ></div>

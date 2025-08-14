@@ -142,7 +142,7 @@ function ConfettiOverlay() {
   );
 }
 
-export default function LogoAnimationOverlay({ type = 'sparkles', themeColor = '#1E1E1E' }) {
+export default function LogoAnimationOverlay({ type = null, themeColor = '#1E1E1E' }) {
   if (!type) return null;
   if (type === 'glow') return <GlowOverlay color={themeColor} />;
   if (type === 'lights') return <LightsOverlay />;

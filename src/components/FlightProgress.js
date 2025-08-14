@@ -18,7 +18,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFlightMinutes = 370, minutesLeft: externalMinutesLeft, onProgressChange, themeColor = '#1E1E1E', isPromptMode = false, onPromptHover, onPromptClick, fpsPrompts = {}, showMovingIcon = false, onAnimationProgressChange, onPromoCardLoadingChange, onAnimationProgress, onCruiseLabelShow, onMiddleCardPromptClose, onThemeColorChange }) {
+export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFlightMinutes = 370, minutesLeft: externalMinutesLeft, onProgressChange, themeColor = '#1E1E1E', isPromptMode = false, onPromptHover, onPromptClick, fpsPrompts = {}, showMovingIcon = false, onAnimationProgressChange, onPromoCardLoadingChange, onAnimationProgress, onCruiseLabelShow, onMiddleCardPromptClose, onThemeColorChange, flightsGenerated = false }) {
   console.log('=== FlightProgress themeColor ===', { themeColor, isGradient: themeColor.includes('gradient') });
   
   // Helper function to determine color based on theme type
@@ -57,8 +57,16 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
   const [showPlusButtonAtFJB, setShowPlusButtonAtFJB] = useState(false);
   const [showPromptBubbleAtFJB, setShowPromptBubbleAtFJB] = useState(false);
   const [promptBubbleFJBPosition, setPromptBubbleFJBPosition] = useState({ x: 0, y: 0 });
+  const [showFlightPhases, setShowFlightPhases] = useState(false);
   const barRef = useRef();
   const iconRef = useRef();
+
+  // Show flight phases when flights are generated
+  useEffect(() => {
+    if (flightsGenerated) {
+      setShowFlightPhases(true);
+    }
+  }, [flightsGenerated]);
 
   // Set CSS custom property for theme color
   useEffect(() => {
@@ -875,6 +883,106 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
             transition: 'none' // Ensure no CSS transitions affect positioning
           }}
         />
+      )}
+      
+      {/* Flight Phase Labels - Show when flights are generated */}
+      {showFlightPhases && (
+        <>
+          {/* Takeoff - 5% */}
+          <div 
+            className="flight-phase-label"
+            style={{
+              position: 'absolute',
+              left: `${barWidth * 0.05}px`,
+              top: '40px',
+              color: getElementColor(),
+              fontSize: '10px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
+              zIndex: 10,
+              transform: 'translateX(-50%)'
+            }}
+          >
+            TAKEOFF
+          </div>
+          
+          {/* Climb - 20% */}
+          <div 
+            className="flight-phase-label"
+            style={{
+              position: 'absolute',
+              left: `${barWidth * 0.20}px`,
+              top: '40px',
+              color: getElementColor(),
+              fontSize: '10px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
+              zIndex: 10,
+              transform: 'translateX(-50%)'
+            }}
+          >
+            CLIMB
+          </div>
+          
+          {/* Cruise - 35% */}
+          <div 
+            className="flight-phase-label"
+            style={{
+              position: 'absolute',
+              left: `${barWidth * 0.35}px`,
+              top: '40px',
+              color: getElementColor(),
+              fontSize: '10px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
+              zIndex: 10,
+              transform: 'translateX(-50%)'
+            }}
+          >
+            CRUISE
+          </div>
+          
+          {/* Descent - 75% */}
+          <div 
+            className="flight-phase-label"
+            style={{
+              position: 'absolute',
+              left: `${barWidth * 0.75}px`,
+              top: '40px',
+              color: getElementColor(),
+              fontSize: '10px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
+              zIndex: 10,
+              transform: 'translateX(-50%)'
+            }}
+          >
+            DESCENT
+          </div>
+          
+          {/* Landing - 88% */}
+          <div 
+            className="flight-phase-label"
+            style={{
+              position: 'absolute',
+              left: `${barWidth * 0.88}px`,
+              top: '40px',
+              color: getElementColor(),
+              fontSize: '10px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
+              zIndex: 10,
+              transform: 'translateX(-50%)'
+            }}
+          >
+            LANDING
+          </div>
+        </>
       )}
       
       {/* Prompt Bubble */}

@@ -315,7 +315,7 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
   );
 }
 
-function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized, onSelectedDatesChange }) {
+function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized, onSelectedDatesChange, themeColor = '#1E1E1E' }) {
   // Date picker state and logic (moved from ThemeCreator)
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [dates, setDates] = useState(selectedDates || []);
@@ -525,6 +525,10 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     }
   }, [routes.length, inputFieldRef, isMinimized]); // <-- add isMinimized
 
+  // Tooltip colors derived from theme color
+  const tooltipBgColor = themeColor || '#1E1E1E';
+  const tooltipTextColor = getReadableOnColor(tooltipBgColor);
+
   return (
     <div className="space-y-12 relative">
       {/* Timeline line - from input field center to last card center */}
@@ -540,31 +544,36 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
               <div className="flex flex-wrap gap-2 items-center w-full">
                 {AIRPORTS.filter(airport => !routes.some(route => route.airport.code === airport.code)).map((airport) => {
                   // Only show airports that aren't already in routes
-                  const themeColor = '#D1D5DB'; // Default gray-300 for available badges
                   return (
                     <span 
                       key={airport.code} 
-                      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all cursor-pointer bg-gray-50 text-gray-500 border border-gray-400 hover:border-gray-500 hover:bg-gray-100 hover:text-gray-600 relative group"
+                      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all cursor-pointer bg-transparent text-white/80 border border-white/40 hover:border-white/60 hover:bg-transparent hover:text-white relative group"
                       onClick={() => handleBadgeClick(airport, false)}
                       title={`${airport.name}, ${airport.city}, ${airport.country}`}
                     >
                       {/* Colored dot */}
                       <div 
                         className="w-2 h-2 rounded-full mr-1.5 flex-shrink-0"
-                        style={{ backgroundColor: themeColor }}
+                        style={{ backgroundColor: '#1E1E1E' }}
                       />
                       {airport.code}
                       {/* Plus icon */}
-                      <div className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-gray-200 transition-colors">
+                      <div className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-transparent transition-colors">
                         <PlusIcon className="w-3 h-3" />
                       </div>
                       
                       {/* Custom tooltip */}
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-white rounded-lg shadow-lg border border-gray-200 text-xs text-gray-700 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
-                        <div className="font-medium text-gray-900">{airport.name}</div>
-                        <div className="text-gray-500">{airport.city}, {airport.country}</div>
+                      <div
+                        className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 rounded-lg shadow-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50"
+                        style={{ backgroundColor: tooltipBgColor, color: tooltipTextColor }}
+                      >
+                        <div className="font-medium" style={{ color: tooltipTextColor }}>{airport.name}</div>
+                        <div style={{ color: tooltipTextColor, opacity: 0.85 }}>{airport.city}, {airport.country}</div>
                         {/* Arrow */}
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
+                        <div
+                          className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent"
+                          style={{ borderTopColor: tooltipBgColor }}
+                        ></div>
                       </div>
                     </span>
                   );
@@ -609,7 +618,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
             {/* Former inline label removed; now rendered above input */}
             {/* Date Picker Dropdown - centered to input */}
             {isDatePickerOpen && (
-              <div className="absolute left-1/2 -translate-x-1/2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 top-full mt-1" style={{ width: '400px' }}>
+              <div className="absolute left-1/2 -translate-x-1/2 rounded-lg shadow-lg z-50 top-full mt-1" style={{ width: '400px', backgroundColor: themeColor }}>
                 <DatePicker
                   currentDate={currentDate}
                   onNavigateMonth={navigateMonth}
@@ -621,6 +630,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                   onInputChange={handleInputChange}
                   setCurrentDate={setCurrentDate}
                   berlinToday={new Date()}
+                  themeColor={themeColor}
                 />
               </div>
             )}

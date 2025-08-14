@@ -225,7 +225,7 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
         )}
         {/* Logo Placeholder */}
         <div
-          className={`h-[88px] relative rounded-2xl shrink-0 w-[120px] flex items-center justify-center ${isLandingPage ? '' : 'backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)]'} ${!isLandingPage && isPromptMode ? 'themer-animated-border-inherit' : ''}`}
+          className={`h-[88px] relative rounded-2xl shrink-0 w-[120px] flex items-center justify-center ${isLandingPage ? '' : 'backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)]'}`}
           data-name="logo placeholder"
           onMouseEnter={(e) => {
             if (isPromptMode && onPromptHover) {
@@ -274,6 +274,9 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
           )}
           {!isLandingPage && (
             <LogoAnimationOverlay type={selectedLogo?.animationType} themeColor={themeColor} />
+          )}
+          {!isLandingPage && (
+            <div className="absolute border border-[rgba(0,0,0,0.2)] border-solid inset-0 pointer-events-none rounded-2xl" />
           )}
         </div>
 

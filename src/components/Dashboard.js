@@ -15,7 +15,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated }) {
   return (
     <div style={{ position: 'relative', zIndex: 2, width: 1302, margin: '92px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
       <div
@@ -77,6 +77,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
             onPromptHover={onPromptHover}
             onPromptClick={onPromptClick}
             fpsPrompts={fpsPrompts}
+            flightsGenerated={flightsGenerated}
           />
         </div>
       </div>
@@ -258,6 +259,17 @@ export default function Dashboard() {
   const [minutesLeft, setMinutesLeft] = useState(maxFlightMinutes);
   const timerRef = useRef();
   const [dragging, setDragging] = useState(false);
+  const [flightsGenerated, setFlightsGenerated] = useState(false);
+
+  // Listen for generate flights event
+  useEffect(() => {
+    const handleGenerateFlights = () => {
+      setFlightsGenerated(true);
+    };
+    
+    window.addEventListener('airport-search-generate-flights', handleGenerateFlights);
+    return () => window.removeEventListener('airport-search-generate-flights', handleGenerateFlights);
+  }, []);
 
   useEffect(() => {
     setMinutesLeft(maxFlightMinutes);
@@ -452,9 +464,16 @@ export default function Dashboard() {
     
     // TODO: Handle the actual prompt submission logic here
     setPromptBubble(null);
-    // Heuristic: if this is logo placeholder, parse prompt to choose an animation
+    // Heuristic: if this is logo placeholder, parse prompt to choose or clear an animation
     if (elementType === 'logo-placeholder') {
       const text = (promptText || '').toLowerCase();
+      // removal/disable intents
+      const removalRegex = /(remove|clear|disable|turn\s*off|stop).*animation|animation.*(off|remove|clear|stop|disable)/;
+      if (removalRegex.test(text)) {
+        setSelectedLogo(prev => ({ ...(prev || {}), animationType: null }));
+        return;
+      }
+
       let type = 'sparkles';
       if (/confetti|celebrat|party|congrats/.test(text)) type = 'confetti';
       else if (/light|festive|bulb|christmas|string/.test(text)) type = 'lights';
@@ -507,6 +526,8 @@ export default function Dashboard() {
           activeSegmentId={activeSegmentId}
           onExposeThemeChips={(chips) => setFjbThemeChips(chips || [])}
           onStartThemeBuild={() => setIsThemeBuildStarted(true)}
+          themeColor={currentThemeColor}
+          onTriggerPromptBubble={handlePromptClick}
         />
       </div>
       
@@ -542,6 +563,7 @@ export default function Dashboard() {
         }}
         themeChips={promptBubble?.elementType === 'flight-journey-bar' ? fjbThemeChips : []}
         onLogoSelect={(info) => setSelectedLogo(info)}
+        flightsGenerated={flightsGenerated}
       />
 
       {/* FJB hover tip bubble: shows label and plus; click opens color PB */}
@@ -561,6 +583,7 @@ export default function Dashboard() {
               borderTopLeftRadius: 0
             }}
           >
+            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Add theme</span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -572,7 +595,6 @@ export default function Dashboard() {
             >
               +
             </button>
-            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Add theme</span>
           </div>
         </div>
       )}
@@ -594,6 +616,7 @@ export default function Dashboard() {
               borderTopLeftRadius: 0
             }}
           >
+            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Add flight phase</span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -616,7 +639,6 @@ export default function Dashboard() {
             >
               +
             </button>
-            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Add flight phase</span>
           </div>
         </div>
       )}
@@ -638,6 +660,7 @@ export default function Dashboard() {
               borderTopLeftRadius: 0
             }}
           >
+            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Edit promo card</span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -650,7 +673,6 @@ export default function Dashboard() {
             >
               +
             </button>
-            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Edit promo card</span>
           </div>
         </div>
       )}
@@ -672,6 +694,7 @@ export default function Dashboard() {
               borderTopLeftRadius: 0
             }}
           >
+            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Add logo animation</span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -683,7 +706,6 @@ export default function Dashboard() {
             >
               +
             </button>
-            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Add logo animation</span>
           </div>
         </div>
       )}
@@ -711,6 +733,7 @@ export default function Dashboard() {
             fpsPrompts={fpsPrompts}
             isThemeBuildStarted={isThemeBuildStarted}
             selectedLogo={selectedLogo}
+            flightsGenerated={flightsGenerated}
           />
         </div>
       </div>

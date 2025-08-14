@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CalendarIcon, ChevronDownIcon, ChevronUpIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { CalendarIcon, ChevronDownIcon, ChevronUpIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon, PencilIcon, Cog6ToothIcon, SquaresPlusIcon, ArrowsUpDownIcon, TrashIcon, PhotoIcon, PaperAirplaneIcon, PlayIcon } from '@heroicons/react/24/outline';
 import AirportSearch from './AirportSearch';
 import DatePicker from './DatePicker';
 import festivalsData from '../data/festivals.json';
@@ -9,7 +9,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useNavigate } from 'react-router-dom';
 import { getReadableOnColor } from '../utils/color';
 
-export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips, onStartThemeBuild }) {
+export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips, onStartThemeBuild, themeColor = '#1E1E1E', onTriggerPromptBubble }) {
   const navigate = useNavigate();
   const DEFAULT_THEME_COLOR = '#1E1E1E';
   // Get current date in Berlin timezone for initial state
@@ -538,8 +538,9 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
     }
   }, [isCreatingThemes, flightSegments.length, selectedThemes, isMinimized]); // <-- add isMinimized
 
-  function FlightChip({ segment, index, activeFlightIndex, selectedThemeId, onSelect, collapsed }) {
+  function FlightCard({ segment, index, activeFlightIndex, selectedThemeId, onSelect, collapsed }) {
     const ref = useRef(null);
+    const [selectedActionId, setSelectedActionId] = useState(0);
     const [{ handlerId }, drop] = useDrop({
       accept: SEGMENT_ITEM_TYPE,
       collect: monitor => ({ handlerId: monitor.getHandlerId() }),
@@ -583,10 +584,10 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
       <div
         ref={ref}
         data-handler-id={handlerId}
-        className={`backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] p-4 rounded-full shadow-sm transition-all cursor-move w-full ${
+        className={`backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] pl-5 pr-3 py-4 rounded-full shadow-sm transition-all cursor-move w-full ${
           activeFlightIndex === index 
-            ? 'shadow-lg ring-2 ring-white/50' 
-            : 'hover:shadow-md'
+            ? 'shadow-lg ring-2 ring-blue-500/60 bg-blue-600/10' 
+            : 'hover:shadow-md hover:bg-blue-600/5'
         }`}
         style={{ opacity: isDragging ? 0.5 : 1, minWidth: 0 }}
         onClick={() => {
@@ -599,29 +600,88 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
           } catch {}
         }}
       >
-        <div className={`flex justify-between items-start ${activeFlightIndex === index ? 'opacity-100' : 'opacity-70'}`}>
-          <div className="flex items-start space-x-3 flex-1 min-w-0">
-            <div className="flex-1 min-w-0">
+        <div className={`flex justify-between items-stretch ${activeFlightIndex === index ? 'opacity-100' : 'opacity-70'}`}>
+          <div className="flex items-start gap-1 flex-none pr-0" style={{ paddingRight: 6 }}>
+            <div className="flex-none">
               <div className="flex items-center gap-2">
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                  style={{ backgroundColor: dotColor, color: dotOnColor, boxShadow: 'none' }}
-                >
-                  {index + 1}
-                </div>
                 {!collapsed && (
                   <h3 className="text-base font-semibold text-white break-words">
-                    {segment.origin.airport.city} → {segment.destination.airport.city}
+                    {segment.origin.airport.code} → {segment.destination.airport.code}
                   </h3>
                 )}
               </div>
               {!collapsed && (
-                <div className="text-xs text-white mt-1 flex items-center gap-3 flex-wrap break-words pl-8">
+                <div className="text-xs text-white mt-1 flex items-center gap-3 flex-wrap break-words">
                   <span className="flex items-center gap-1 font-semibold">Flight {index + 1}</span>
                 </div>
               )}
             </div>
           </div>
+          {activeFlightIndex === index && (
+            <>
+              <div className="hidden md:flex w-px mx-0" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
+              <div className="hidden md:flex items-center gap-1" style={{ marginLeft: 10 }}>
+                {[
+                  { id: 0, label: 'Add theme', title: 'Add theme', icon: null, variant: 'primary', isThemerDot: true },
+                  { id: 1, label: 'Add logo', title: 'Add logo', icon: PhotoIcon },
+                  { id: 2, label: 'Modify flight phase', title: 'Modify flight phase', icon: null, isFlightIcon: true },
+                  { id: 3, label: 'Update cards', title: 'Update cards', icon: ArrowsUpDownIcon },
+                  { id: 4, label: 'Add content', title: 'Add content', icon: PlayIcon }
+                ].map(({ id, label, title, icon: Icon, variant, isThemerDot, isFlightIcon }) => {
+                  const isSelected = selectedActionId === id;
+                  const baseColor = isSelected ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-white/10 text-white hover:bg-white/15';
+                  const layout = isSelected ? 'h-9 px-3' : 'h-9 w-9 justify-center px-0';
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      className={`inline-flex items-center rounded-[24px] transition-colors ${baseColor} ${layout} shrink-0`}
+                      style={isSelected ? { borderTopLeftRadius: '0px' } : {}}
+                      title={title}
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        setSelectedActionId(id); 
+                        onSelect(index, segment); 
+                        
+                        // If this is the "Add theme" button (id: 0), trigger the prompt bubble
+                        if (id === 0 && typeof onTriggerPromptBubble === 'function') {
+                          // Position the prompt bubble inside the IFE frame
+                          // The IFE frame is centered with width 1400px, so we'll position it in the middle
+                          const ifeFrameWidth = 1400;
+                          const ifeFrameLeft = (window.innerWidth - ifeFrameWidth) / 2;
+                          const position = {
+                            x: ifeFrameLeft + ifeFrameWidth / 2, // Center of IFE frame
+                            y: 200 // Fixed position within the IFE frame area
+                          };
+                          onTriggerPromptBubble('flight-journey-bar', { themeColor: themeColor }, position);
+                        }
+                      }}
+                    >
+                      {isSelected && <span className="text-sm font-medium whitespace-nowrap">{label}</span>}
+                      {isThemerDot ? (
+                        <div 
+                          className={`w-4 h-4 rounded-full ${isSelected ? 'ml-2' : ''}`}
+                          style={{
+                            background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, #10b981 100%)',
+                            backgroundSize: '200% 200%',
+                            animation: 'gradientSweep 3s ease-in-out infinite'
+                          }}
+                        />
+                      ) : isFlightIcon ? (
+                        <img 
+                          src={process.env.PUBLIC_URL + '/flight icon.svg'} 
+                          alt="Flight icon" 
+                          className={`w-4 h-4 ${isSelected ? 'ml-2' : ''}`}
+                        />
+                      ) : (
+                        <Icon className={`w-4 h-4 ${isSelected ? 'ml-2' : ''}`} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       </div>
     );
@@ -928,7 +988,8 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
         transition: 'width 0.2s, height 0.2s',
         paddingLeft: '170px',
         paddingRight: '170px',
-        paddingBottom: isCreatingThemes ? '8px' : undefined,
+        paddingTop: isCreatingThemes ? '48px' : undefined,
+        paddingBottom: isCreatingThemes ? '72px' : undefined,
         backgroundColor: DEFAULT_THEME_COLOR,
         borderRadius: undefined,
         marginTop: isInHeader ? '0' : '0px',
@@ -941,13 +1002,23 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
 
       {/* Collapse/expand icon removed */}
 
-      {/* Flights view shows only the flight chips (no logo/header) */}
+      {/* Flights view shows only the flight cards (no logo/header) */}
 
-      {/* Only Flight Chips Row - Full Width */}
+      {/* Only Flight Cards Row - Full Width */}
       {isCreatingThemes && !isMinimized && (
         <div ref={flightChipsRef} className="w-full">
+          {/* Themer logo in flights view */}
+          <div className="mt-2 mb-6">
+            <span
+              className="text-2xl font-bold themer-gradient cursor-pointer"
+              title="Go to landing page"
+              onClick={() => navigate('/')}
+            >
+              Themer
+            </span>
+          </div>
           <DndProvider backend={HTML5Backend}>
-            <div className="flex items-stretch gap-12 w-full">
+            <div className="flex items-stretch gap-6 w-full">
               {flightSegments.map((segment, index) => {
                 // Safety checks for segment data
                 if (!segment || !segment.origin || !segment.destination || !segment.origin.airport || !segment.destination.airport) {
@@ -955,9 +1026,14 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                 }
                 const selectedThemeId = selectedThemes[segment.id];
                 return (
-                  <div key={segment.id} className="flex items-center gap-6 flex-1 min-w-0">
+                  <div
+                    key={segment.id}
+                    className={`flex items-center gap-6 min-w-0 ${
+                      activeFlightIndex === index ? 'flex-[2]' : 'flex-1'
+                    }`}
+                  >
                     <div className="flex-1 min-w-0">
-                      <FlightChip
+                      <FlightCard
                         segment={segment}
                         index={index}
                         activeFlightIndex={activeFlightIndex}
@@ -976,8 +1052,13 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                       />
                     </div>
                     {index < flightSegments.length - 1 && (
-                      <div className="flex items-center justify-center flex-shrink-0 px-2 py-8">
+                      <div className="flex items-center justify-center flex-shrink-0 px-1 py-6">
                         <span className="text-white text-lg font-bold opacity-60" style={{ fontSize: '18px', fontWeight: '300' }}>→</span>
+                      </div>
+                    )}
+                    {index === flightSegments.length - 1 && (
+                      <div className="flex items-center justify-center flex-shrink-0 px-1 py-6 invisible">
+                        <span className="text-white text-lg font-bold" style={{ fontSize: '18px', fontWeight: '300' }}>→</span>
                       </div>
                     )}
                   </div>
@@ -1029,6 +1110,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                 }}
                 defaultLabel="Default Theme"
                 isMinimized={isMinimized}
+                themeColor={themeColor}
                 onToggleMinimized={() => {
                   setIsMinimized(!isMinimized);
                   if (!isMinimized) {
