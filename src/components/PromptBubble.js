@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { XMarkIcon, PaperAirplaneIcon, PlusIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PaperAirplaneIcon, PlusIcon, PhotoIcon, ArrowLeftIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { HexColorPicker } from 'react-colorful';
 import { getReadableOnColor } from '../utils/color';
 
@@ -17,7 +17,8 @@ export default function PromptBubble({
   onLoadingStateChange,
   onVisibilityChange,
   onThemeColorChange,
-  themeChips = []
+  themeChips = [],
+  onLogoSelect
 }) {
   console.log('=== PROMPT BUBBLE RENDER ===', {
     isVisible,
@@ -35,10 +36,13 @@ export default function PromptBubble({
   const [autoTypeIndex, setAutoTypeIndex] = useState(0);
   const [stickyPosition, setStickyPosition] = useState(null);
   const [selectedChip, setSelectedChip] = useState(elementType === 'flight-icon' && positionKey === 'landing-demo' ? 'cruise' : null);
+  const [selectedLogoChip, setSelectedLogoChip] = useState(null);
+  const [logoStep, setLogoStep] = useState(1); // 1: choose logo, 2: describe animation
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [selectedColor, setSelectedColor] = useState(themeColor);
   const bubbleRef = useRef(null);
   const inputRef = useRef(null);
+  const logoFileInputRef = useRef(null);
 
   // Determine text/icon color for readability on promo-card bubbles (dashboard)
   const isGradient = typeof themeColor === 'string' && themeColor.includes('gradient');
@@ -91,92 +95,66 @@ export default function PromptBubble({
     { id: 'descent', label: 'Descent', color: '#6B7280' },
     { id: 'landing', label: 'Landing', color: '#6B7280' }
   ];
+  // Logo placeholder chips
+  const logoChips = [
+    { id: 'discover', label: 'Discover' },
+    { id: 'lufthansa', label: 'Lufthansa' },
+    { id: 'swiss', label: 'Swiss' },
+    { id: 'add-new', label: 'Add new' }
+  ];
 
-  // Set sticky position when bubble becomes visible
+  // Set sticky position when bubble becomes visible or when target changes
   useEffect(() => {
     console.log('=== PROMPT BUBBLE POSITION UPDATE ===', { 
-      isVisible, 
-      position, 
-      stickyPosition,
-      elementType,
-      positionKey 
+      isVisible, position, elementType, positionKey 
     });
-    if (isVisible && position && !stickyPosition) {
-      // Choose the appropriate container based on element type and position key
-      let containerLeft = 0;
-      let containerTop = 0;
-      let containerSelector = '';
-      
-      if (elementType === 'flight-icon' || positionKey === 'landing-demo') {
-        // FPS prompt bubbles use flight progress bar container
-        containerSelector = '.flight-progress-bar-container';
-      } else if (elementType === 'flight-journey-bar' || positionKey === 'fjb-demo' || positionKey === 'fjb-landing') {
-        // FJB prompt bubbles: use direct positioning like Dashboard
-        // Convert viewport coordinates to document coordinates
-        const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
-        const scrollY = window.pageYOffset || document.documentElement.scrollTop;
-        
-        const newStickyPosition = {
-          x: position.x + scrollX,
-          y: position.y + scrollY
-        };
-        setStickyPosition(newStickyPosition);
-        return;
-      } else if (elementType === 'promo-card' || positionKey === 'middle-card-demo' || positionKey === 'middle-card-landing') {
-        // Promo-card bubbles on dashboard and landing: use direct viewport -> document positioning
-        const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
-        const scrollY = window.pageYOffset || document.documentElement.scrollTop;
-        const newStickyPosition = {
-          x: position.x + scrollX,
-          y: position.y + scrollY
-        };
-        setStickyPosition(newStickyPosition);
-        return;
-      } else {
-        // Default fallback to flight progress bar container
-        containerSelector = '.flight-progress-bar-container';
-      }
-      
-      const targetContainer = document.querySelector(containerSelector);
-      if (targetContainer) {
-        const containerRect = targetContainer.getBoundingClientRect();
-        containerLeft = containerRect.left;
-        containerTop = containerRect.top;
-      }
-      
-      // Convert relative coordinates to absolute viewport coordinates
-      const absoluteX = containerLeft + position.x;
-      const absoluteY = containerTop + position.y;
-      
-      // Convert viewport coordinates to document coordinates
+    if (!isVisible || !position) {
+      setStickyPosition(null);
+      return;
+    }
+    // Choose the appropriate container based on element type and position key
+    let containerLeft = 0;
+    let containerTop = 0;
+    let containerSelector = '';
+
+    if (elementType === 'flight-icon' || positionKey === 'landing-demo') {
+      // FPS prompt bubbles use flight progress bar container; position is relative to container
+      containerSelector = '.flight-progress-bar-container';
+    } else if (elementType === 'flight-journey-bar' || positionKey === 'fjb-demo' || positionKey === 'fjb-landing') {
+      // FJB: position is given in viewport coords; convert to document
       const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
       const scrollY = window.pageYOffset || document.documentElement.scrollTop;
-      
-      const newStickyPosition = {
-        x: absoluteX + scrollX,
-        y: absoluteY + scrollY
-      };
-      
-      console.log('=== SETTING STICKY POSITION ===', {
-        elementType,
-        positionKey,
-        containerSelector,
-        containerFound: !!targetContainer,
-        position,
-        containerLeft,
-        containerTop,
-        absoluteX,
-        absoluteY,
-        scrollX,
-        scrollY,
-        newStickyPosition
-      });
-      
-      setStickyPosition(newStickyPosition);
-    } else if (!isVisible) {
-      setStickyPosition(null);
+      setStickyPosition({ x: position.x + scrollX, y: position.y + scrollY });
+      return;
+    } else if (elementType === 'promo-card' || elementType === 'logo-placeholder' || positionKey === 'middle-card-demo' || positionKey === 'middle-card-landing') {
+      // Promo-card: viewport -> document
+      const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+      setStickyPosition({ x: position.x + scrollX, y: position.y + scrollY });
+      return;
+    } else {
+      containerSelector = '.flight-progress-bar-container';
     }
-  }, [isVisible, position, stickyPosition, elementType, positionKey]);
+
+    const targetContainer = document.querySelector(containerSelector);
+    if (targetContainer) {
+      const containerRect = targetContainer.getBoundingClientRect();
+      containerLeft = containerRect.left;
+      containerTop = containerRect.top;
+    }
+
+    // Convert relative coordinates to document coordinates
+    const absoluteX = containerLeft + position.x;
+    const absoluteY = containerTop + position.y;
+    const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
+    const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+    const newStickyPosition = { x: absoluteX + scrollX, y: absoluteY + scrollY };
+
+    console.log('=== SETTING STICKY POSITION ===', {
+      elementType, positionKey, containerSelector, position, newStickyPosition
+    });
+    setStickyPosition(newStickyPosition);
+  }, [isVisible, position, elementType, positionKey]);
 
   // Update selectedColor when themeColor changes (for automatic theme cycling)
   useEffect(() => {
@@ -538,6 +516,31 @@ export default function PromptBubble({
     }
   };
 
+  const handleLogoChipClick = (chip) => {
+    if (chip.id === 'add-new') {
+      try {
+        if (logoFileInputRef.current) logoFileInputRef.current.click();
+      } catch {}
+      return;
+    }
+    setSelectedLogoChip(chip.id);
+    // Notify parent so it can render chosen logo in placeholder
+    try {
+      if (typeof onLogoSelect === 'function') {
+        let src = null;
+        if (chip.id === 'discover') {
+          src = process.env.PUBLIC_URL + '/discover.svg';
+        } else if (chip.id === 'lufthansa') {
+          src = process.env.PUBLIC_URL + '/Lufthansa_Logo_2018.svg.png';
+        } else if (chip.id === 'swiss') {
+          src = process.env.PUBLIC_URL + '/swiss.png';
+        }
+        onLogoSelect({ id: chip.id, src });
+      }
+    } catch {}
+    // Do not type chip label into the prompt text; keep user input separate
+  };
+
   if (!isVisible || !stickyPosition) return null;
 
 
@@ -545,7 +548,7 @@ export default function PromptBubble({
   return (
     <div
       ref={bubbleRef}
-      className="fixed z-50 shadow-xl border-2 p-3 backdrop-blur-[10px] backdrop-filter"
+      className="fixed z-50 shadow-xl border p-3 backdrop-blur-[10px] backdrop-filter"
       style={{
         backgroundColor: elementType === 'promo-card' && positionKey === 'middle-card-demo' 
           ? 'rgba(255,255,255,0.2)'
@@ -562,7 +565,19 @@ export default function PromptBubble({
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-end mb-2">
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          {elementType === 'logo-placeholder' && logoStep === 2 && (
+            <button
+              type="button"
+              onClick={() => setLogoStep(1)}
+              className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors p-1`}
+              title="Back"
+            >
+              <ArrowLeftIcon className="w-4 h-4" />
+            </button>
+          )}
+        </div>
         <button
           onClick={onClose}
           className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors p-1`}
@@ -575,37 +590,62 @@ export default function PromptBubble({
 
       {/* Input Form */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <div className="relative flex-1">
-          <textarea
-            ref={inputRef}
-            value={isTyping ? typedText : (isLoading && elementType !== 'promo-card' ? 'loading...' : promptText)}
-            onChange={(e) => setPromptText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={isLoading && elementType !== 'promo-card' ? "loading..." : elementType === 'promo-card' ? "add image and text" : elementType === 'flight-journey-bar' ? "change theme or add animation" : "add flight phase"}
-            className={`bg-transparent border-0 text-sm ${useLightText ? 'text-white placeholder-white/60' : 'text-black placeholder-black/60'} resize-none focus:ring-0 focus:outline-none`}
-            style={{
-              width: '200px',
-              maxWidth: '200px',
-              minWidth: '1px',
-              height: '20px',
-              lineHeight: '20px',
-              padding: 0,
-              margin: 0,
-              whiteSpace: 'pre-wrap',
-              overflow: 'hidden',
-              resize: 'none',
-              wordWrap: 'break-word',
-              overflowWrap: 'break-word'
-            }}
-            onInput={(e) => {
-              // Auto-resize height
-              e.target.style.height = '20px';
-              const scrollHeight = e.target.scrollHeight;
-              if (scrollHeight > 20) {
-                e.target.style.height = `${scrollHeight}px`;
-              }
-            }}
+        {/* Hidden file input for logo upload (triggered by Add new chip) */}
+        {elementType === 'logo-placeholder' && (
+          <input
+            ref={logoFileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={(e) => console.log('Logo image selected', e.target.files && e.target.files[0])}
           />
+        )}
+        <div className="relative flex-1">
+          {elementType === 'logo-placeholder' && logoStep === 2 && (
+            <div className="mt-0 mb-2 text-xs font-bold" style={{ color: onText70 }}>2. Describe Animation</div>
+          )}
+          {!(elementType === 'logo-placeholder' && logoStep === 1) && (
+            <textarea
+              ref={inputRef}
+              value={isTyping ? typedText : (isLoading && elementType !== 'promo-card' ? 'loading...' : promptText)}
+              onChange={(e) => setPromptText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                isLoading && elementType !== 'promo-card'
+                  ? 'loading...'
+                  : elementType === 'promo-card'
+                  ? 'add image and text'
+                  : elementType === 'flight-journey-bar'
+                  ? 'change theme or add animation'
+                  : elementType === 'logo-placeholder'
+                  ? 'Type here'
+                  : 'add flight phase'
+              }
+              className={`bg-transparent border-0 text-sm ${useLightText ? 'text-white placeholder-white/60' : 'text-black placeholder-black/60'} resize-none focus:ring-0 focus:outline-none`}
+              style={{
+                width: '200px',
+                maxWidth: '200px',
+                minWidth: '1px',
+                height: '20px',
+                lineHeight: '20px',
+                padding: 0,
+                margin: 0,
+                whiteSpace: 'pre-wrap',
+                overflow: 'hidden',
+                resize: 'none',
+                wordWrap: 'break-word',
+                overflowWrap: 'break-word'
+              }}
+              onInput={(e) => {
+                // Auto-resize height
+                e.target.style.height = '20px';
+                const scrollHeight = e.target.scrollHeight;
+                if (scrollHeight > 20) {
+                  e.target.style.height = `${scrollHeight}px`;
+                }
+              }}
+            />
+          )}
           
           {/* Flight Phase Chips - Only show for flight-icon and filter out used ones */}
           {elementType === 'flight-icon' && availableChips.length > 0 && (
@@ -637,6 +677,37 @@ export default function PromptBubble({
                 );
               })}
             </div>
+          )}
+          {/* Logo Placeholder Label and Chips */}
+          {elementType === 'logo-placeholder' && logoStep === 1 && (
+            <>
+              <div className="mt-0 mb-4 text-xs font-bold" style={{ color: onText70 }}>1. Select Airline Logo</div>
+              <div className="flex flex-wrap gap-1">
+              {logoChips.map((chip) => {
+                const isSelected = selectedLogoChip === chip.id;
+                return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    onClick={() => handleLogoChipClick(chip)}
+                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs transition-all cursor-pointer border ${isSelected ? 'border-2 font-bold' : 'font-medium'}`}
+                    style={{
+                      backgroundColor: `rgba(255,255,255,0.08)`,
+                      borderColor: onBorder20,
+                      color: onText70
+                    }}
+                  >
+                    {isSelected && <CheckIcon className="w-3 h-3 mr-1.5 flex-shrink-0" />}
+                    {chip.label}
+                    {chip.id === 'add-new' && <PlusIcon className="w-3 h-3 ml-1.5 flex-shrink-0" />}
+                  </button>
+                );
+              })}
+              </div>
+            </>
+          )}
+          {elementType === 'logo-placeholder' && logoStep === 2 && (
+            null
           )}
         </div>
         
@@ -749,6 +820,48 @@ export default function PromptBubble({
           </div>
         )}
 
+        {elementType === 'logo-placeholder' && (
+          <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label="Step 1"
+                onClick={() => setLogoStep(1)}
+                className="w-2 h-2 rounded-full border"
+                style={{ backgroundColor: logoStep === 1 ? onText70 : 'transparent', borderColor: onBorder20 }}
+              />
+              <button
+                type="button"
+                aria-label="Step 2"
+                onClick={() => setLogoStep(2)}
+                className="w-2 h-2 rounded-full border"
+                style={{ backgroundColor: logoStep === 2 ? onText70 : 'transparent', borderColor: onBorder20 }}
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  try { if (logoFileInputRef.current) logoFileInputRef.current.click(); } catch {}
+                }}
+                className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors flex-shrink-0`}
+              >
+                <PhotoIcon className="w-4 h-4" />
+              </button>
+              <button
+                type="submit"
+                disabled={!promptText.trim() || isLoading}
+                className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0`}
+                style={{
+                  color: useLightText ? '#FFFFFF' : 'rgba(0, 0, 0, 0.7)'
+                }}
+              >
+                <PaperAirplaneIcon className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Color Picker for FJB */}
         {elementType === 'flight-journey-bar' && showColorPicker && (
           <div className="absolute top-full left-0 mt-2 z-50">
@@ -761,7 +874,7 @@ export default function PromptBubble({
         )}
         
         {/* Send Button for Flight Phase Selection (FPS) */}
-        {elementType !== 'promo-card' && elementType !== 'flight-journey-bar' && (
+        {elementType !== 'promo-card' && elementType !== 'flight-journey-bar' && elementType !== 'logo-placeholder' && (
           <button
             type="submit"
             disabled={!promptText.trim() || isLoading}

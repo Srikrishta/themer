@@ -1,3 +1,4 @@
+import LogoAnimationOverlay from './LogoAnimationOverlay';
 const img = "http://localhost:3845/assets/ff3d1da9a24aa2fb4488e3512b8899f58fd11a82.svg";
 const img1 = "http://localhost:3845/assets/a2d0c66b9b0a23635dabe1c4fa6f42ce32813ae3.svg";
 const img2 = "http://localhost:3845/assets/0ff569c01d28eabc86e809a3f7e631571ba23fb8.svg";
@@ -6,7 +7,7 @@ const img4 = "http://localhost:3845/assets/12ff138a200ba4f26363bc8b4c9c314031978
 const img5 = "http://localhost:3845/assets/5b430c457bb1a36eac34c8197e3558b70a889106.svg";
 const img6 = "http://localhost:3845/assets/29fa6c4c59170f1b8aade086622c24fdce89c35a.svg";
 
-export default function FlightJourneyBar({ origin, destination, minutesLeft, themeColor = '#1E1E1E', isLandingPage = false, isPromptMode = false, onPromptHover, onPromptClick }) {
+export default function FlightJourneyBar({ origin, destination, minutesLeft, themeColor = '#1E1E1E', isLandingPage = false, isPromptMode = false, onPromptHover, onPromptClick, selectedLogo }) {
   console.log('FlightJourneyBar - received minutesLeft:', minutesLeft);
   function formatTime(minutes) {
     const h = Math.floor(minutes / 60);
@@ -79,22 +80,22 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               className="absolute left-0 top-0 bottom-0 w-[120px] z-0"
               onMouseEnter={(e) => {
                 if (onPromptHover) {
-                  onPromptHover(true, 'flight-journey-bar', { themeColor, area: 'logo' }, { x: e.clientX, y: e.clientY });
+                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
                 }
               }}
               onMouseLeave={(e) => {
                 if (onPromptHover) {
-                  onPromptHover(false, 'flight-journey-bar', { themeColor, area: 'logo' }, { x: e.clientX, y: e.clientY });
+                  onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
                 }
               }}
               onMouseMove={(e) => {
                 if (onPromptHover) {
-                  onPromptHover(true, 'flight-journey-bar', { themeColor, area: 'logo' }, { x: e.clientX, y: e.clientY });
+                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
                 }
               }}
               onClick={(e) => {
                 if (onPromptClick) {
-                  onPromptClick('flight-journey-bar', { themeColor, area: 'logo' }, { x: e.clientX, y: e.clientY });
+                  onPromptClick('flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
                 }
               }}
             />
@@ -224,13 +225,40 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
         )}
         {/* Logo Placeholder */}
         <div
-          className={`h-[88px] relative rounded-2xl shrink-0 w-[120px] flex items-center justify-center ${isLandingPage ? '' : 'backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)]'}`}
+          className={`h-[88px] relative rounded-2xl shrink-0 w-[120px] flex items-center justify-center ${isLandingPage ? '' : 'backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)]'} ${!isLandingPage && isPromptMode ? 'themer-animated-border-inherit' : ''}`}
           data-name="logo placeholder"
+          onMouseEnter={(e) => {
+            if (isPromptMode && onPromptHover) {
+              onPromptHover(true, 'logo-placeholder', {}, { x: e.clientX, y: e.clientY });
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (isPromptMode && onPromptHover) {
+              onPromptHover(false, 'logo-placeholder', {}, { x: e.clientX, y: e.clientY });
+            }
+          }}
+          onMouseMove={(e) => {
+            if (isPromptMode && onPromptHover) {
+              onPromptHover(true, 'logo-placeholder', {}, { x: e.clientX, y: e.clientY });
+            }
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (isPromptMode && onPromptClick) {
+              onPromptClick('logo-placeholder', {}, { x: e.clientX, y: e.clientY });
+            }
+          }}
         >
           {isLandingPage ? (
             <img 
               src={process.env.PUBLIC_URL + '/discover.svg'} 
               alt="Discover Logo" 
+              className="w-full h-full object-contain p-2"
+            />
+          ) : selectedLogo?.src ? (
+            <img
+              src={selectedLogo.src}
+              alt={`${selectedLogo.id || 'airline'} logo`}
               className="w-full h-full object-contain p-2"
             />
           ) : (
@@ -239,8 +267,13 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
                 <div className="text-[16px] font-semibold text-black mb-1">LOGO</div>
                 <div className="text-[12px] text-black/70">PLACEHOLDER</div>
               </div>
-              <div className="absolute border border-[rgba(0,0,0,0.2)] border-solid inset-0 pointer-events-none rounded-2xl" />
+              {!isPromptMode && (
+                <div className="absolute border border-[rgba(0,0,0,0.2)] border-solid inset-0 pointer-events-none rounded-2xl" />
+              )}
             </>
+          )}
+          {!isLandingPage && (
+            <LogoAnimationOverlay type={selectedLogo?.animationType} themeColor={themeColor} />
           )}
         </div>
 

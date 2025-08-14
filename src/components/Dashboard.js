@@ -15,7 +15,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo }) {
   return (
     <div style={{ position: 'relative', zIndex: 2, width: 1302, margin: '92px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
       <div
@@ -46,6 +46,11 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         onClick={(e) => {
           if (!isPromptMode || typeof onPromptClick !== 'function') return;
           const isOverProgress = e.target.closest('.flight-progress-bar-container') || e.target.closest('.flight-progress-icon');
+          const isOverLogoPlaceholder = e.target.closest('[data-name="logo placeholder"]');
+          if (isOverLogoPlaceholder) {
+            // Let the logo-placeholder element handle its own click to open the correct PB
+            return;
+          }
           if (!isOverProgress) {
             onPromptClick('flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
           }
@@ -60,6 +65,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
             isPromptMode={isPromptMode}
             onPromptHover={onPromptHover}
             onPromptClick={onPromptClick}
+            selectedLogo={selectedLogo}
           />
           <FlightProgress 
             landingIn={landingIn} 
@@ -119,57 +125,57 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
             </>
           ) : (
             <>
-          {/* Tile 1 */}
-          <div
-            className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
-            style={{ 
-              width: '100%', 
-              height: '184px',
-              background: themeColor,
-              borderTopLeftRadius: '8px',
-              borderTopRightRadius: '8px',
-              borderBottomLeftRadius: '0px',
-              borderBottomRightRadius: '0px'
-            }}
+              {/* Tile 1 */}
+              <div
+                className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
+                style={{
+                  width: '100%',
+                  height: '184px',
+                  background: themeColor,
+                  borderTopLeftRadius: '8px',
+                  borderTopRightRadius: '8px',
+                  borderBottomLeftRadius: '0px',
+                  borderBottomRightRadius: '0px'
+                }}
               ></div>
-          {/* Tile 2 */}
-          <div
-            className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
-            style={{ 
-              width: '100%', 
-              height: '184px',
-              background: themeColor,
-              borderTopLeftRadius: '8px',
-              borderTopRightRadius: '8px',
-              borderBottomLeftRadius: '0px',
-              borderBottomRightRadius: '0px'
-            }}
+              {/* Tile 2 */}
+              <div
+                className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
+                style={{
+                  width: '100%',
+                  height: '184px',
+                  background: themeColor,
+                  borderTopLeftRadius: '8px',
+                  borderTopRightRadius: '8px',
+                  borderBottomLeftRadius: '0px',
+                  borderBottomRightRadius: '0px'
+                }}
               ></div>
-          {/* Tile 3 */}
-          <div
-            className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
-            style={{ 
-              width: '100%', 
-              height: '184px',
-              background: themeColor,
-              borderTopLeftRadius: '8px',
-              borderTopRightRadius: '8px',
-              borderBottomLeftRadius: '0px',
-              borderBottomRightRadius: '0px'
-            }}
+              {/* Tile 3 */}
+              <div
+                className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
+                style={{
+                  width: '100%',
+                  height: '184px',
+                  background: themeColor,
+                  borderTopLeftRadius: '8px',
+                  borderTopRightRadius: '8px',
+                  borderBottomLeftRadius: '0px',
+                  borderBottomRightRadius: '0px'
+                }}
               ></div>
-          {/* Tile 4 */}
-          <div
-            className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
-            style={{ 
-              width: '100%', 
-              height: '184px',
-              background: themeColor,
-              borderTopLeftRadius: '8px',
-              borderTopRightRadius: '8px',
-              borderBottomLeftRadius: '0px',
-              borderBottomRightRadius: '0px'
-            }}
+              {/* Tile 4 */}
+              <div
+                className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
+                style={{
+                  width: '100%',
+                  height: '184px',
+                  background: themeColor,
+                  borderTopLeftRadius: '8px',
+                  borderTopRightRadius: '8px',
+                  borderBottomLeftRadius: '0px',
+                  borderBottomRightRadius: '0px'
+                }}
               ></div>
             </>
           )}
@@ -195,6 +201,7 @@ export default function Dashboard() {
   const [isPromptMode, setIsPromptMode] = useState(false);
   const [activeSegmentId, setActiveSegmentId] = useState(null); // Track which segment is in prompt mode
   const [promptBubble, setPromptBubble] = useState(null); // { x, y, elementType, elementData }
+  const [selectedLogo, setSelectedLogo] = useState(null); // { id, src }
   const [showPlusIcon, setShowPlusIcon] = useState(false);
   
   // Store submitted prompts by FPS position
@@ -213,6 +220,8 @@ export default function Dashboard() {
   const [fpsHoverTip, setFpsHoverTip] = useState({ visible: false, x: 0, y: 0, progress: 0 });
   // Hover hint bubble for Promo Cards ("Edit promo card")
   const [pcHoverTip, setPcHoverTip] = useState({ visible: false, x: 0, y: 0, elementData: null });
+  // Hover hint bubble for Logo Placeholder ("Add logo animation")
+  const [logoHoverTip, setLogoHoverTip] = useState({ visible: false, x: 0, y: 0 });
 
   // Compute contrasting border color for hover tip PBs (same logic as main PB)
   const isGradientTheme = typeof currentThemeColor === 'string' && currentThemeColor.includes('gradient');
@@ -271,7 +280,7 @@ export default function Dashboard() {
     // elementData: contains specific data about the element
     // position: { x, y } cursor position
     if (!isPromptMode) return;
-    // For FJB: show a labeled hover bubble; for logo area, label should say "Add logo animation"
+    // For FJB: do NOT show the icon-only plus; show hover bubble with "+ add theme"
     if (elementType === 'flight-journey-bar') {
       if (!promptBubble) {
         // Avoid flicker by only updating when moved enough pixels
@@ -281,12 +290,12 @@ export default function Dashboard() {
           const dx = Math.abs(prev.x - position.x);
           const dy = Math.abs(prev.y - position.y);
           if (!prev.visible || dx > 4 || dy > 4) {
-            return { visible: true, x: position.x, y: position.y, area: elementData?.area };
+            return { visible: true, x: position.x, y: position.y };
           }
           return prev;
         });
       } else {
-        setFjbHoverTip({ visible: false, x: 0, y: 0, area: undefined });
+        setFjbHoverTip({ visible: false, x: 0, y: 0 });
       }
       return;
     }
@@ -305,6 +314,23 @@ export default function Dashboard() {
         });
       } else {
         setFpsHoverTip({ visible: false, x: 0, y: 0, progress: 0 });
+      }
+      return;
+    }
+    if (elementType === 'logo-placeholder') {
+      if (!promptBubble) {
+        setShowPlusIcon(false);
+        setLogoHoverTip(prev => {
+          if (!isHovering) return { visible: false, x: 0, y: 0 };
+          const dx = Math.abs(prev.x - position.x);
+          const dy = Math.abs(prev.y - position.y);
+          if (!prev.visible || dx > 4 || dy > 4) {
+            return { visible: true, x: position.x, y: position.y };
+          }
+          return prev;
+        });
+      } else {
+        setLogoHoverTip({ visible: false, x: 0, y: 0 });
       }
       return;
     }
@@ -337,6 +363,8 @@ export default function Dashboard() {
         positionKey = `fps-${Math.round(elementData.progress * 1000)}`; // Use progress as unique identifier
       } else if (elementType === 'flight-journey-bar') {
         positionKey = 'fjb-dashboard'; // Single key for FJB on dashboard
+      } else if (elementType === 'logo-placeholder') {
+        positionKey = 'logo-dashboard';
       } else {
         positionKey = `${elementType}-${elementData.cardIndex || 0}`;
       }
@@ -380,19 +408,20 @@ export default function Dashboard() {
           existingText
         });
       } else {
-      setPromptBubble({
-        x: position.x,
-        y: position.y,
-        elementType,
-        elementData,
-        positionKey,
-        existingText
-      });
+        setPromptBubble({
+          x: position.x,
+          y: position.y,
+          elementType,
+          elementData,
+          positionKey,
+          existingText
+        });
       }
       setShowPlusIcon(false); // Hide plus icon when bubble appears
       setFjbHoverTip({ visible: false, x: 0, y: 0 });
       setFpsHoverTip({ visible: false, x: 0, y: 0, progress: 0 });
       setPcHoverTip({ visible: false, x: 0, y: 0, elementData: null });
+      setLogoHoverTip({ visible: false, x: 0, y: 0 });
     }
   };
 
@@ -407,6 +436,7 @@ export default function Dashboard() {
     setPromptBubble(null);
     setShowPlusIcon(false); // Ensure plus icon is hidden when bubble closes
     setFjbHoverTip({ visible: false, x: 0, y: 0 });
+    setLogoHoverTip({ visible: false, x: 0, y: 0 });
   };
 
   const handlePromptBubbleSubmit = (promptText, elementType, elementData, positionKey) => {
@@ -422,6 +452,15 @@ export default function Dashboard() {
     
     // TODO: Handle the actual prompt submission logic here
     setPromptBubble(null);
+    // Heuristic: if this is logo placeholder, parse prompt to choose an animation
+    if (elementType === 'logo-placeholder') {
+      const text = (promptText || '').toLowerCase();
+      let type = 'sparkles';
+      if (/confetti|celebrat|party|congrats/.test(text)) type = 'confetti';
+      else if (/light|festive|bulb|christmas|string/.test(text)) type = 'lights';
+      else if (/glow|neon|shine|halo/.test(text)) type = 'glow';
+      setSelectedLogo(prev => ({ ...(prev || {}), animationType: type }));
+    }
     // Optionally exit prompt mode after submission
     // handleExitPromptMode();
   };
@@ -450,26 +489,26 @@ export default function Dashboard() {
       {/* Header removed as requested */}
       {/* ThemeCreator positioned below header (always visible) */}
       <div className="w-full flex justify-center transition-all duration-300" style={{ marginTop: 0 }}>
-                          <ThemeCreator
-              routes={routes}
-              setRoutes={setRoutes}
+        <ThemeCreator
+          routes={routes}
+          setRoutes={setRoutes}
           initialMinimized={minimizeThemeCreator}
           initialWidth={minimizeThemeCreator ? 318 : undefined}
           initialFlightCreationMode={false}
-              onColorCardSelect={segment => setSelectedSegment(segment)}
-              onThemeColorChange={color => setCurrentThemeColor(color)}
+          onColorCardSelect={segment => setSelectedSegment(segment)}
+          onThemeColorChange={color => setCurrentThemeColor(color)}
           onStateChange={() => {}}
-              onEnterPromptMode={(segmentId) => {
-                setIsPromptMode(true);
-                setActiveSegmentId(segmentId);
-              }}
-              onFilterChipSelect={handleFilterChipSelect}
-              isPromptMode={isPromptMode}
-              activeSegmentId={activeSegmentId}
+          onEnterPromptMode={(segmentId) => {
+            setIsPromptMode(true);
+            setActiveSegmentId(segmentId);
+          }}
+          onFilterChipSelect={handleFilterChipSelect}
+          isPromptMode={isPromptMode}
+          activeSegmentId={activeSegmentId}
           onExposeThemeChips={(chips) => setFjbThemeChips(chips || [])}
           onStartThemeBuild={() => setIsThemeBuildStarted(true)}
-          />
-        </div>
+        />
+      </div>
       
       {/* Plus Icon Cursor for Prompt Mode */}
       <PlusIconCursor 
@@ -502,6 +541,7 @@ export default function Dashboard() {
           if (typeof color === 'string' && color.length > 0) setCurrentThemeColor(color);
         }}
         themeChips={promptBubble?.elementType === 'flight-journey-bar' ? fjbThemeChips : []}
+        onLogoSelect={(info) => setSelectedLogo(info)}
       />
 
       {/* FJB hover tip bubble: shows label and plus; click opens color PB */}
@@ -511,7 +551,7 @@ export default function Dashboard() {
           style={{ left: fjbHoverTip.x, top: fjbHoverTip.y, pointerEvents: 'none' }}
         >
           <div
-            className="flex items-center gap-2 px-3 py-2 rounded-2xl border-2 shadow-md"
+            className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
             style={{
               ...(typeof currentThemeColor === 'string' && currentThemeColor.includes('gradient')
                 ? { background: currentThemeColor }
@@ -526,13 +566,13 @@ export default function Dashboard() {
                 e.stopPropagation();
                 handlePromptClick('flight-journey-bar', { themeColor: currentThemeColor }, { x: fjbHoverTip.x, y: fjbHoverTip.y });
               }}
-              className="w-6 h-6 rounded-full border-2 flex items-center justify-center"
-              title={fjbHoverTip.area === 'logo' ? 'Add logo animation' : 'Add theme'}
+              className="w-6 h-6 rounded-full border flex items-center justify-center"
+              title="Add theme"
               style={{ pointerEvents: 'auto', borderColor: hoverOnColor, color: hoverOnColor }}
             >
               +
             </button>
-            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>{fjbHoverTip.area === 'logo' ? 'Add logo animation' : 'Add theme'}</span>
+            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Add theme</span>
           </div>
         </div>
       )}
@@ -544,7 +584,7 @@ export default function Dashboard() {
           style={{ left: fpsHoverTip.x, top: fpsHoverTip.y, pointerEvents: 'none' }}
         >
           <div
-            className="flex items-center gap-2 px-3 py-2 rounded-2xl border-2 shadow-md"
+            className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
             style={{
               ...(typeof currentThemeColor === 'string' && currentThemeColor.includes('gradient')
                 ? { background: currentThemeColor }
@@ -570,7 +610,7 @@ export default function Dashboard() {
                 } catch {}
                 handlePromptClick('flight-icon', { progress, minutesLeft }, { x: fpsHoverTip.x, y: fpsHoverTip.y });
               }}
-              className="w-6 h-6 rounded-full border-2 flex items-center justify-center"
+              className="w-6 h-6 rounded-full border flex items-center justify-center"
               title="Add flight phase"
               style={{ pointerEvents: 'auto', borderColor: hoverOnColor, color: hoverOnColor }}
             >
@@ -588,7 +628,7 @@ export default function Dashboard() {
           style={{ left: pcHoverTip.x, top: pcHoverTip.y, pointerEvents: 'none' }}
         >
           <div
-            className="flex items-center gap-2 px-3 py-2 rounded-2xl border-2 shadow-md"
+            className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
             style={{
               ...(typeof currentThemeColor === 'string' && currentThemeColor.includes('gradient')
                 ? { background: currentThemeColor }
@@ -604,7 +644,7 @@ export default function Dashboard() {
                 const ed = pcHoverTip.elementData || { cardIndex: 0, cardType: 'meal' };
                 handlePromptClick('promo-card', ed, { x: pcHoverTip.x, y: pcHoverTip.y });
               }}
-              className="w-6 h-6 rounded-full border-2 flex items-center justify-center"
+              className="w-6 h-6 rounded-full border flex items-center justify-center"
               title="Edit promo card"
               style={{ pointerEvents: 'auto', borderColor: hoverOnColor, color: hoverOnColor }}
             >
@@ -614,32 +654,66 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-      
-      {/* IFE Frame Wrapper - Always show below ThemeCreator; skeletons render until data is available */}
-        <div className="w-full flex justify-center" style={{ marginTop: 8 }}>
-        <div style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', contain: 'layout paint' }}>
-            <img
-              src={process.env.PUBLIC_URL + '/ife-frame.svg'}
-              alt="Mobile Frame"
-            style={{ position: 'absolute', top: -40, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none', willChange: 'transform', transform: 'translateZ(0)' }}
-            />
-            <FrameContent
-              origin={origin}
-              destination={destination}
-              minutesLeft={minutesLeft}
-              landingIn={landingIn}
-              maxFlightMinutes={maxFlightMinutes}
-              handleProgressChange={handleProgressChange}
-              themeColor={currentThemeColor}
-              routes={routes}
-              isPromptMode={isPromptMode}
-              onPromptHover={handlePromptHover}
-              onPromptClick={handlePromptClick}
-              fpsPrompts={fpsPrompts}
-            isThemeBuildStarted={isThemeBuildStarted}
-            />
+
+      {/* Logo Placeholder hover tip bubble: shows label and plus; click opens Logo PB */}
+      {isPromptMode && logoHoverTip.visible && !promptBubble && (
+        <div
+          className="fixed z-40"
+          style={{ left: logoHoverTip.x, top: logoHoverTip.y, pointerEvents: 'none' }}
+        >
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
+            style={{
+              ...(typeof currentThemeColor === 'string' && currentThemeColor.includes('gradient')
+                ? { background: currentThemeColor }
+                : { backgroundColor: currentThemeColor }),
+              borderColor: hoverBorderColor,
+              opacity: 1,
+              borderTopLeftRadius: 0
+            }}
+          >
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePromptClick('logo-placeholder', {}, { x: logoHoverTip.x, y: logoHoverTip.y });
+              }}
+              className="w-6 h-6 rounded-full border flex items-center justify-center"
+              title="Add logo animation"
+              style={{ pointerEvents: 'auto', borderColor: hoverOnColor, color: hoverOnColor }}
+            >
+              +
+            </button>
+            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Add logo animation</span>
           </div>
         </div>
+      )}
+      
+      {/* IFE Frame Wrapper - Always show below ThemeCreator; skeletons render until data is available */}
+      <div className="w-full flex justify-center" style={{ marginTop: 8 }}>
+        <div style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', contain: 'layout paint' }}>
+          <img
+            src={process.env.PUBLIC_URL + '/ife-frame.svg'}
+            alt="Mobile Frame"
+            style={{ position: 'absolute', top: -40, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none', willChange: 'transform', transform: 'translateZ(0)' }}
+          />
+          <FrameContent
+            origin={origin}
+            destination={destination}
+            minutesLeft={minutesLeft}
+            landingIn={landingIn}
+            maxFlightMinutes={maxFlightMinutes}
+            handleProgressChange={handleProgressChange}
+            themeColor={currentThemeColor}
+            routes={routes}
+            isPromptMode={isPromptMode}
+            onPromptHover={handlePromptHover}
+            onPromptClick={handlePromptClick}
+            fpsPrompts={fpsPrompts}
+            isThemeBuildStarted={isThemeBuildStarted}
+            selectedLogo={selectedLogo}
+          />
+        </div>
+      </div>
     </div>
   );
 } 

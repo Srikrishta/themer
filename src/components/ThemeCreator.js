@@ -7,6 +7,7 @@ import { HexColorPicker } from 'react-colorful';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useNavigate } from 'react-router-dom';
+import { getReadableOnColor } from '../utils/color';
 
 export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips, onStartThemeBuild }) {
   const navigate = useNavigate();
@@ -52,6 +53,12 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
   const flightChipsRef = useRef(null);
   const chipsInitialBottomRef = useRef(null);
   const [isChipsCollapsed, setIsChipsCollapsed] = useState(false);
+  // Sticky chips only after user scrolls
+  const chipsInitialTopRef = useRef(null);
+  const [isChipsSticky, setIsChipsSticky] = useState(false);
+  const lastScrollYRef = useRef(0);
+  // Auto-enter prompt mode on first chip after generating flights
+  const autoPromptOnFirstChipRef = useRef(false);
 
   // NEW: Badge hover state
   const [isBadgeHovered, setIsBadgeHovered] = useState(false);
@@ -247,6 +254,8 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
     setHasStartedThemeBuild(true);
     setIsDatePickerOpen(false);
     setInputValue('');
+    // Mark that when chips render we should select first and enter prompt mode
+    autoPromptOnFirstChipRef.current = true;
     // Smooth scroll to flight chips (and build theme button)
     setTimeout(() => {
       try {
@@ -275,6 +284,11 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
         ];
         if (typeof onExposeThemeChips === 'function') onExposeThemeChips(chips);
         if (typeof onStartThemeBuild === 'function') onStartThemeBuild(true);
+        // Auto-select first chip and enter prompt mode
+        setActiveFlightIndex(0);
+        if (typeof onColorCardSelect === 'function') onColorCardSelect(currentSeg);
+        if (typeof onFilterChipSelect === 'function') onFilterChipSelect(true);
+        if (typeof onEnterPromptMode === 'function') onEnterPromptMode(currentSeg?.id);
       }
     } catch {}
   };
@@ -290,6 +304,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
   useEffect(() => {
     if (!isCreatingThemes) {
       setIsChipsCollapsed(false);
+      setIsChipsSticky(false);
       return;
     }
     const updateThreshold = () => {
@@ -298,14 +313,27 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
       const rect = node.getBoundingClientRect();
       const scrollY = window.pageYOffset || document.documentElement.scrollTop;
       chipsInitialBottomRef.current = rect.top + scrollY + rect.height;
+      chipsInitialTopRef.current = rect.top + scrollY;
     };
     // Initialize threshold
     updateThreshold();
     const handleScroll = () => {
       if (!chipsInitialBottomRef.current) return;
       const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+      const lastY = lastScrollYRef.current || 0;
+      const isScrollingUp = scrollY < lastY;
+      lastScrollYRef.current = scrollY;
       // Collapse once user has scrolled 100px past the initial bottom of chips
       setIsChipsCollapsed(scrollY > chipsInitialBottomRef.current + 100);
+      // Become sticky once the top of chips reaches the top of the viewport
+      if (typeof chipsInitialTopRef.current === 'number') {
+        if (isScrollingUp) {
+          // On upward scroll, exit sticky to reveal entire TC
+          setIsChipsSticky(false);
+        } else {
+          setIsChipsSticky(scrollY >= Math.max(0, chipsInitialTopRef.current - 8));
+        }
+      }
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('resize', updateThreshold);
@@ -454,6 +482,22 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
     });
   }, [routes, isCreatingThemes]);
 
+  // Ensure we select the first chip and enter prompt mode after Generate flights
+  useEffect(() => {
+    if (!isCreatingThemes) return;
+    if (!autoPromptOnFirstChipRef.current) return;
+    if (!flightSegments || flightSegments.length === 0) return;
+    const firstSeg = flightSegments[0];
+    setActiveFlightIndex(0);
+    try {
+      if (typeof onColorCardSelect === 'function') onColorCardSelect(firstSeg);
+      if (typeof onFilterChipSelect === 'function') onFilterChipSelect(true);
+      if (typeof onEnterPromptMode === 'function') onEnterPromptMode(firstSeg?.id);
+      if (typeof onStartThemeBuild === 'function') onStartThemeBuild(true);
+    } catch {}
+    autoPromptOnFirstChipRef.current = false;
+  }, [isCreatingThemes, flightSegments]);
+
   // Calculate timeline height for color cards
   useEffect(() => {
     const calculateTimelineHeight = () => {
@@ -531,6 +575,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
     ];
     const selectedTheme = themeOptions.find(t => t.id === selectedThemeId);
     const dotColor = selectedTheme ? selectedTheme.color : '#1E1E1E';
+    const dotOnColor = getReadableOnColor(dotColor);
 
     drag(drop(ref));
 
@@ -559,8 +604,8 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                  style={{ backgroundColor: dotColor }}
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                  style={{ backgroundColor: dotColor, color: dotOnColor, boxShadow: 'none' }}
                 >
                   {index + 1}
                 </div>
@@ -872,13 +917,13 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
   return (
     <div 
       ref={containerRef}
-      className={`p-10 border border-gray-200 ${isCreatingThemes ? 'sticky top-0 z-40' : ''}`}
+      className={`px-10 py-3 border border-gray-200 ${isCreatingThemes && isChipsSticky ? 'sticky top-0 z-40' : ''}`}
       style={{
         width: '100%',
         minWidth: '100%',
         maxWidth: '100%',
-        height: isCreatingThemes ? '300px' : (routes.length === 0 ? '240px' : '380px'),
-        minHeight: isCreatingThemes ? '300px' : (routes.length === 0 ? '240px' : '380px'),
+        height: isCreatingThemes ? 'auto' : (routes.length === 0 ? '240px' : '380px'),
+        minHeight: isCreatingThemes ? undefined : (routes.length === 0 ? '240px' : '380px'),
         maxHeight: 'none',
         transition: 'width 0.2s, height 0.2s',
         paddingLeft: '170px',
@@ -896,125 +941,58 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
 
       {/* Collapse/expand icon removed */}
 
-      {/* Logo above flights view */}
-      {isCreatingThemes && !isMinimized && (
-        <div className="mb-4">
-          <span
-            className="text-2xl font-bold themer-gradient cursor-pointer"
-            title="Go to landing page"
-            onClick={() => navigate('/')}
-          >
-            Themer
-          </span>
-        </div>
-      )}
+      {/* Flights view shows only the flight chips (no logo/header) */}
 
-      {/* Header - Changes based on state */}
-      <div className={`flex flex-col items-start select-none w-full ${isMinimized && containerWidth === minWidth ? 'h-full justify-center mb-0' : 'mb-4'}`}>
-        <div style={{ width: isMinimized ? '100%' : 480, maxWidth: '100%' }} className="flex flex-row items-center w-full justify-between">
-          {/* Collapsed + min width: show route creator or create route */}
-          {isMinimized && containerWidth === minWidth ? (
-            <div 
-              className={`flex items-center w-full ${routes.length === 0 ? 'justify-center cursor-pointer' : 'justify-between'}`}
-                             onClick={routes.length === 0 ? (e) => {
-                 e.stopPropagation();
-                 if (onExpand) {
-                   onExpand();
-                 } else {
-                   setIsMinimized(false);
-                   setContainerWidth(480);
-                 }
-               } : undefined}
-            >
-              <span className="text-lg font-semibold text-gray-700">
-                {routes.length === 0 ? 'Create route' : 'Route creator'}
-              </span>
-              {routes.length > 0 && (
-                <div></div>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              {/* Header removed (back navigation and title) */}
-              <div></div>
-            </div>
-          )}
-        </div>
-        
-        {/* Filter Chips Row - Full Width */}
-        {isCreatingThemes && !isMinimized && (
-              <div ref={flightChipsRef} className="w-full mt-3">
-                <DndProvider backend={HTML5Backend}>
-                  <div className="flex items-stretch gap-12 w-full">
-                {flightSegments.map((segment, index) => {
+      {/* Only Flight Chips Row - Full Width */}
+      {isCreatingThemes && !isMinimized && (
+        <div ref={flightChipsRef} className="w-full">
+          <DndProvider backend={HTML5Backend}>
+            <div className="flex items-stretch gap-12 w-full">
+              {flightSegments.map((segment, index) => {
                 // Safety checks for segment data
                 if (!segment || !segment.origin || !segment.destination || !segment.origin.airport || !segment.destination.airport) {
                   return null;
                 }
-                  const selectedThemeId = selectedThemes[segment.id];
-                  return (
-                    <div key={segment.id} className="flex items-center gap-6 flex-1 min-w-0">
-                      <div className="flex-1 min-w-0">
-                        <FlightChip
-                          segment={segment}
-                          index={index}
-                          activeFlightIndex={activeFlightIndex}
-                          selectedThemeId={selectedThemeId}
-                          collapsed={isChipsCollapsed}
-                          onSelect={(idx, seg) => {
-                            setActiveFlightIndex(idx);
-                            if (typeof onColorCardSelect === 'function') onColorCardSelect(seg);
-                            if (typeof onFilterChipSelect === 'function') onFilterChipSelect(true);
-                            // Enter prompt mode immediately when a flight chip is selected
-                            try {
-                              if (typeof onStartThemeBuild === 'function') onStartThemeBuild(true);
-                              if (typeof onEnterPromptMode === 'function') onEnterPromptMode(seg?.id);
-                            } catch {}
-                          }}
-                        />
-                      </div>
-                      {index < flightSegments.length - 1 && (
-                        <div className="flex items-center justify-center flex-shrink-0 px-2 py-8">
-                          <span className="text-white text-lg font-bold opacity-60" style={{ fontSize: '18px', fontWeight: '300' }}>→</span>
-                        </div>
-                      )}
+                const selectedThemeId = selectedThemes[segment.id];
+                return (
+                  <div key={segment.id} className="flex items-center gap-6 flex-1 min-w-0">
+                    <div className="flex-1 min-w-0">
+                      <FlightChip
+                        segment={segment}
+                        index={index}
+                        activeFlightIndex={activeFlightIndex}
+                        selectedThemeId={selectedThemeId}
+                        collapsed={isChipsCollapsed}
+                        onSelect={(idx, seg) => {
+                          setActiveFlightIndex(idx);
+                          if (typeof onColorCardSelect === 'function') onColorCardSelect(seg);
+                          if (typeof onFilterChipSelect === 'function') onFilterChipSelect(true);
+                          // Enter prompt mode immediately when a flight chip is selected
+                          try {
+                            if (typeof onStartThemeBuild === 'function') onStartThemeBuild(true);
+                            if (typeof onEnterPromptMode === 'function') onEnterPromptMode(seg?.id);
+                          } catch {}
+                        }}
+                      />
                     </div>
-                  );
-                })}
-              </div>
-            </DndProvider>
-          </div>
-        )}
-      </div>
+                    {index < flightSegments.length - 1 && (
+                      <div className="flex items-center justify-center flex-shrink-0 px-2 py-8">
+                        <span className="text-white text-lg font-bold opacity-60" style={{ fontSize: '18px', fontWeight: '300' }}>→</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </DndProvider>
+        </div>
+      )}
 
       {/* Content - Changes based on state */}
       {!isMinimized && (isCreatingThemes ? (
         // Theme Creation Content
         <>
-          {/* Date Picker Dropdown for Flights of view */}
-          <div className="relative" ref={datePickerRef} style={{ width: 320 }}>
-            {isDatePickerOpen && (
-              <div className={`absolute left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 ${
-                dropdownPosition === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'
-              }`}>
-                <DatePicker
-                  currentDate={currentDate}
-                  onNavigateMonth={navigateMonth}
-                  selectedDates={dates}
-                  onDateClick={handleDateClick}
-                  onCreateTheme={handleCreateTheme}
-                  onEditDates={handleEditDates}
-                  inputValue={inputValue}
-                  onInputChange={handleInputChange}
-                  setCurrentDate={setCurrentDate}
-                  berlinToday={getBerlinToday()}
-                />
-              </div>
-            )}
-          </div>
-          {/* Color Card removed: theme selection happens via prompt bubble now */}
-
-          {/* Build theme button removed: prompt mode starts when a chip is selected */}
+          {/* Flights view: no extra UI below, chips above handle selection */}
         </>
       ) : (
         // Route Creation Content

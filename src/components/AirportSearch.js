@@ -232,7 +232,7 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [], defau
                 <div className="flex items-center gap-2">
                   <div 
                     className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                    style={{ backgroundColor: circleColor, color: circleOnColor, border: `2px solid ${circleOnColor}` }}
+                    style={{ backgroundColor: circleColor, color: circleOnColor, boxShadow: 'none' }}
                   >
                     {index + 1}
                   </div>
@@ -631,7 +631,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
             className={`h-12 px-4 rounded-tl-[0px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px] transition-colors flex items-center justify-center w-[240px] ${
               routes.length >= 2 
                 ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] text-white/70 cursor-not-allowed'
             }`}
             disabled={routes.length < 2}
             onClick={() => {
