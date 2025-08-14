@@ -681,6 +681,7 @@ export default function PromptBubble({
                       e.target.style.backgroundColor = `${chip.color}10`;
                     }}
                   >
+                    {isSelected && <CheckIcon className="w-3 h-3 mr-1.5 flex-shrink-0" />}
                     {chip.label}
                     {!isSelected && <PlusIcon className="w-3 h-3 ml-1.5 flex-shrink-0" />}
                   </button>

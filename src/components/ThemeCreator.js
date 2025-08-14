@@ -620,7 +620,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
           {activeFlightIndex === index && (
             <>
               <div className="hidden md:flex w-px mx-0" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
-              <div className="hidden md:flex items-center gap-1" style={{ marginLeft: 10 }}>
+              <div className="hidden md:flex items-center gap-1" style={{ marginLeft: 5 }}>
                 {[
                   { id: 0, label: 'Add theme', title: 'Add theme', icon: null, variant: 'primary', isThemerDot: true },
                   { id: 1, label: 'Add logo', title: 'Add logo', icon: PhotoIcon },

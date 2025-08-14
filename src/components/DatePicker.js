@@ -22,7 +22,8 @@ const DatePicker = ({
   setCurrentDate,
   berlinToday,
   onInputSubmit,
-  themeColor = '#1E1E1E'
+  themeColor = '#1E1E1E',
+  containerBgColor
 }) => {
   const [inputError, setInputError] = useState('');
   const [tooltip, setTooltip] = useState({
@@ -477,7 +478,7 @@ const DatePicker = ({
   const typedDate = findNearestDate(inputValue);
   const highlightDateString = typedDate ? dateToString(typedDate) : null;
 
-  const containerBg = themeColor || '#1E1E1E';
+  const containerBg = containerBgColor || themeColor || '#1E1E1E';
   const containerText = getReadableOnColor(containerBg);
   return (
     <div className="p-4 rounded-lg" style={{ backgroundColor: containerBg, color: containerText }}>

@@ -618,7 +618,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
             {/* Former inline label removed; now rendered above input */}
             {/* Date Picker Dropdown - centered to input */}
             {isDatePickerOpen && (
-              <div className="absolute left-1/2 -translate-x-1/2 rounded-lg shadow-lg z-50 top-full mt-1" style={{ width: '400px', backgroundColor: themeColor }}>
+              <div className="absolute left-1/2 -translate-x-1/2 rounded-lg shadow-lg z-50 top-full mt-1" style={{ width: '400px', backgroundColor: '#1E1E1E' }}>
                 <DatePicker
                   currentDate={currentDate}
                   onNavigateMonth={navigateMonth}
@@ -631,6 +631,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                   setCurrentDate={setCurrentDate}
                   berlinToday={new Date()}
                   themeColor={themeColor}
+                  containerBgColor="#1E1E1E"
                 />
               </div>
             )}
