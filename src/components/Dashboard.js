@@ -7,7 +7,7 @@ import Component3Cards from './Component3Cards';
 import PlusIconCursor from './PlusIconCursor';
 import PromptBubble from './PromptBubble';
 import MousePointer from './MousePointer';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { mapThemeChipToAnimation } from '../utils/themeAnimationMapper';
 
 function formatTime(minutes) {
@@ -316,37 +316,18 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
 
 export default function Dashboard() {
   const location = useLocation();
-  const [searchParams] = useSearchParams();
   const minimizeThemeCreator = location.state?.minimizeThemeCreator;
   // Lifted state for routes
   const [routes, setRoutes] = useState([]);
   // Track if user has started building theme (enables 3PCs content and PB)
-  const [isThemeBuildStarted, setIsThemeBuildStarted] = useState(false);
+  const [isThemeBuildStarted, setIsThemeBuildStarted] = useState(true);
   const [themeAnimationComplete, setThemeAnimationComplete] = useState(false);
   // NEW: State for selected segment (color card)
   const [selectedSegment, setSelectedSegment] = useState(null);
   // NEW: State for current theme color
-  const [currentThemeColor, setCurrentThemeColor] = useState(() => {
-    // Use blue for routes view, Discover blue for theme build view
-    return !isThemeBuildStarted ? '#2563EB' : '#1E72AE';
-  });
+  const [currentThemeColor, setCurrentThemeColor] = useState('#1E72AE'); // Always Discover blue for flights view
 
-  // Update currentThemeColor when isThemeBuildStarted changes
-  useEffect(() => {
-    if (!isThemeBuildStarted) {
-      setCurrentThemeColor('#2563EB'); // Blue for routes view
-    } else {
-      setCurrentThemeColor('#1E72AE'); // Discover blue for theme build view
-    }
-  }, [isThemeBuildStarted]);
 
-  // Handle URL changes for view parameter
-  useEffect(() => {
-    const viewParam = searchParams.get('view');
-    if (viewParam === 'flights') {
-      setIsThemeBuildStarted(true);
-    }
-  }, [searchParams]);
   
   // NEW: Prompt mode state
   const [isPromptMode, setIsPromptMode] = useState(false);
@@ -716,29 +697,16 @@ export default function Dashboard() {
 
   // Removed scroll detection and header collapse behavior
 
-  // Manage body overflow based on view state
+  // Manage body overflow - always allow scrolling in flights view
   useEffect(() => {
-    console.log('Dashboard overflow effect:', { isThemeBuildStarted });
-    if (!isThemeBuildStarted) {
-      // Routes view - prevent scrolling aggressively
-      console.log('Setting routes view - no scroll');
-      document.body.style.overflow = 'hidden';
-      document.body.style.height = '100vh';
-      document.documentElement.style.overflow = 'hidden';
-      document.documentElement.style.height = '100vh';
-      // Prevent scroll on specific elements
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-    } else {
-      // Flights view - allow scrolling
-      console.log('Setting flights view - allow scroll');
-      document.body.style.overflow = 'auto';
-      document.body.style.height = 'auto';
-      document.documentElement.style.overflow = 'auto';
-      document.documentElement.style.height = 'auto';
-      document.body.style.position = 'static';
-      document.body.style.width = 'auto';
-    }
+    console.log('Dashboard overflow effect: always allow scroll');
+    // Always allow scrolling
+    document.body.style.overflow = 'auto';
+    document.body.style.height = 'auto';
+    document.documentElement.style.overflow = 'auto';
+    document.documentElement.style.height = 'auto';
+    document.body.style.position = 'static';
+    document.body.style.width = 'auto';
 
     // Cleanup function to restore scrolling when component unmounts
     return () => {
@@ -749,11 +717,10 @@ export default function Dashboard() {
       document.body.style.position = 'static';
       document.body.style.width = 'auto';
     };
-  }, [isThemeBuildStarted]);
+  }, []);
 
   // Auto-scroll to hide the themer logo when entering flights view
   useEffect(() => {
-    if (!isThemeBuildStarted) return;
     const doScroll = () => {
       try {
         const logoEl = document.querySelector('[data-name="themer-logo"]');
@@ -772,24 +739,17 @@ export default function Dashboard() {
     // Delay to allow ThemeCreator to render the logo
     const t = setTimeout(doScroll, 200);
     return () => clearTimeout(t);
-  }, [isThemeBuildStarted]);
+  }, []);
 
   return (
     <div 
-      className={`min-h-screen ${(!isThemeBuildStarted && !isGeneratingFlights) ? 'h-screen overflow-hidden' : ''}`}
+      className="min-h-screen"
       style={{
-        height: (!isThemeBuildStarted && !isGeneratingFlights) ? '100vh' : 'auto',
-        overflow: (!isThemeBuildStarted && !isGeneratingFlights) ? 'hidden' : 'visible',
-        overflowY: (!isThemeBuildStarted && !isGeneratingFlights) ? 'hidden' : 'visible',
+        height: 'auto',
+        overflow: 'visible',
+        overflowY: 'visible',
         position: 'relative',
-        // Force scrolling when content is visible
-        ...((isThemeBuildStarted || isGeneratingFlights) && {
-          overflow: 'visible',
-          overflowY: 'visible',
-          height: 'auto',
-          minHeight: 'auto'
-        }),
-
+        minHeight: 'auto'
       }}
       data-name="dashboard-container"
     >
@@ -799,7 +759,8 @@ export default function Dashboard() {
       <div 
         className="w-full flex justify-center transition-all duration-300"
         style={{ 
-          marginTop: 0
+          marginTop: 0,
+          marginBottom: 80
         }}
       >
         <ThemeCreator
@@ -1054,16 +1015,16 @@ export default function Dashboard() {
 
       {/* Original IFE frame logic */}
       {(() => {
-        const shouldShow = isGeneratingFlights || isThemeBuildStarted || true; // Always true for routes view
+        const shouldShow = isGeneratingFlights || isThemeBuildStarted; // Always true since isThemeBuildStarted is always true
         
 
         
         return shouldShow;
       })() && (
         <>
-          <div className="w-full flex justify-center" style={{ marginTop: isThemeBuildStarted ? 12 : 24 }}>
+          <div className="w-full flex justify-center" style={{ marginTop: isThemeBuildStarted ? 12 : 24, marginBottom: 32 }}>
             <div style={{ width: '1302px' }}>
-              <p className="block font-bold text-black" style={{ fontSize: '28px', lineHeight: '36px', margin: 0 }}>In-flight GUI</p>
+              <p className="block font-bold text-black text-center" style={{ fontSize: '28px', lineHeight: '36px', margin: 0 }}>In-flight GUI</p>
             </div>
           </div>
 

@@ -13,8 +13,6 @@ export default function FlightCardInline({ segment, index, activeIndex, onSelect
       if (type === 'logo') onTriggerPromptBubble('logo-placeholder', {}, position, segId);
       else if (type === 'theme') onTriggerPromptBubble('flight-journey-bar', { themeColor }, position, segId);
       else if (type === 'phase') onTriggerPromptBubble('flight-phase-button', { progress: 0.5, minutesLeft: 200 }, position, segId);
-      else if (type === 'cards') onTriggerPromptBubble('promo-card', { cardIndex: 0, cardType: 'update-cards' }, position, segId);
-      else if (type === 'content') onTriggerPromptBubble('promo-card', { cardIndex: 0, cardType: 'add-content' }, position, segId);
     }
   };
 
@@ -49,12 +47,7 @@ export default function FlightCardInline({ segment, index, activeIndex, onSelect
                 <button type="button" className="inline-flex items-center rounded-[24px] bg-white/10 text-white hover:bg-white/15 h-9 w-9 justify-center px-0 shrink-0" title="Modify flight phase" onClick={(e) => handleAction(e, 'phase')}>
                   <img src={process.env.PUBLIC_URL + '/flight icon.svg'} alt="Flight icon" className="w-4 h-4" />
                 </button>
-                <button type="button" className="inline-flex items-center rounded-[24px] bg-white/10 text-white hover:bg-white/15 h-9 w-9 justify-center px-0 shrink-0" title="Update cards" onClick={(e) => handleAction(e, 'cards')}>
-                  <ArrowsUpDownIcon className="w-4 h-4" />
-                </button>
-                <button type="button" className="inline-flex items-center rounded-[24px] bg-white/10 text-white hover:bg-white/15 h-9 w-9 justify-center px-0 shrink-0" title="Add content" onClick={(e) => handleAction(e, 'content')}>
-                  <PlayIcon className="w-4 h-4" />
-                </button>
+
               </div>
             </>
           )}

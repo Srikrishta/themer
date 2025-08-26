@@ -350,8 +350,8 @@ export default function LandingPage() {
                   <div
                     onClick={() => {
                       console.log('=== BUILD THEMES BUTTON CLICKED ===');
-                      console.log('=== NAVIGATING TO DASHBOARD WITH FLIGHTS VIEW ===');
-                      navigate('/dashboard?view=flights');
+                      console.log('=== NAVIGATING TO DASHBOARD ===');
+                      navigate('/dashboard');
                     }}
                     className="shadow-md cursor-pointer transition-all duration-200 hover:opacity-90"
                     style={{
