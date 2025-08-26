@@ -457,7 +457,14 @@ export default function LandingPage() {
                       onDrop={(e) => handleDrop(e, tile.id)}
                       onDragEnd={handleDragEnd}
                     >
-                      <span className="text-white text-sm font-medium">Tile {tile.id}</span>
+                      <div className="text-center">
+                        <span className="text-sm font-medium block" style={{ color: getReadableOnColor(tile.color) }}>
+                          Tile {tile.id}
+                        </span>
+                        <span className="text-xs font-medium" style={{ color: getReadableOnColor(tile.color) }}>
+                          Add content
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>

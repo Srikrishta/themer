@@ -18,7 +18,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFlightMinutes = 370, minutesLeft: externalMinutesLeft, onProgressChange, themeColor = '#1E1E1E', isPromptMode = false, onPromptHover, onPromptClick, fpsPrompts = {}, showMovingIcon = false, onAnimationProgressChange, onPromoCardLoadingChange, onAnimationProgress, onCruiseLabelShow, onMiddleCardPromptClose, onThemeColorChange, flightsGenerated = false }) {
+export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFlightMinutes = 370, minutesLeft: externalMinutesLeft, onProgressChange, themeColor = '#1E72AE', isPromptMode = false, onPromptHover, onPromptClick, fpsPrompts = {}, showMovingIcon = false, onAnimationProgressChange, onPromoCardLoadingChange, onAnimationProgress, onCruiseLabelShow, onMiddleCardPromptClose, onThemeColorChange, flightsGenerated = false }) {
   console.log('=== FlightProgress themeColor ===', { themeColor, isGradient: themeColor.includes('gradient') });
   
   // Helper function to determine color based on theme type
@@ -808,7 +808,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
             position: 'absolute',
             left: `${barWidth * 0.05}px`, // 5% position
             top: '40px',
-            color: getElementColor(),
+            color: onColor,
             fontSize: '10px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
@@ -850,7 +850,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
             position: 'absolute',
             left: `${barWidth * 0.20}px`, // Fixed 20% position
             top: '40px', // Same spacing as Takeoff label
-            color: getElementColor(),
+            color: onColor,
             fontSize: '10px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
@@ -895,7 +895,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               position: 'absolute',
               left: `${barWidth * 0.05}px`,
               top: '40px',
-              color: getElementColor(),
+              color: onColor,
               fontSize: '10px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
@@ -914,7 +914,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               position: 'absolute',
               left: `${barWidth * 0.20}px`,
               top: '40px',
-              color: getElementColor(),
+              color: onColor,
               fontSize: '10px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
@@ -933,7 +933,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               position: 'absolute',
               left: `${barWidth * 0.35}px`,
               top: '40px',
-              color: getElementColor(),
+              color: onColor,
               fontSize: '10px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
@@ -952,7 +952,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               position: 'absolute',
               left: `${barWidth * 0.75}px`,
               top: '40px',
-              color: getElementColor(),
+              color: onColor,
               fontSize: '10px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
@@ -971,7 +971,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               position: 'absolute',
               left: `${barWidth * 0.88}px`,
               top: '40px',
-              color: getElementColor(),
+              color: onColor,
               fontSize: '10px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
@@ -1063,7 +1063,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               position: 'absolute',
               left: `${promptLeft + 8}px`, // Fixed position based on original progress
               top: '40px',
-              color: getElementColor(),
+              color: onColor,
               fontSize: '10px',
               fontWeight: 'bold',
               textTransform: 'uppercase',

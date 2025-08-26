@@ -8,6 +8,7 @@ import PlusIconCursor from './PlusIconCursor';
 import PromptBubble from './PromptBubble';
 import MousePointer from './MousePointer';
 import { useLocation } from 'react-router-dom';
+import { mapThemeChipToAnimation } from '../utils/themeAnimationMapper';
 
 function formatTime(minutes) {
   const h = Math.floor(minutes / 60);
@@ -15,12 +16,12 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress }) {
   return (
     <div style={{ position: 'relative', zIndex: 2, width: 1302, margin: '92px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
       <div
         className="fjb-fps-container"
-        style={{ width: 1328, maxWidth: 1328, marginLeft: -2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, background: themeColor + '14', borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 16, paddingTop: 80, paddingBottom: 40, marginTop: 4, position: 'relative' }}
+        style={{ width: 1336, maxWidth: 1336, marginLeft: -2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, background: themeColor, borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 16, paddingTop: 80, paddingBottom: 40, marginTop: 4, position: 'relative' }}
         onMouseEnter={(e) => {
           if (!isPromptMode) return;
           const isOverProgress = e.target.closest('.flight-progress-bar-container') || e.target.closest('.flight-progress-icon');
@@ -78,6 +79,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
             onPromptClick={onPromptClick}
             fpsPrompts={fpsPrompts}
             flightsGenerated={flightsGenerated}
+            onAnimationProgress={onAnimationProgress}
           />
         </div>
       </div>
@@ -95,89 +97,215 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         className="flex flex-col items-start"
         style={{ width: '1302px', gap: '24px' }}
       >
-        <p className={`block text-left font-bold ${!isThemeBuildStarted ? 'text-black/60' : 'text-black'}`} style={{ fontSize: '28px', lineHeight: '36px', margin: 0 }}>
+        <p className="block text-left font-bold text-black" style={{ fontSize: '28px', lineHeight: '36px', margin: 0 }}>
           Recommended for you
         </p>
         
         {/* 4 Recommended Tiles */}
         <div className="grid grid-cols-4 gap-6" style={{ width: '100%' }}>
-          {!isThemeBuildStarted ? (
-            // Skeleton tiles when no routes added
+          {!isThemeBuildStarted || routes.length < 2 ? (
+            // Show white placeholders when no theme is built or insufficient routes
             <>
-              {[0, 1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="overflow-clip relative shrink-0 flex items-center justify-center bg-gray-200"
-                  style={{
-                    width: '100%',
-                    height: '184px',
-                    borderTopLeftRadius: '8px',
-                    borderTopRightRadius: '8px',
-                    borderBottomLeftRadius: '0px',
-                    borderBottomRightRadius: '0px'
-                  }}
-                >
-                  <div className="space-y-3 text-center w-3/4">
-                    <div className="h-6 bg-gray-300 rounded w-3/4 mx-auto"></div>
-                    <div className="h-4 bg-gray-300 rounded w-1/2 mx-auto"></div>
-                  </div>
-                </div>
-              ))}
+              <div
+                className="overflow-clip relative shrink-0 flex items-center justify-center"
+                style={{
+                  width: '100%',
+                  height: '184px',
+                  borderTopLeftRadius: '8px',
+                  borderTopRightRadius: '8px',
+                  borderBottomLeftRadius: '0px',
+                  borderBottomRightRadius: '0px',
+                  backgroundColor: (() => {
+                    if (themeColor.startsWith('#')) {
+                      const hex = themeColor.slice(1);
+                      const r = parseInt(hex.substr(0, 2), 16);
+                      const g = parseInt(hex.substr(2, 2), 16);
+                      const b = parseInt(hex.substr(4, 2), 16);
+                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
+                    }
+                    return 'rgba(255,255,255,0.1)';
+                  })()
+                }}
+              >
+              </div>
+              <div
+                className="overflow-clip relative shrink-0 flex items-center justify-center"
+                style={{
+                  width: '100%',
+                  height: '184px',
+                  borderTopLeftRadius: '8px',
+                  borderTopRightRadius: '8px',
+                  borderBottomLeftRadius: '0px',
+                  borderBottomRightRadius: '0px',
+                  backgroundColor: (() => {
+                    if (themeColor.startsWith('#')) {
+                      const hex = themeColor.slice(1);
+                      const r = parseInt(hex.substr(0, 2), 16);
+                      const g = parseInt(hex.substr(2, 2), 16);
+                      const b = parseInt(hex.substr(4, 2), 16);
+                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
+                    }
+                    return 'rgba(255,255,255,0.1)';
+                  })()
+                }}
+              >
+              </div>
+              <div
+                className="overflow-clip relative shrink-0 flex items-center justify-center"
+                style={{
+                  width: '100%',
+                  height: '184px',
+                  borderTopLeftRadius: '8px',
+                  borderTopRightRadius: '8px',
+                  borderBottomLeftRadius: '0px',
+                  borderBottomRightRadius: '0px',
+                  backgroundColor: (() => {
+                    if (themeColor.startsWith('#')) {
+                      const hex = themeColor.slice(1);
+                      const r = parseInt(hex.substr(0, 2), 16);
+                      const g = parseInt(hex.substr(2, 2), 16);
+                      const b = parseInt(hex.substr(4, 2), 16);
+                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
+                    }
+                    return 'rgba(255,255,255,0.1)';
+                  })()
+                }}
+              >
+              </div>
+              <div
+                className="overflow-clip relative shrink-0 flex items-center justify-center"
+                style={{
+                  width: '100%',
+                  height: '184px',
+                  borderTopLeftRadius: '8px',
+                  borderTopRightRadius: '8px',
+                  borderBottomLeftRadius: '0px',
+                  borderBottomRightRadius: '0px',
+                  backgroundColor: (() => {
+                    if (themeColor.startsWith('#')) {
+                      const hex = themeColor.slice(1);
+                      const r = parseInt(hex.substr(0, 2), 16);
+                      const g = parseInt(hex.substr(2, 2), 16);
+                      const b = parseInt(hex.substr(4, 2), 16);
+                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
+                    }
+                    return 'rgba(255,255,255,0.1)';
+                  })()
+                }}
+              >
+              </div>
             </>
           ) : (
+            // Show themed content when theme is built and routes are available
             <>
               {/* Tile 1 */}
               <div
-                className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
+                className="overflow-clip relative shrink-0 flex items-center justify-center backdrop-blur-[10px] backdrop-filter"
                 style={{
                   width: '100%',
                   height: '184px',
-                  background: themeColor,
+                  background: (() => {
+                    if (themeColor.startsWith('#')) {
+                      const hex = themeColor.slice(1);
+                      const r = parseInt(hex.substr(0, 2), 16);
+                      const g = parseInt(hex.substr(2, 2), 16);
+                      const b = parseInt(hex.substr(4, 2), 16);
+                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
+                    }
+                    return 'rgba(255,255,255,0.1)';
+                  })(),
                   borderTopLeftRadius: '8px',
                   borderTopRightRadius: '8px',
                   borderBottomLeftRadius: '0px',
-                  borderBottomRightRadius: '0px'
+                  borderBottomRightRadius: '0px',
+
                 }}
-              ></div>
+              >
+                <span className="font-semibold" style={{ color: '#000000', fontSize: '24px', lineHeight: '32px', opacity: 0.7 }}>
+                  Add content
+                </span>
+              </div>
               {/* Tile 2 */}
               <div
-                className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
+                className="overflow-clip relative shrink-0 flex items-center justify-center backdrop-blur-[10px] backdrop-filter"
                 style={{
                   width: '100%',
                   height: '184px',
-                  background: themeColor,
+                  background: (() => {
+                    if (themeColor.startsWith('#')) {
+                      const hex = themeColor.slice(1);
+                      const r = parseInt(hex.substr(0, 2), 16);
+                      const g = parseInt(hex.substr(2, 2), 16);
+                      const b = parseInt(hex.substr(4, 2), 16);
+                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
+                    }
+                    return 'rgba(255,255,255,0.1)';
+                  })(),
                   borderTopLeftRadius: '8px',
                   borderTopRightRadius: '8px',
                   borderBottomLeftRadius: '0px',
-                  borderBottomRightRadius: '0px'
+                  borderBottomRightRadius: '0px',
+
                 }}
-              ></div>
+              >
+                <span className="font-semibold" style={{ color: '#000000', fontSize: '24px', lineHeight: '32px', opacity: 0.7 }}>
+                  Add content
+                </span>
+              </div>
               {/* Tile 3 */}
               <div
-                className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
+                className="overflow-clip relative shrink-0 flex items-center justify-center backdrop-blur-[10px] backdrop-filter"
                 style={{
                   width: '100%',
                   height: '184px',
-                  background: themeColor,
+                  background: (() => {
+                    if (themeColor.startsWith('#')) {
+                      const hex = themeColor.slice(1);
+                      const r = parseInt(hex.substr(0, 2), 16);
+                      const g = parseInt(hex.substr(2, 2), 16);
+                      const b = parseInt(hex.substr(4, 2), 16);
+                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
+                    }
+                    return 'rgba(255,255,255,0.1)';
+                  })(),
                   borderTopLeftRadius: '8px',
                   borderTopRightRadius: '8px',
                   borderBottomLeftRadius: '0px',
-                  borderBottomRightRadius: '0px'
+                  borderBottomRightRadius: '0px',
+
                 }}
-              ></div>
+              >
+                <span className="font-semibold" style={{ color: '#000000', fontSize: '24px', lineHeight: '32px', opacity: 0.7 }}>
+                  Add content
+                </span>
+              </div>
               {/* Tile 4 */}
               <div
-                className="bg-black overflow-clip relative shrink-0 flex items-center justify-center"
+                className="overflow-clip relative shrink-0 flex items-center justify-center backdrop-blur-[10px] backdrop-filter"
                 style={{
                   width: '100%',
                   height: '184px',
-                  background: themeColor,
+                  background: (() => {
+                    if (themeColor.startsWith('#')) {
+                      const hex = themeColor.slice(1);
+                      const r = parseInt(hex.substr(0, 2), 16);
+                      const g = parseInt(hex.substr(2, 2), 16);
+                      const b = parseInt(hex.substr(4, 2), 16);
+                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
+                    }
+                    return 'rgba(255,255,255,0.1)';
+                  })(),
                   borderTopLeftRadius: '8px',
                   borderTopRightRadius: '8px',
                   borderBottomLeftRadius: '0px',
-                  borderBottomRightRadius: '0px'
+                  borderBottomRightRadius: '0px',
+
                 }}
-              ></div>
+              >
+                <span className="font-semibold" style={{ color: '#000000', fontSize: '24px', lineHeight: '32px', opacity: 0.7 }}>
+                  Add content
+                </span>
+              </div>
             </>
           )}
         </div>
@@ -193,10 +321,23 @@ export default function Dashboard() {
   const [routes, setRoutes] = useState([]);
   // Track if user has started building theme (enables 3PCs content and PB)
   const [isThemeBuildStarted, setIsThemeBuildStarted] = useState(false);
+  const [themeAnimationComplete, setThemeAnimationComplete] = useState(false);
   // NEW: State for selected segment (color card)
   const [selectedSegment, setSelectedSegment] = useState(null);
   // NEW: State for current theme color
-  const [currentThemeColor, setCurrentThemeColor] = useState('#1E1E1E');
+  const [currentThemeColor, setCurrentThemeColor] = useState(() => {
+    // Use blue for routes view, Discover blue for theme build view
+    return !isThemeBuildStarted ? '#2563EB' : '#1E72AE';
+  });
+
+  // Update currentThemeColor when isThemeBuildStarted changes
+  useEffect(() => {
+    if (!isThemeBuildStarted) {
+      setCurrentThemeColor('#2563EB'); // Blue for routes view
+    } else {
+      setCurrentThemeColor('#1E72AE'); // Discover blue for theme build view
+    }
+  }, [isThemeBuildStarted]);
   
   // NEW: Prompt mode state
   const [isPromptMode, setIsPromptMode] = useState(false);
@@ -217,7 +358,9 @@ export default function Dashboard() {
   const [fjbHoverTip, setFjbHoverTip] = useState({ visible: false, x: 0, y: 0 });
   // Theme chips (colors) exposed from ThemeCreator for the active flight
   const [fjbThemeChips, setFjbThemeChips] = useState([]);
-  // Hover hint bubble for FPS ("Add flight phase")
+  // Track the currently selected theme chip for logo animation
+  const [selectedThemeChip, setSelectedThemeChip] = useState(null);
+  // Hover hint bubble for FPS ("Select flight phase")
   const [fpsHoverTip, setFpsHoverTip] = useState({ visible: false, x: 0, y: 0, progress: 0 });
   // Hover hint bubble for Promo Cards ("Edit promo card")
   const [pcHoverTip, setPcHoverTip] = useState({ visible: false, x: 0, y: 0, elementData: null });
@@ -270,6 +413,34 @@ export default function Dashboard() {
     window.addEventListener('airport-search-generate-flights', handleGenerateFlights);
     return () => window.removeEventListener('airport-search-generate-flights', handleGenerateFlights);
   }, []);
+
+  // Handle theme animation completion
+  const handleThemeAnimationComplete = () => {
+    setThemeAnimationComplete(true);
+  };
+
+  // Set flightsGenerated to true when user has added 2 or more routes
+  useEffect(() => {
+    if (routes.length >= 2) {
+      setFlightsGenerated(true);
+    } else {
+      setFlightsGenerated(false);
+    }
+  }, [routes.length]);
+
+  // Debug function to test animation mapping
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.debugAnimationMapping = () => {
+        console.log('Current selected theme chip:', selectedThemeChip);
+        console.log('Current selected logo:', selectedLogo);
+        if (selectedThemeChip) {
+          const animationType = mapThemeChipToAnimation(selectedThemeChip.label, selectedThemeChip.color);
+          console.log('Mapped animation type:', animationType);
+        }
+      };
+    }
+  }, [selectedThemeChip, selectedLogo]);
 
   useEffect(() => {
     setMinutesLeft(maxFlightMinutes);
@@ -373,6 +544,8 @@ export default function Dashboard() {
       let positionKey;
       if (elementType === 'flight-icon') {
         positionKey = `fps-${Math.round(elementData.progress * 1000)}`; // Use progress as unique identifier
+      } else if (elementType === 'flight-phase-button') {
+        positionKey = 'flight-phase-button-dashboard'; // Single key for flight phase button
       } else if (elementType === 'flight-journey-bar') {
         positionKey = 'fjb-dashboard'; // Single key for FJB on dashboard
       } else if (elementType === 'logo-placeholder') {
@@ -409,6 +582,16 @@ export default function Dashboard() {
             existingText
           });
         }
+      } else if (elementType === 'flight-phase-button') {
+        // Flight phase button: position at the given point (viewport coordinates)
+        setPromptBubble({
+          x: position.x,
+          y: position.y,
+          elementType,
+          elementData,
+          positionKey,
+          existingText
+        });
       } else if (elementType === 'promo-card') {
         // For promo-card, place exactly at pointer (Viewport -> document handled in PromptBubble)
         setPromptBubble({
@@ -437,6 +620,36 @@ export default function Dashboard() {
     }
   };
 
+  // Listen for prompt events from routes view (inline flight cards)
+  useEffect(() => {
+    const handleEnterPrompt = (e) => {
+      try {
+        setIsPromptMode(true);
+        const segId = e?.detail?.segId || null;
+        setActiveSegmentId(segId);
+      } catch {}
+    };
+    const handleTriggerPrompt = (e) => {
+      try {
+        const { elementType, elementData, position, segId } = e?.detail || {};
+        // Ensure prompt mode before triggering
+        setIsPromptMode(true);
+        if (segId) setActiveSegmentId(segId);
+        if (elementType) {
+          setTimeout(() => {
+            handlePromptClick(elementType, elementData || {}, position || { x: 0, y: 0 });
+          }, 30);
+        }
+      } catch {}
+    };
+    window.addEventListener('enter-prompt-mode', handleEnterPrompt);
+    window.addEventListener('trigger-prompt-bubble', handleTriggerPrompt);
+    return () => {
+      window.removeEventListener('enter-prompt-mode', handleEnterPrompt);
+      window.removeEventListener('trigger-prompt-bubble', handleTriggerPrompt);
+    };
+  }, []);
+
   const handleExitPromptMode = () => {
     setIsPromptMode(false);
     setActiveSegmentId(null);
@@ -463,7 +676,10 @@ export default function Dashboard() {
     }
     
     // TODO: Handle the actual prompt submission logic here
-    setPromptBubble(null);
+    // Don't close the bubble for logo placeholder submissions (logo selection should keep bubble open)
+    if (elementType !== 'logo-placeholder') {
+      setPromptBubble(null);
+    }
     // Heuristic: if this is logo placeholder, parse prompt to choose or clear an animation
     if (elementType === 'logo-placeholder') {
       const text = (promptText || '').toLowerCase();
@@ -502,12 +718,70 @@ export default function Dashboard() {
 
   // Removed scroll detection and header collapse behavior
 
+  // Manage body overflow based on view state
+  useEffect(() => {
+    console.log('Dashboard overflow effect:', { isThemeBuildStarted });
+    if (!isThemeBuildStarted) {
+      // Routes view - prevent scrolling aggressively
+      console.log('Setting routes view - no scroll');
+      document.body.style.overflow = 'hidden';
+      document.body.style.height = '100vh';
+      document.documentElement.style.overflow = 'hidden';
+      document.documentElement.style.height = '100vh';
+      // Prevent scroll on specific elements
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    } else {
+      // Flights view - allow scrolling
+      console.log('Setting flights view - allow scroll');
+      document.body.style.overflow = 'auto';
+      document.body.style.height = 'auto';
+      document.documentElement.style.overflow = 'auto';
+      document.documentElement.style.height = 'auto';
+      document.body.style.position = 'static';
+      document.body.style.width = 'auto';
+    }
+
+    // Cleanup function to restore scrolling when component unmounts
+    return () => {
+      document.body.style.overflow = 'auto';
+      document.body.style.height = 'auto';
+      document.documentElement.style.overflow = 'auto';
+      document.documentElement.style.height = 'auto';
+      document.body.style.position = 'static';
+      document.body.style.width = 'auto';
+    };
+  }, [isThemeBuildStarted]);
+
+  // Auto-scroll to hide the themer logo when entering flights view
+  useEffect(() => {
+    if (!isThemeBuildStarted) return;
+    const doScroll = () => {
+      try {
+        const logoEl = document.querySelector('[data-name="themer-logo"]');
+        const currentY = window.pageYOffset || document.documentElement.scrollTop;
+        if (logoEl) {
+          const rect = logoEl.getBoundingClientRect();
+          const targetTop = Math.max(0, currentY + rect.bottom + 4);
+          window.scrollTo({ top: targetTop, behavior: 'smooth' });
+        } else {
+          window.scrollTo({ top: 150, behavior: 'smooth' });
+        }
+      } catch {
+        window.scrollTo({ top: 150, behavior: 'smooth' });
+      }
+    };
+    // Delay to allow ThemeCreator to render the logo
+    const t = setTimeout(doScroll, 200);
+    return () => clearTimeout(t);
+  }, [isThemeBuildStarted]);
+
   return (
-    <div className="min-h-screen">
+    <div className={`min-h-screen ${!isThemeBuildStarted ? 'h-screen overflow-hidden' : ''}`}>
             {/* Dashboard Header */}
       {/* Header removed as requested */}
       {/* ThemeCreator positioned below header (always visible) */}
-      <div className="w-full flex justify-center transition-all duration-300" style={{ marginTop: 0 }}>
+      <div className={`w-full flex justify-center transition-all duration-300 ${!isThemeBuildStarted ? 'h-full' : ''}`} style={{ marginTop: 0 }}>
         <ThemeCreator
           routes={routes}
           setRoutes={setRoutes}
@@ -515,7 +789,15 @@ export default function Dashboard() {
           initialWidth={minimizeThemeCreator ? 318 : undefined}
           initialFlightCreationMode={false}
           onColorCardSelect={segment => setSelectedSegment(segment)}
-          onThemeColorChange={color => setCurrentThemeColor(color)}
+          onThemeColorChange={color => {
+            setCurrentThemeColor(color);
+            // When theme color changes from ThemeCreator, clear any logo animation
+            // as this is not from a theme chip selection
+            setSelectedLogo(prev => ({ 
+              ...(prev || {}), 
+              animationType: null 
+            }));
+          }}
           onStateChange={() => {}}
           onEnterPromptMode={(segmentId) => {
             setIsPromptMode(true);
@@ -528,6 +810,9 @@ export default function Dashboard() {
           onStartThemeBuild={() => setIsThemeBuildStarted(true)}
           themeColor={currentThemeColor}
           onTriggerPromptBubble={handlePromptClick}
+          selectedLogo={selectedLogo}
+          isInHeader={false}
+          onThemeAnimationComplete={handleThemeAnimationComplete}
         />
       </div>
       
@@ -555,14 +840,41 @@ export default function Dashboard() {
         onClose={handlePromptBubbleClose}
         onSubmit={handlePromptBubbleSubmit}
         themeColor={currentThemeColor}
+        isThemeBuildStarted={isThemeBuildStarted}
         existingText={promptBubble?.existingText || ''}
         positionKey={promptBubble?.positionKey}
         fpsPrompts={fpsPrompts}
-        onThemeColorChange={(color) => {
-          if (typeof color === 'string' && color.length > 0) setCurrentThemeColor(color);
+        onThemeColorChange={(color, chipData) => {
+          if (typeof color === 'string' && color.length > 0) {
+            setCurrentThemeColor(color);
+            // Update selected theme chip and apply logo animation
+            if (chipData && chipData.label) {
+              setSelectedThemeChip(chipData);
+              const animationType = mapThemeChipToAnimation(chipData.label, chipData.color);
+              setSelectedLogo(prev => ({ 
+                ...(prev || {}), 
+                animationType: animationType 
+              }));
+            }
+          }
         }}
         themeChips={promptBubble?.elementType === 'flight-journey-bar' ? fjbThemeChips : []}
-        onLogoSelect={(info) => setSelectedLogo(info)}
+        selectedLogo={selectedLogo}
+        onLogoSelect={(info) => {
+          setSelectedLogo(info);
+          // Auto-set theme color based on selected logo
+          if (info && info.id) {
+            const logoColorMap = {
+              'discover': '#1E72AE',
+              'lufthansa': '#050F43', 
+              'swiss': '#CB0300'
+            };
+            const newColor = logoColorMap[info.id];
+            if (newColor) {
+              setCurrentThemeColor(newColor);
+            }
+          }
+        }}
         flightsGenerated={flightsGenerated}
       />
 
@@ -583,14 +895,14 @@ export default function Dashboard() {
               borderTopLeftRadius: 0
             }}
           >
-            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Add theme</span>
+            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Change theme</span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 handlePromptClick('flight-journey-bar', { themeColor: currentThemeColor }, { x: fjbHoverTip.x, y: fjbHoverTip.y });
               }}
               className="w-6 h-6 rounded-full border flex items-center justify-center"
-              title="Add theme"
+              title="Change theme"
               style={{ pointerEvents: 'auto', borderColor: hoverOnColor, color: hoverOnColor }}
             >
               +
@@ -616,7 +928,7 @@ export default function Dashboard() {
               borderTopLeftRadius: 0
             }}
           >
-            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Add flight phase</span>
+            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Select flight phase</span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -634,7 +946,7 @@ export default function Dashboard() {
                 handlePromptClick('flight-icon', { progress, minutesLeft }, { x: fpsHoverTip.x, y: fpsHoverTip.y });
               }}
               className="w-6 h-6 rounded-full border flex items-center justify-center"
-              title="Add flight phase"
+              title="Select flight phase"
               style={{ pointerEvents: 'auto', borderColor: hoverOnColor, color: hoverOnColor }}
             >
               +
@@ -710,33 +1022,97 @@ export default function Dashboard() {
         </div>
       )}
       
-      {/* IFE Frame Wrapper - Always show below ThemeCreator; skeletons render until data is available */}
-      <div className="w-full flex justify-center" style={{ marginTop: 8 }}>
-        <div style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', contain: 'layout paint' }}>
-          <img
-            src={process.env.PUBLIC_URL + '/ife-frame.svg'}
-            alt="Mobile Frame"
-            style={{ position: 'absolute', top: -40, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none', willChange: 'transform', transform: 'translateZ(0)' }}
-          />
-          <FrameContent
-            origin={origin}
-            destination={destination}
-            minutesLeft={minutesLeft}
-            landingIn={landingIn}
-            maxFlightMinutes={maxFlightMinutes}
-            handleProgressChange={handleProgressChange}
-            themeColor={currentThemeColor}
-            routes={routes}
-            isPromptMode={isPromptMode}
-            onPromptHover={handlePromptHover}
-            onPromptClick={handlePromptClick}
-            fpsPrompts={fpsPrompts}
-            isThemeBuildStarted={isThemeBuildStarted}
-            selectedLogo={selectedLogo}
-            flightsGenerated={flightsGenerated}
-          />
-        </div>
-      </div>
+      {/* Frame Content - Show IFE frame only in flights view, not in routes view */}
+      {(() => {
+        console.log('IFE Frame render check:', { isThemeBuildStarted });
+        return isThemeBuildStarted;
+      })() ? (
+        // Flights view - Title + IFE frame content
+        <>
+          <div className="w-full flex justify-center" style={{ marginTop: 12 }}>
+            <div style={{ width: '1302px' }}>
+              <p className="block font-bold text-black" style={{ fontSize: '28px', lineHeight: '36px', margin: 0 }}>In-flight GUI</p>
+            </div>
+          </div>
+          <div className="w-full flex justify-center" style={{ marginTop: 8, height: '880px' }}>
+            <div style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', contain: 'layout paint', transform: 'scale(0.8)', transformOrigin: 'top center' }}>
+              <img
+                src={process.env.PUBLIC_URL + '/ife-frame.svg'}
+                alt="Mobile Frame"
+                style={{ position: 'absolute', top: -40, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none', willChange: 'transform', transform: 'translateZ(0)' }}
+              />
+              <FrameContent
+                origin={origin}
+                destination={destination}
+                minutesLeft={minutesLeft}
+                landingIn={landingIn}
+                maxFlightMinutes={maxFlightMinutes}
+                handleProgressChange={handleProgressChange}
+                themeColor={currentThemeColor}
+                routes={routes}
+                isPromptMode={isPromptMode}
+                onPromptHover={handlePromptHover}
+                onPromptClick={handlePromptClick}
+                fpsPrompts={fpsPrompts}
+                isThemeBuildStarted={isThemeBuildStarted}
+                selectedLogo={selectedLogo}
+                flightsGenerated={flightsGenerated}
+                onAnimationProgress={(progress) => {
+                  // Detect when animation reaches completion (20% progress, which is the target)
+                  if (progress >= 0.2 && !themeAnimationComplete) {
+                    handleThemeAnimationComplete();
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </>
+      ) : (
+        // Routes view - Show in-flight GUI content after animation completion
+        <>
+          {themeAnimationComplete && (
+            <>
+              <div className="w-full flex justify-center" style={{ marginTop: 24 }}>
+                <div style={{ width: '1302px' }}>
+                  <p className="block font-bold text-black" style={{ fontSize: '28px', lineHeight: '36px', margin: 0 }}>In-flight GUI</p>
+                </div>
+              </div>
+              <div className="w-full flex justify-center" style={{ marginTop: 8, height: '880px' }}>
+                <div style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', contain: 'layout paint', transform: 'scale(0.8)', transformOrigin: 'top center' }}>
+                  <img
+                    src={process.env.PUBLIC_URL + '/ife-frame.svg'}
+                    alt="Mobile Frame"
+                    style={{ position: 'absolute', top: -40, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none', willChange: 'transform', transform: 'translateZ(0)' }}
+                  />
+                  <FrameContent
+                    origin={origin}
+                    destination={destination}
+                    minutesLeft={minutesLeft}
+                    landingIn={landingIn}
+                    maxFlightMinutes={maxFlightMinutes}
+                    handleProgressChange={handleProgressChange}
+                    themeColor={currentThemeColor}
+                    routes={routes}
+                    isPromptMode={isPromptMode}
+                    onPromptHover={handlePromptHover}
+                    onPromptClick={handlePromptClick}
+                    fpsPrompts={fpsPrompts}
+                    isThemeBuildStarted={isThemeBuildStarted}
+                    selectedLogo={selectedLogo}
+                    flightsGenerated={flightsGenerated}
+                    onAnimationProgress={(progress) => {
+                      // Detect when animation reaches completion (20% progress, which is the target)
+                      if (progress >= 0.2 && !themeAnimationComplete) {
+                        handleThemeAnimationComplete();
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </>
+      )}
     </div>
   );
 } 

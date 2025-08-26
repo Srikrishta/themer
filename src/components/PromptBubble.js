@@ -1,16 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
-import { XMarkIcon, PaperAirplaneIcon, PlusIcon, PhotoIcon, ArrowLeftIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PaperAirplaneIcon, PlusIcon, PhotoIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { HexColorPicker } from 'react-colorful';
 import { getReadableOnColor } from '../utils/color';
+import { argbFromHex } from '@material/material-color-utilities';
 
 export default function PromptBubble({ 
   isVisible, 
   position, 
-  elementType, 
+ elementType, 
   elementData, 
   onClose, 
   onSubmit,
   themeColor = '#1E1E1E',
+  isThemeBuildStarted = false,
   existingText = '',
   positionKey,
   fpsPrompts = {},
@@ -18,6 +20,7 @@ export default function PromptBubble({
   onVisibilityChange,
   onThemeColorChange,
   themeChips = [],
+  selectedLogo = null,
   onLogoSelect,
   flightsGenerated = false
 }) {
@@ -29,24 +32,58 @@ export default function PromptBubble({
     themeColor
   });
 
-  const [promptText, setPromptText] = useState(elementType === 'flight-icon' && positionKey === 'landing-demo' ? 'Cruise' : (elementType === 'promo-card' ? '' : ''));
+  const [promptText, setPromptText] = useState((elementType === 'flight-icon' || elementType === 'flight-phase-button') && positionKey === 'landing-demo' ? 'Cruise' : (elementType === 'promo-card' ? '' : ''));
   const [isLoading, setIsLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [typedText, setTypedText] = useState('');
   const [autoTyping, setAutoTyping] = useState(false);
   const [autoTypeIndex, setAutoTypeIndex] = useState(0);
   const [stickyPosition, setStickyPosition] = useState(null);
-  const [selectedChip, setSelectedChip] = useState(elementType === 'flight-icon' && positionKey === 'landing-demo' ? 'cruise' : null);
+  const [selectedChip, setSelectedChip] = useState((elementType === 'flight-icon' || elementType === 'flight-phase-button') && positionKey === 'landing-demo' ? 'cruise' : null);
   const [selectedLogoChip, setSelectedLogoChip] = useState(null);
   const [logoStep, setLogoStep] = useState(1); // 1: choose logo, 2: describe animation
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const [selectedColor, setSelectedColor] = useState(themeColor);
+  const [selectedColor, setSelectedColor] = useState(() => {
+    // Initialize with logo color if available, otherwise use themeColor
+    if (selectedLogo && selectedLogo.id) {
+      const logoColorMap = {
+        'discover': '#1E72AE',
+        'lufthansa': '#050F43',
+        'swiss': '#CB0300'
+      };
+      return logoColorMap[selectedLogo.id] || themeColor;
+    }
+    return themeColor;
+  });
   const bubbleRef = useRef(null);
   const inputRef = useRef(null);
   const logoFileInputRef = useRef(null);
 
+  // Ensure selectedColor is always in sync with the current theme/logo
+  useEffect(() => {
+    // If we have a selected logo, prioritize its color
+    if (selectedLogo && selectedLogo.id) {
+      const logoColorMap = {
+        'discover': '#1E72AE',
+        'lufthansa': '#050F43',
+        'swiss': '#CB0300'
+      };
+      const logoColor = logoColorMap[selectedLogo.id];
+      if (logoColor) {
+        setSelectedColor(logoColor);
+        return;
+      }
+    }
+    
+    // Otherwise, use the theme color
+    setSelectedColor(themeColor);
+  }, [selectedLogo, themeColor]);
+
   // Determine text/icon color for readability on promo-card bubbles (dashboard)
-  const isGradient = typeof themeColor === 'string' && themeColor.includes('gradient');
+  const actualBackgroundColor = elementType === 'promo-card' && positionKey === 'middle-card-demo' 
+    ? 'rgba(255,255,255,0.2)'
+    : (elementType === 'logo-placeholder' ? selectedColor : (selectedColor || themeColor));
+  const isGradient = typeof actualBackgroundColor === 'string' && actualBackgroundColor.includes('gradient');
   const parseHex = (hex) => {
     if (!hex || typeof hex !== 'string') return { r: 0, g: 0, b: 0 };
     const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
@@ -60,10 +97,10 @@ export default function PromptBubble({
     });
     return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
   };
-  const shouldUseLightText = () => {
+  const shouldUseLightText = (color) => {
     if (isGradient) return true;
-    if (typeof themeColor === 'string' && themeColor.startsWith('#') && (themeColor.length === 7)) {
-      const lum = getLuminance(parseHex(themeColor));
+    if (typeof color === 'string' && color.startsWith('#') && (color.length === 7)) {
+      const lum = getLuminance(parseHex(color));
       return lum < 0.5; // dark bg => light text
     }
     // Fallback to light text
@@ -72,19 +109,127 @@ export default function PromptBubble({
   // Decide readable text/icon color for ALL bubble types
   const useLightText = (() => {
     if (positionKey === 'middle-card-landing' || positionKey === 'fjb-landing') return true;
-    return shouldUseLightText();
+    
+    if (actualBackgroundColor === 'rgba(255,255,255,0.2)') return true;
+    return shouldUseLightText(actualBackgroundColor);
   })();
 
   // Choose a contrasting border color so the bubble edge is always visible
   const contrastingBorderColor = useLightText ? 'rgba(255, 255, 255, 0.35)' : 'rgba(0, 0, 0, 0.35)';
+  
   // Compute Material readable on-color for chip borders/text
-  const onHex = getReadableOnColor(themeColor);
+  const onHex = getReadableOnColor(actualBackgroundColor);
   const onRgb = (() => {
-    const { r, g, b } = parseHex(onHex);
-    return { r, g, b };
+    try {
+      const { r, g, b } = parseHex(onHex);
+      return { r, g, b };
+    } catch (error) {
+      console.warn('Failed to parse onHex color:', onHex, error);
+      return { r: 255, g: 255, b: 255 }; // fallback to white
+    }
   })();
-  const onText70 = `rgba(${onRgb.r}, ${onRgb.g}, ${onRgb.b}, 0.7)`;
+  
+  // Create adaptive text colors that ensure good contrast
+  const adaptiveTextColor = (() => {
+    // For very light backgrounds, use dark text; for dark backgrounds, use light text
+    if (useLightText) {
+      // Dark background - use light text with good contrast
+      return '#FFFFFF'; // Pure white for maximum contrast
+    } else {
+      // Light background - use dark text with good contrast
+      return '#000000'; // Pure black for maximum contrast
+    }
+  })();
+  
+  // Text colors with different opacities for hierarchy
+  const onText90 = `rgba(${onRgb.r}, ${onRgb.g}, ${onRgb.b}, 0.9)`; // Primary text
+  const onText70 = `rgba(${onRgb.r}, ${onRgb.g}, ${onRgb.b}, 0.7)`; // Secondary text
+  const onText50 = `rgba(${onRgb.r}, ${onRgb.g}, ${onRgb.b}, 0.5)`; // Hint text
+  
   const onBorder20 = `rgba(${onRgb.r}, ${onRgb.g}, ${onRgb.b}, 0.2)`;
+  
+  // Fallback border color if onBorder20 calculation fails - ensure it's always visible
+  const fallbackBorderColor = useLightText ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)';
+  
+  // Ensure we always have a valid border color
+  const safeBorderColor = onBorder20 || fallbackBorderColor;
+  
+  // Additional safety: if the calculated border color is too transparent, use the fallback
+  const finalBorderColor = (() => {
+    if (safeBorderColor && safeBorderColor.includes('rgba')) {
+      const alphaMatch = safeBorderColor.match(/rgba\([^)]+,\s*([^)]+)\)/);
+      if (alphaMatch) {
+        const alpha = parseFloat(alphaMatch[1]);
+        if (alpha < 0.3) {
+          console.log('Border color too transparent, using fallback');
+          return fallbackBorderColor;
+        }
+      }
+    }
+    return safeBorderColor;
+  })();
+  
+  // Debug logging for border colors
+  console.log('Border color debug:', {
+    actualBackgroundColor,
+    onHex,
+    onBorder20,
+    fallbackBorderColor,
+    safeBorderColor,
+    finalBorderColor,
+    useLightText
+  });
+  
+  // Calculate contrast ratio between selected color and a reference color (white)
+  const calculateContrastRatio = (color1, color2 = '#FFFFFF') => {
+    try {
+      if (!color1 || !color2) return null;
+      
+      // Handle gradients by extracting first hex color
+      const extractHex = (input) => {
+        if (typeof input !== 'string') return null;
+        if (input.includes('gradient')) {
+          const hexMatch = input.match(/#([0-9a-fA-F]{6})/);
+          return hexMatch ? `#${hexMatch[1]}` : null;
+        }
+        return input.match(/^#([0-9a-fA-F]{6})$/) ? input : null;
+      };
+      
+      const hex1 = extractHex(color1);
+      const hex2 = extractHex(color2);
+      
+      if (!hex1 || !hex2) return null;
+      
+      const argb1 = argbFromHex(hex1);
+      const argb2 = argbFromHex(hex2);
+      
+      // Convert ARGB to RGB
+      const argbToRgb = (argb) => ({
+        r: (argb >> 16) & 0xff,
+        g: (argb >> 8) & 0xff, 
+        b: argb & 0xff
+      });
+      
+      // Calculate relative luminance
+      const relativeLuminance = ({ r, g, b }) => {
+        const toLinear = (c) => {
+          const v = c / 255;
+          return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        };
+        return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+      };
+      
+      const l1 = relativeLuminance(argbToRgb(argb1));
+      const l2 = relativeLuminance(argbToRgb(argb2));
+      const [L1, L2] = l1 > l2 ? [l1, l2] : [l2, l1];
+      
+      return (L1 + 0.05) / (L2 + 0.05);
+    } catch (error) {
+      console.warn('Error calculating contrast ratio:', error);
+      return null;
+    }
+  };
+
   // Bubble width (wider for FJB to accommodate more chips)
   const bubbleWidth = elementType === 'flight-journey-bar' ? 360 : 250;
 
@@ -101,8 +246,7 @@ export default function PromptBubble({
   const logoChips = [
     { id: 'discover', label: 'Discover' },
     { id: 'lufthansa', label: 'Lufthansa' },
-    { id: 'swiss', label: 'Swiss' },
-    { id: 'add-new', label: 'Add new' }
+    { id: 'swiss', label: 'Swiss' }
   ];
 
   // Set sticky position when bubble becomes visible or when target changes
@@ -120,6 +264,15 @@ export default function PromptBubble({
     let containerSelector = '';
 
     if (elementType === 'flight-icon' || positionKey === 'landing-demo') {
+      // Check if this is a button trigger (position is in viewport coords) vs progress bar trigger (container coords)
+      // Button triggers have specific elementData values: progress: 0.5, minutesLeft: 200
+      if (elementData && elementData.progress === 0.5 && elementData.minutesLeft === 200) {
+        // Button trigger: position is given in viewport coords; convert to document
+        const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
+        const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+        setStickyPosition({ x: position.x + scrollX, y: position.y + scrollY });
+        return;
+      }
       // FPS prompt bubbles use flight progress bar container; position is relative to container
       containerSelector = '.flight-progress-bar-container';
     } else if (elementType === 'flight-journey-bar' || positionKey === 'fjb-demo' || positionKey === 'fjb-landing') {
@@ -128,8 +281,8 @@ export default function PromptBubble({
       const scrollY = window.pageYOffset || document.documentElement.scrollTop;
       setStickyPosition({ x: position.x + scrollX, y: position.y + scrollY });
       return;
-    } else if (elementType === 'promo-card' || elementType === 'logo-placeholder' || positionKey === 'middle-card-demo' || positionKey === 'middle-card-landing') {
-      // Promo-card: viewport -> document
+    } else if (elementType === 'promo-card' || elementType === 'logo-placeholder' || elementType === 'flight-phase-button' || positionKey === 'middle-card-demo' || positionKey === 'middle-card-landing') {
+      // Promo-card/logo-placeholder/flight-phase-button: viewport -> document
       const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
       const scrollY = window.pageYOffset || document.documentElement.scrollTop;
       setStickyPosition({ x: position.x + scrollX, y: position.y + scrollY });
@@ -306,7 +459,7 @@ export default function PromptBubble({
 
   // Filter out chips that are already used at other positions
   const getAvailableChips = () => {
-    if (elementType !== 'flight-icon') return flightPhaseChips;
+    if (elementType !== 'flight-icon' && elementType !== 'flight-phase-button') return flightPhaseChips;
     
     const usedPrompts = getUsedPrompts();
     const currentText = existingText.toLowerCase();
@@ -481,9 +634,53 @@ export default function PromptBubble({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (promptText.trim() && !isLoading) {
+    
+    // Check if submission is valid based on element type and step
+    const isValidSubmission = elementType === 'logo-placeholder'
+      ? (logoStep === 1 ? selectedLogoChip && selectedLogoChip !== 'add-new' : promptText.trim())
+      : elementType === 'flight-journey-bar'
+      ? true // No text input required for theme selection
+      : promptText.trim();
+    
+    if (isValidSubmission && !isLoading) {
       setIsLoading(true);
-      onSubmit(promptText.trim(), elementType, elementData, positionKey);
+      
+      // Apply logo selection when submitting (for logo-placeholder elementType)
+      if (elementType === 'logo-placeholder' && selectedLogoChip && selectedLogoChip !== 'add-new') {
+        try {
+          if (typeof onLogoSelect === 'function') {
+            let src = null;
+            let themeColor = null;
+            if (selectedLogoChip === 'discover') {
+              src = process.env.PUBLIC_URL + '/discover.svg';
+              themeColor = '#1E72AE';
+            } else if (selectedLogoChip === 'lufthansa') {
+              src = process.env.PUBLIC_URL + '/Lufthansa_Logo_2018.svg.png';
+              themeColor = '#050F43';
+            } else if (selectedLogoChip === 'swiss') {
+              src = process.env.PUBLIC_URL + '/swiss.png';
+              themeColor = '#CB0300';
+            }
+            onLogoSelect({ id: selectedLogoChip, src });
+            
+            // Change theme color to match the selected airline
+            if (themeColor && typeof onThemeColorChange === 'function') {
+              onThemeColorChange(themeColor, { label: selectedLogoChip, color: themeColor });
+            }
+            
+            // Update the prompt bubble's own color to match the selected logo
+            setSelectedColor(themeColor);
+          }
+        } catch {}
+        
+        // For logo selection in step 1, don't close the bubble automatically
+        setIsLoading(false);
+        // Don't call onSubmit for logo selection as it would close the bubble
+        // onSubmit(promptText.trim() || '', elementType, elementData, positionKey);
+        return; // Don't execute the normal flow
+      }
+      
+      onSubmit(promptText.trim() || '', elementType, elementData, positionKey);
       setPromptText('');
     }
   };
@@ -498,9 +695,53 @@ export default function PromptBubble({
       } else {
         // Enter: submit and show loading
         e.preventDefault();
-        if (promptText.trim()) {
+        
+        // Check if submission is valid based on element type and step
+        const isValidSubmission = elementType === 'logo-placeholder'
+          ? (logoStep === 1 ? selectedLogoChip && selectedLogoChip !== 'add-new' : promptText.trim())
+          : elementType === 'flight-journey-bar'
+          ? true // No text input required for theme selection
+          : promptText.trim();
+        
+        if (isValidSubmission) {
           setIsLoading(true);
-          onSubmit(promptText.trim(), elementType, elementData, positionKey);
+          
+          // Apply logo selection when submitting (for logo-placeholder elementType)
+          if (elementType === 'logo-placeholder' && selectedLogoChip && selectedLogoChip !== 'add-new') {
+            try {
+              if (typeof onLogoSelect === 'function') {
+                let src = null;
+                let themeColor = null;
+                if (selectedLogoChip === 'discover') {
+                  src = process.env.PUBLIC_URL + '/discover.svg';
+                  themeColor = '#1E72AE';
+                } else if (selectedLogoChip === 'lufthansa') {
+                  src = process.env.PUBLIC_URL + '/Lufthansa_Logo_2018.svg.png';
+                  themeColor = '#050F43';
+                } else if (selectedLogoChip === 'swiss') {
+                  src = process.env.PUBLIC_URL + '/swiss.png';
+                  themeColor = '#CB0300';
+                }
+                onLogoSelect({ id: selectedLogoChip, src });
+                
+                // Change theme color to match the selected airline
+                if (themeColor && typeof onThemeColorChange === 'function') {
+                  onThemeColorChange(themeColor, { label: selectedLogoChip, color: themeColor });
+                }
+                
+                // Update the prompt bubble's own color to match the selected logo
+                setSelectedColor(themeColor);
+              }
+            } catch {}
+            
+            // For logo selection in step 1, don't close the bubble automatically
+            setIsLoading(false);
+            // Don't call onSubmit for logo selection as it would close the bubble
+            // onSubmit(promptText.trim() || '', elementType, elementData, positionKey);
+            return; // Don't execute the normal flow
+          }
+          
+          onSubmit(promptText.trim() || '', elementType, elementData, positionKey);
           setPromptText('');
         }
       }
@@ -516,10 +757,10 @@ export default function PromptBubble({
     }
   };
 
-  const handleColorChange = (color) => {
+  const handleColorChange = (color, chipData) => {
     setSelectedColor(color);
     if (onThemeColorChange) {
-      onThemeColorChange(color);
+      onThemeColorChange(color, chipData);
     }
   };
 
@@ -530,22 +771,8 @@ export default function PromptBubble({
       } catch {}
       return;
     }
+    // Only update the visual selection state, don't apply logo/color changes yet
     setSelectedLogoChip(chip.id);
-    // Notify parent so it can render chosen logo in placeholder
-    try {
-      if (typeof onLogoSelect === 'function') {
-        let src = null;
-        if (chip.id === 'discover') {
-          src = process.env.PUBLIC_URL + '/discover.svg';
-        } else if (chip.id === 'lufthansa') {
-          src = process.env.PUBLIC_URL + '/Lufthansa_Logo_2018.svg.png';
-        } else if (chip.id === 'swiss') {
-          src = process.env.PUBLIC_URL + '/swiss.png';
-        }
-        onLogoSelect({ id: chip.id, src });
-      }
-    } catch {}
-    // Do not type chip label into the prompt text; keep user input separate
   };
 
   if (!isVisible || !stickyPosition) return null;
@@ -559,7 +786,7 @@ export default function PromptBubble({
       style={{
         backgroundColor: elementType === 'promo-card' && positionKey === 'middle-card-demo' 
           ? 'rgba(255,255,255,0.2)'
-          : themeColor,
+          : (elementType === 'logo-placeholder' ? selectedColor : (selectedColor || themeColor)),
         borderColor: elementType === 'promo-card' && positionKey === 'middle-card-demo'
           ? 'rgba(0,0,0,0.2)'
           : contrastingBorderColor,
@@ -573,7 +800,7 @@ export default function PromptBubble({
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
-        <div>
+        <div className="flex items-center gap-2">
           {elementType === 'logo-placeholder' && logoStep === 2 && (
             <button
               type="button"
@@ -582,6 +809,34 @@ export default function PromptBubble({
               title="Back"
             >
               <ArrowLeftIcon className="w-4 h-4" />
+            </button>
+          )}
+          {/* Title */}
+          <span className={`text-sm font-semibold ${useLightText ? 'text-white' : 'text-black'}`}>
+            {(() => {
+              switch (elementType) {
+                case 'flight-journey-bar':
+                  return 'Change Theme';
+                case 'flight-icon':
+                case 'flight-phase-button':
+                  return 'Select Flight Phase';
+                case 'promo-card':
+                  return 'Edit Promo Card';
+                case 'logo-placeholder':
+                  return logoStep === 1 ? 'Select Airline Logo' : 'Add Animation';
+                default:
+                  return 'Edit';
+              }
+            })()}
+          </span>
+          {elementType === 'logo-placeholder' && logoStep === 1 && (
+            <button
+              type="button"
+              onClick={() => setLogoStep(2)}
+              className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors p-1`}
+              title="Go to Add Animation"
+            >
+              <ArrowRightIcon className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -597,21 +852,35 @@ export default function PromptBubble({
 
       {/* Input Form */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        {/* Hidden file input for logo upload (triggered by Add new chip) */}
+        {/* Hidden file input for logo upload (triggered by image icon) */}
         {elementType === 'logo-placeholder' && (
           <input
             ref={logoFileInputRef}
             type="file"
             accept="image/*"
             style={{ display: 'none' }}
-            onChange={(e) => console.log('Logo image selected', e.target.files && e.target.files[0])}
+            onChange={(e) => {
+              const file = e.target.files && e.target.files[0];
+              if (file) {
+                // Validate image dimensions
+                const img = new Image();
+                img.onload = () => {
+                  if (img.width === 312 && img.height === 100) {
+                    console.log('Valid logo image selected:', file.name, `${img.width}x${img.height}`);
+                    // Handle valid image upload
+                    // You can add logic here to process the uploaded image
+                  } else {
+                    console.warn('Invalid image dimensions:', `${img.width}x${img.height}`, 'Expected: 312x100');
+                    alert('Please select an image with dimensions 312x100 pixels.');
+                  }
+                };
+                img.src = URL.createObjectURL(file);
+              }
+            }}
           />
         )}
         <div className="relative flex-1">
-          {elementType === 'logo-placeholder' && logoStep === 2 && (
-            <div className="mt-0 mb-2 text-xs font-bold" style={{ color: onText70 }}>2. Describe Animation</div>
-          )}
-          {!(elementType === 'logo-placeholder' && logoStep === 1) && (
+          {!(elementType === 'logo-placeholder' && logoStep === 1) && elementType !== 'flight-journey-bar' && elementType !== 'flight-icon' && elementType !== 'flight-phase-button' && (
             <textarea
               ref={inputRef}
               value={isTyping ? typedText : (isLoading && elementType !== 'promo-card' ? 'loading...' : promptText)}
@@ -626,7 +895,7 @@ export default function PromptBubble({
                   ? 'change theme or add animation'
                   : elementType === 'logo-placeholder'
                   ? 'Type here'
-                  : 'add flight phase'
+                  : 'select flight phase'
               }
               className={`bg-transparent border-0 text-sm ${useLightText ? 'text-white placeholder-white/60' : 'text-black placeholder-black/60'} resize-none focus:ring-0 focus:outline-none`}
               style={{
@@ -654,63 +923,136 @@ export default function PromptBubble({
             />
           )}
           
-          {/* Flight Phase Chips - Only show for flight-icon and filter out used ones */}
-          {elementType === 'flight-icon' && availableChips.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {availableChips.map((chip) => {
-                // Show all chips as selected when flights are generated, except "Add new"
-                const isSelected = flightsGenerated 
-                  ? chip.id !== 'add-new' 
-                  : selectedChip === chip.id;
-                return (
-                  <button
-                    key={chip.id}
-                    type="button"
-                    data-chip={chip.id}
-                    onClick={() => handleChipClick(chip.label)}
-                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs transition-all cursor-pointer border ${isSelected ? 'border-2 font-bold' : 'font-medium'}`}
-                    style={{
-                      backgroundColor: `${chip.color}10`,
-                      borderColor: onBorder20,
-                      color: onText70
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.backgroundColor = `${chip.color}25`;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.backgroundColor = `${chip.color}10`;
-                    }}
-                  >
-                    {isSelected && <CheckIcon className="w-3 h-3 mr-1.5 flex-shrink-0" />}
-                    {chip.label}
-                    {!isSelected && <PlusIcon className="w-3 h-3 ml-1.5 flex-shrink-0" />}
-                  </button>
-                );
-              })}
+          {/* Flight Phase Chips - Only show for flight-icon and flight-phase-button and filter out used ones */}
+          {(elementType === 'flight-icon' || elementType === 'flight-phase-button') && availableChips.length > 0 && (
+            <div className="mt-2">
+              <div 
+                className="flex gap-2 overflow-x-auto pb-2" 
+                style={{ 
+                  scrollbarWidth: 'none', 
+                  msOverflowStyle: 'none',
+                  cursor: 'grab'
+                }}
+                onWheel={(e) => {
+                  // Enable natural horizontal scrolling with mouse wheel
+                  e.preventDefault();
+                  const container = e.currentTarget;
+                  const scrollAmount = e.deltaY;
+                  container.scrollLeft += scrollAmount;
+                }}
+                onMouseDown={(e) => {
+                  // Enable click and drag scrolling
+                  const container = e.currentTarget;
+                  const startX = e.pageX - container.offsetLeft;
+                  const startScrollLeft = container.scrollLeft;
+                  
+                  const handleMouseMove = (e) => {
+                    e.preventDefault();
+                    const x = e.pageX - container.offsetLeft;
+                    const walk = (x - startX) * 2;
+                    container.scrollLeft = startScrollLeft - walk;
+                  };
+                  
+                  const handleMouseUp = () => {
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    document.removeEventListener('mouseup', handleMouseUp);
+                    container.style.cursor = 'grab';
+                  };
+                  
+                  document.addEventListener('mousemove', handleMouseMove);
+                  document.addEventListener('mouseup', handleMouseUp);
+                  container.style.cursor = 'grabbing';
+                }}
+              >
+                {availableChips.map((chip) => {
+                  // Show all chips as selected when flights are generated, except "Add new"
+                  const isSelected = flightsGenerated 
+                    ? chip.id !== 'add-new' 
+                    : selectedChip === chip.id;
+                  return (
+                    <button
+                      key={chip.id}
+                      type="button"
+                      data-chip={chip.id}
+                      onClick={() => handleChipClick(chip.label)}
+                      className={`inline-flex items-center px-3 py-2 rounded-full text-xs transition-all cursor-pointer border font-medium flex-shrink-0`}
+                      style={{
+                        backgroundColor: `${chip.color}10`,
+                        borderColor: finalBorderColor,
+                        color: adaptiveTextColor
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = `${chip.color}25`;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = `${chip.color}10`;
+                      }}
+                    >
+                      {isSelected && <CheckIcon className="w-3 h-3 mr-1.5 flex-shrink-0" />}
+                      {chip.label}
+                      {!isSelected && <PlusIcon className="w-3 h-3 ml-1.5 flex-shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
           {/* Logo Placeholder Label and Chips */}
           {elementType === 'logo-placeholder' && logoStep === 1 && (
             <>
-              <div className="mt-0 mb-4 text-xs font-bold" style={{ color: onText70 }}>1. Select Airline Logo</div>
               <div className="flex flex-wrap gap-1">
               {logoChips.map((chip) => {
                 const isSelected = selectedLogoChip === chip.id;
+                
+                // Get logo image source based on chip ID
+                const getLogoSource = (chipId) => {
+                  switch (chipId) {
+                    case 'discover':
+                      return '/discover.svg';
+                    case 'lufthansa':
+                      return '/lufthansa.png';
+                    case 'swiss':
+                      return '/swiss.png';
+                    default:
+                      return null;
+                  }
+                };
+                
+                const logoSource = getLogoSource(chip.id);
+                
                 return (
                   <button
                     key={chip.id}
                     type="button"
                     onClick={() => handleLogoChipClick(chip)}
-                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs transition-all cursor-pointer border ${isSelected ? 'border-2 font-bold' : 'font-medium'}`}
+                    className={`inline-flex items-center px-2 text-xs transition-all cursor-pointer border font-medium`}
                     style={{
                       backgroundColor: `rgba(255,255,255,0.08)`,
-                      borderColor: onBorder20,
-                      color: onText70
+                      borderColor: finalBorderColor,
+                      color: adaptiveTextColor,
+                      borderRadius: '8px',
+                      width: '120px',
+                      justifyContent: 'center',
+                      paddingTop: '0px',
+                      paddingBottom: '0px'
                     }}
                   >
                     {isSelected && <CheckIcon className="w-3 h-3 mr-1.5 flex-shrink-0" />}
-                    {chip.label}
-                    {chip.id === 'add-new' && <PlusIcon className="w-3 h-3 ml-1.5 flex-shrink-0" />}
+                    {logoSource ? (
+                      <img 
+                        src={logoSource} 
+                        alt={`${chip.label} logo`}
+                        className="w-16 h-16 object-contain flex-shrink-0"
+                        onError={(e) => {
+                          // Fallback to text if image fails to load
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'inline';
+                        }}
+                      />
+                    ) : null}
+                    <span style={{ display: logoSource ? 'none' : 'inline' }}>
+                      {chip.label}
+                    </span>
                   </button>
                 );
               })}
@@ -726,49 +1068,90 @@ export default function PromptBubble({
         {elementType === 'flight-journey-bar' && (
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap gap-2">
-              {(themeChips && themeChips.length > 0
-                ? themeChips
-                : [
-                    { label: 'Default', color: '#1E1E1E' },
-                    { label: 'Milan Theme', color: '#EF4444' },
-                    { label: 'Time of the Day', color: '#F59E0B' }
-                  ]
-              ).map((chip, idx) => {
-                const chipColor = typeof chip === 'object' ? chip.color : String(chip);
+              {(() => {
+                // Get base chips
+                const baseChips = themeChips && themeChips.length > 0
+                  ? themeChips
+                  : [
+                      { label: 'Default', color: '#000000' },
+                      { label: 'Milan Theme', color: '#EF4444' },
+                      { label: 'Time of the Day', color: '#F59E0B' }
+                    ];
+                
+                // If a logo is selected, add/prioritize the logo color chip
+                if (selectedLogo && selectedLogo.id) {
+                  const logoColorMap = {
+                    'discover': { label: 'Discover', color: '#1E72AE' },
+                    'lufthansa': { label: 'Lufthansa', color: '#050F43' },
+                    'swiss': { label: 'Swiss', color: '#CB0300' }
+                  };
+                  
+                  const logoChip = logoColorMap[selectedLogo.id];
+                  if (logoChip) {
+                    // Remove any existing chip with the same color or label
+                    const filteredChips = baseChips.filter(chip => 
+                      chip.color !== logoChip.color && chip.label !== logoChip.label
+                    );
+                    // Add logo chip as first chip
+                    return [logoChip, ...filteredChips];
+                  }
+                }
+                
+                return baseChips;
+              })().map((chip, idx) => {
+                // Get the original chip color for the color circle
+                const originalChipColor = typeof chip === 'object' ? chip.color : String(chip);
+                
+                // In routes view, use the same color for chip display but keep original for color circles
+                const chipColor = !isThemeBuildStarted ? themeColor : originalChipColor;
                 const label = typeof chip === 'object'
                   ? chip.label
-                  : (String(chipColor).includes('gradient') ? 'Gradient' : String(chipColor));
-                const isGrad = String(chipColor).includes('gradient');
+                  : (String(originalChipColor).includes('gradient') ? 'Gradient' : String(originalChipColor));
+                const isGrad = String(originalChipColor).includes('gradient');
+                // Normalize colors for comparison (handle case differences)
+                const normalizeColor = (color) => {
+                  if (typeof color === 'string' && color.startsWith('#')) {
+                    return color.toUpperCase();
+                  }
+                  return color;
+                };
+                const isSelected = normalizeColor(selectedColor) === normalizeColor(originalChipColor);
                 return (
                   <button
                     key={idx}
                     type="button"
-                    onClick={() => handleColorChange(chipColor)}
+                    onClick={() => handleColorChange(originalChipColor, chip)}
                     className={`transition-colors`}
                     title={label}
                   >
-                    <div className="flex items-center gap-2 px-2 py-1 border rounded-full max-w-full" style={{ borderColor: onBorder20 }}>
+                    <div 
+                      className={`flex items-center gap-2 px-2 py-1 border rounded-full max-w-full`} 
+                      style={{ 
+                        borderColor: finalBorderColor,
+                        backgroundColor: isSelected ? `${originalChipColor}15` : 'transparent'
+                      }}
+                    >
                       <div
                         className="w-4 h-4 rounded-full border flex-shrink-0"
                         style={{
-                          background: isGrad ? chipColor : undefined,
-                          backgroundColor: isGrad ? undefined : chipColor,
-                          borderColor: onBorder20
+                          background: isGrad ? originalChipColor : undefined,
+                          backgroundColor: isGrad ? undefined : originalChipColor,
+                          borderColor: finalBorderColor
                         }}
                       />
-                      <span className={`text-xs font-medium break-words`} style={{ color: onText70 }}>{label}</span>
+                      <span className={`text-xs font-medium break-words`} style={{ color: adaptiveTextColor }}>{label}</span>
                     </div>
                   </button>
                 );
               })}
-            </div>
-            <div className="flex items-center gap-3 justify-end">
+              
+              {/* Color Picker Chip - moved inline with other chips */}
               <button
                 type="button"
                 onClick={() => setShowColorPicker(!showColorPicker)}
                 className={`transition-colors flex-shrink-0`}
               >
-                <div className="flex items-center gap-2 px-2 py-1 border rounded-full" style={{ borderColor: onBorder20 }}>
+                <div className="flex items-center gap-2 px-2 py-1 border rounded-full" style={{ borderColor: finalBorderColor }}>
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                     <defs>
                       <radialGradient id="colorWheelGradient" cx="50%" cy="50%" r="50%">
@@ -789,9 +1172,37 @@ export default function PromptBubble({
                     <circle cx="12" cy="12" r="10" fill="url(#colorWheelSpectrum)" stroke="#333" strokeWidth="0.5"/>
                     <circle cx="12" cy="12" r="3" fill="url(#colorWheelGradient)"/>
                   </svg>
-                  <span className={`text-xs font-mono font-bold`} style={{ color: onText70 }}>{selectedColor}</span>
+                  <span className={`text-xs font-medium`} style={{ color: adaptiveTextColor }}>{selectedColor}</span>
                 </div>
               </button>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              {/* Accessibility Score Text - left side */}
+              {(() => {
+                const ratioWhite = calculateContrastRatio(selectedColor, '#FFFFFF');
+                const ratioBlack = calculateContrastRatio(selectedColor, '#000000');
+                if (!ratioWhite || !ratioBlack) return null;
+                
+                // Choose the better contrast ratio to display
+                const ratio = Math.max(ratioWhite, ratioBlack);
+                const background = ratioWhite > ratioBlack ? 'vs white' : 'vs black';
+                const formattedRatio = ratio.toFixed(1);
+                const isAccessible = ratio >= 4.5;
+                const isAAA = ratio >= 7;
+                
+                return (
+                  <span 
+                    className="text-xs font-medium" 
+                    style={{ color: adaptiveTextColor }}
+                    title={`Best contrast ratio ${background}: ${formattedRatio}:1 ${isAAA ? '(AAA - Excellent)' : isAccessible ? '(AA - Good)' : '(Fail - Poor accessibility)'}`}
+                  >
+                    Accessibility score: {formattedRatio}:1
+                  </span>
+                );
+              })()}
+              
+              {/* Send Button - right side */}
               <button
                 type="submit"
                 disabled={!promptText.trim() || isLoading}
@@ -809,16 +1220,6 @@ export default function PromptBubble({
         {elementType === 'promo-card' && (
           <div className="flex items-center gap-3 justify-end">
             <button
-              type="button"
-              onClick={() => {
-                // Image upload placeholder for promo-card
-                console.log('Image upload clicked');
-              }}
-              className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors flex-shrink-0`}
-            >
-              <PhotoIcon className="w-4 h-4" />
-            </button>
-            <button
               type="submit"
               disabled={!promptText.trim() || isLoading}
               className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0`}
@@ -833,35 +1234,35 @@ export default function PromptBubble({
 
         {elementType === 'logo-placeholder' && (
           <div className="flex items-center justify-between mt-2">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                aria-label="Step 1"
-                onClick={() => setLogoStep(1)}
-                className="w-2 h-2 rounded-full border"
-                style={{ backgroundColor: logoStep === 1 ? onText70 : 'transparent', borderColor: onBorder20 }}
-              />
-              <button
-                type="button"
-                aria-label="Step 2"
-                onClick={() => setLogoStep(2)}
-                className="w-2 h-2 rounded-full border"
-                style={{ backgroundColor: logoStep === 2 ? onText70 : 'transparent', borderColor: onBorder20 }}
-              />
-            </div>
+            {/* Hint Text - left side */}
+            <span 
+              className="text-xs font-medium" 
+              style={{ color: adaptiveTextColor }}
+            >
+              {logoStep === 1 ? 'Size: 312 x 100' : 'Format: GIF under 500kB'}
+            </span>
+            
+            {/* Right side: Image Icon + Send Button */}
             <div className="flex items-center gap-3">
+              {/* Image Icon */}
               <button
                 type="button"
-                onClick={() => {
-                  try { if (logoFileInputRef.current) logoFileInputRef.current.click(); } catch {}
-                }}
-                className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors flex-shrink-0`}
+                onClick={() => logoFileInputRef.current?.click()}
+                className="p-1 hover:opacity-80 transition-opacity"
+                title="Upload custom logo (312x100 dimensions)"
               >
-                <PhotoIcon className="w-4 h-4" />
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: adaptiveTextColor }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                </svg>
               </button>
+              
+              {/* Send Button */}
               <button
                 type="submit"
-                disabled={!promptText.trim() || isLoading}
+                disabled={
+                  isLoading || 
+                  (logoStep === 1 ? !selectedLogoChip || selectedLogoChip === 'add-new' : !promptText.trim())
+                }
                 className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0`}
                 style={{
                   color: useLightText ? '#FFFFFF' : 'rgba(0, 0, 0, 0.7)'
@@ -878,7 +1279,7 @@ export default function PromptBubble({
           <div className="absolute top-full left-0 mt-2 z-50">
             <HexColorPicker
               color={selectedColor}
-              onChange={handleColorChange}
+              onChange={(color) => handleColorChange(color, { label: 'Custom Color', color: color })}
               className="shadow-lg rounded-lg"
             />
           </div>

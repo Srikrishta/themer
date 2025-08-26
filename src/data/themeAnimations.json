@@ -1,0 +1,297 @@
+{
+  "themeAnimations": {
+    "default": {
+      "name": "Default Theme",
+      "description": "Standard theme with subtle sparkles animation",
+      "animation": {
+        "type": "sparkles",
+        "parameters": {
+          "count": 8,
+          "color": "#ffffff",
+          "duration": "1.4s",
+          "intensity": "subtle"
+        }
+      }
+    },
+    "festival": {
+      "name": "Festival Theme",
+      "description": "Celebratory confetti animation for festival events",
+      "animation": {
+        "type": "confetti",
+        "parameters": {
+          "count": 40,
+          "colors": ["#F59E0B", "#EF4444", "#10B981", "#3B82F6", "#8B5CF6"],
+          "duration": "3.2s",
+          "intensity": "high"
+        }
+      },
+      "examples": [
+        "Rome Carnival",
+        "Carnevale Ambrosiano", 
+        "Oktoberfest",
+        "Tollwood Festival",
+        "Frühlingsfest"
+      ]
+    },
+    "cultural": {
+      "name": "Cultural Theme",
+      "description": "Elegant glow animation for cultural celebrations",
+      "animation": {
+        "type": "glow",
+        "parameters": {
+          "color": "#10B981",
+          "duration": "2s",
+          "intensity": "medium",
+          "pulse": true
+        }
+      },
+      "examples": [
+        "Christmas in Rome",
+        "Bastille Day",
+        "King's Day",
+        "Pride Amsterdam",
+        "Festa di Sant'Ambrogio"
+      ]
+    },
+    "art": {
+      "name": "Art Theme",
+      "description": "Dynamic lights animation for art festivals",
+      "animation": {
+        "type": "lights",
+        "parameters": {
+          "count": 16,
+          "colors": ["#3B82F6", "#8B5CF6", "#EC4899", "#F59E0B"],
+          "duration": "1.8s",
+          "intensity": "medium",
+          "flicker": true
+        }
+      },
+      "examples": [
+        "Amsterdam Light Festival"
+      ]
+    },
+    "fashion": {
+      "name": "Fashion Theme",
+      "description": "Sophisticated sparkles with fashion colors",
+      "animation": {
+        "type": "sparkles",
+        "parameters": {
+          "count": 15,
+          "color": "#EC4899",
+          "duration": "1.6s",
+          "intensity": "medium",
+          "elegant": true
+        }
+      },
+      "examples": [
+        "Milan Fashion Week",
+        "Paris Fashion Week"
+      ]
+    },
+    "music": {
+      "name": "Music Theme",
+      "description": "Rhythmic glow animation for music events",
+      "animation": {
+        "type": "glow",
+        "parameters": {
+          "color": "#EF4444",
+          "duration": "1.2s",
+          "intensity": "high",
+          "rhythm": true
+        }
+      },
+      "examples": [
+        "Amsterdam Dance Event"
+      ]
+    },
+    "film": {
+      "name": "Film Theme",
+      "description": "Cinematic lights animation for film festivals",
+      "animation": {
+        "type": "lights",
+        "parameters": {
+          "count": 12,
+          "colors": ["#8B5CF6", "#3B82F6", "#EC4899"],
+          "duration": "2.4s",
+          "intensity": "medium",
+          "cinematic": true
+        }
+      },
+      "examples": [
+        "Rome Film Festival"
+      ]
+    },
+    "market": {
+      "name": "Market Theme",
+      "description": "Warm glow animation for market events",
+      "animation": {
+        "type": "glow",
+        "parameters": {
+          "color": "#F43F5E",
+          "duration": "2.8s",
+          "intensity": "low",
+          "warm": true
+        }
+      },
+      "examples": [
+        "Christmas Market"
+      ]
+    },
+    "night_event": {
+      "name": "Night Event Theme",
+      "description": "Mysterious glow animation for night events",
+      "animation": {
+        "type": "glow",
+        "parameters": {
+          "color": "#581C87",
+          "duration": "3.6s",
+          "intensity": "low",
+          "mysterious": true
+        }
+      },
+      "examples": [
+        "Nuit Blanche"
+      ]
+    }
+  },
+  "cityThemes": {
+    "Berlin": {
+      "name": "Berlin City Theme",
+      "description": "Modern, urban sparkles animation",
+      "animation": {
+        "type": "sparkles",
+        "parameters": {
+          "count": 10,
+          "color": "#1E1E1E",
+          "duration": "1.8s",
+          "intensity": "medium",
+          "urban": true
+        }
+      }
+    },
+    "Paris": {
+      "name": "Paris City Theme",
+      "description": "Romantic lights animation",
+      "animation": {
+        "type": "lights",
+        "parameters": {
+          "count": 14,
+          "colors": ["#06B6D4", "#6366F1", "#EC4899"],
+          "duration": "2.2s",
+          "intensity": "medium",
+          "romantic": true
+        }
+      }
+    },
+    "Rome": {
+      "name": "Rome City Theme",
+      "description": "Classical glow animation",
+      "animation": {
+        "type": "glow",
+        "parameters": {
+          "color": "#F59E0B",
+          "duration": "2.6s",
+          "intensity": "medium",
+          "classical": true
+        }
+      }
+    },
+    "Milan": {
+      "name": "Milan City Theme",
+      "description": "Elegant sparkles animation",
+      "animation": {
+        "type": "sparkles",
+        "parameters": {
+          "count": 12,
+          "color": "#EF4444",
+          "duration": "1.9s",
+          "intensity": "medium",
+          "elegant": true
+        }
+      }
+    },
+    "Amsterdam": {
+      "name": "Amsterdam City Theme",
+      "description": "Creative lights animation",
+      "animation": {
+        "type": "lights",
+        "parameters": {
+          "count": 16,
+          "colors": ["#3B82F6", "#F97316", "#65A30D"],
+          "duration": "2.0s",
+          "intensity": "medium",
+          "creative": true
+        }
+      }
+    },
+    "Munich": {
+      "name": "Munich City Theme",
+      "description": "Traditional glow animation",
+      "animation": {
+        "type": "glow",
+        "parameters": {
+          "color": "#7C3AED",
+          "duration": "2.4s",
+          "intensity": "medium",
+          "traditional": true
+        }
+      }
+    }
+  },
+  "seasonalThemes": {
+    "winter": {
+      "name": "Winter Theme",
+      "description": "Cool sparkles animation",
+      "animation": {
+        "type": "sparkles",
+        "parameters": {
+          "count": 8,
+          "color": "#06B6D4",
+          "duration": "2.0s",
+          "intensity": "low",
+          "winter": true
+        }
+      }
+    },
+    "spring": {
+      "name": "Spring Theme",
+      "description": "Fresh glow animation",
+      "animation": {
+        "type": "glow",
+        "parameters": {
+          "color": "#10B981",
+          "duration": "2.2s",
+          "intensity": "medium",
+          "spring": true
+        }
+      }
+    },
+    "summer": {
+      "name": "Summer Theme",
+      "description": "Bright lights animation",
+      "animation": {
+        "type": "lights",
+        "parameters": {
+          "count": 18,
+          "colors": ["#F59E0B", "#EF4444", "#10B981"],
+          "duration": "1.8s",
+          "intensity": "high",
+          "summer": true
+        }
+      }
+    },
+    "autumn": {
+      "name": "Autumn Theme",
+      "description": "Warm glow animation",
+      "animation": {
+        "type": "glow",
+        "parameters": {
+          "color": "#FCD34D",
+          "duration": "2.6s",
+          "intensity": "medium",
+          "autumn": true
+        }
+      }
+    }
+  }
+}

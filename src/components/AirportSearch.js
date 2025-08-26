@@ -2,7 +2,8 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { getReadableOnColor } from '../utils/color';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { CalendarIcon, PlusIcon, MapPinIcon, ClockIcon, Bars3Icon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { CalendarIcon, PlusIcon, MapPinIcon, ClockIcon, Bars3Icon, ChevronRightIcon, ChevronDownIcon, ChevronUpIcon, PhotoIcon, PlayIcon, ArrowsUpDownIcon } from '@heroicons/react/24/outline';
+import FlightCardInline from './FlightCardInline';
 import DatePicker from './DatePicker';
 import festivalsData from '../data/festivals.json';
 
@@ -52,7 +53,7 @@ const getFestivalsForCityAndDates = (city, selectedDates) => {
   return festivals;
 };
 
-function RouteCard({ route, index, moveCard, onRemove, selectedDates = [], defaultLabel, dotRef, cardRef, isLast = false }) {
+function RouteCard({ route, index, moveCard, onRemove, selectedDates = [], defaultLabel, dotRef, cardRef, isLast = false, isLoading = false }) {
   const ref = useRef(null);
   
   // Get festivals for this route's city
@@ -201,68 +202,123 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [], defau
         position: 'relative'
       }}
       data-handler-id={handlerId}
+      aria-busy={isLoading ? 'true' : undefined}
     >
 
 
       {/* Card Content */}
-      <div 
-        className="w-full cursor-grab hover:cursor-grab"
-      >
-        {/* Full height drag handle - outside the card - DISABLED */}
-        {/* <div 
-          ref={dragRef}
-          className="absolute w-1 rounded-md cursor-grab active:cursor-grabbing opacity-40"
-          style={{ 
-            backgroundColor: routeFestivals.length > 0 ? routeFestivals[0].color : '#6B7280',
-            left: '11px',
-            top: '8px',
-            bottom: '8px'
-          }}
-        /> */}
-        
+      {isLoading ? (
+        <div className="w-full">
+          <div className="backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] p-4 rounded-full shadow-sm w-full flex items-center justify-center" style={{ minHeight: '72px' }}>
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true" />
+          </div>
+        </div>
+      ) : (
         <div 
-          ref={dragRef}
-          className={`backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] p-4 rounded-full shadow-sm transition-all cursor-grab active:cursor-grabbing hover:cursor-grab w-full ${
-            isDragging ? 'shadow-lg' : 'hover:shadow-md'
-          }`}
+          className="w-full cursor-grab hover:cursor-grab"
         >
-          <div className={`${isLast ? 'flex justify-between' : 'flex justify-start gap-1'} items-start opacity-70`}>
-            <div className="flex items-start space-x-3 flex-1 min-w-0">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <div 
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                    style={{ backgroundColor: circleColor, color: circleOnColor, boxShadow: 'none' }}
-                  >
-                    {index + 1}
+          {/* Full height drag handle - outside the card - DISABLED */}
+          {/* <div 
+            ref={dragRef}
+            className="absolute w-1 rounded-md cursor-grab active:cursor-grabbing opacity-40"
+            style={{ 
+              backgroundColor: routeFestivals.length > 0 ? routeFestivals[0].color : '#6B7280',
+              left: '11px',
+              top: '8px',
+              bottom: '8px'
+            }}
+          /> */}
+          
+          <div 
+            ref={dragRef}
+            className={`backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] p-4 rounded-full shadow-sm transition-all cursor-grab active:cursor-grabbing hover:cursor-grab w-full ${
+              isDragging ? 'shadow-lg' : 'hover:shadow-md'
+            }`}
+          >
+            <div className={`${isLast ? 'flex justify-between' : 'flex justify-start gap-1'} items-start opacity-70`}>
+              <div className="flex items-start space-x-3 flex-1 min-w-0">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                      style={{ backgroundColor: circleColor, color: circleOnColor, boxShadow: 'none' }}
+                    >
+                      {index + 1}
+                    </div>
+                    <h3 className="text-base font-semibold text-white break-words">
+                      {route.airport.city} ({route.airport.code})
+                    </h3>
                   </div>
-                  <h3 className="text-base font-semibold text-white break-words">
-                    {route.airport.city} ({route.airport.code})
-                  </h3>
-                </div>
-                <div className="text-xs text-white mt-1 flex items-center gap-3 flex-wrap break-words pl-8">
-                  <span className="flex items-center gap-1 font-semibold text-white">
-                    <MapPinIcon className="w-3 h-3 text-white" />
-                    {route.type.charAt(0).toUpperCase() + route.type.slice(1)}
-                  </span>
-                  <span className="flex items-center gap-1 font-semibold text-white">
-                    <ClockIcon className="w-3 h-3 text-white" />
-                    {getScheduledTime(index, route.type)}
-                  </span>
+                  <div className="text-xs text-white mt-1 flex items-center gap-3 flex-wrap break-words pl-8">
+                    <span className="flex items-center gap-1 font-semibold text-white">
+                      <MapPinIcon className="w-3 h-3 text-white" />
+                      {route.type.charAt(0).toUpperCase() + route.type.slice(1)}
+                    </span>
+                    <span className="flex items-center gap-1 font-semibold text-white">
+                      <ClockIcon className="w-3 h-3 text-white" />
+                      {getScheduledTime(index, route.type)}
+                    </span>
+                  </div>
                 </div>
               </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove();
+                }}
+                className="p-1 rounded-full hover:bg-gray-100 transition-colors z-10 relative"
+                title="Remove from route"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon" className="w-5 h-5 text-gray-400">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14"></path>
+                </svg>
+              </button>
             </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove();
-              }}
-              className="p-1 rounded-full hover:bg-gray-100 transition-colors z-10 relative"
-              title="Remove from route"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon" className="w-5 h-5 text-gray-400">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14"></path>
-              </svg>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StaticFlightCard({ segment, index }) {
+  return (
+    <div className="w-full">
+      <div className="backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] pl-5 pr-3 py-4 rounded-full shadow-sm w-full">
+        <div className="flex justify-between items-stretch opacity-70">
+          <div className="flex items-start gap-1 flex-none pr-0" style={{ paddingRight: 6 }}>
+            <div className="flex-none">
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-semibold text-white break-words">
+                  {segment?.origin?.airport?.code} → {segment?.destination?.airport?.code}
+                </h3>
+              </div>
+              <div className="text-xs text-white mt-1 flex items-center gap-3 flex-wrap break-words">
+                <span className="flex items-center gap-1 font-semibold">Flight {index + 1}</span>
+              </div>
+            </div>
+          </div>
+          <div className="hidden md:flex items-center gap-1" style={{ marginLeft: 5 }}>
+            <button type="button" className="inline-flex items-center rounded-[24px] bg-white/10 text-white hover:bg-white/15 h-9 w-9 justify-center px-0 shrink-0" title="Add logo">
+              <PhotoIcon className="w-4 h-4" />
+            </button>
+            <button type="button" className="inline-flex items-center rounded-[24px] bg-white/10 text-white hover:bg-white/15 h-9 w-9 justify-center px-0 shrink-0" title="Add theme">
+              <div 
+                className="w-4 h-4 rounded-full"
+                style={{
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, #10b981 100%)',
+                  backgroundSize: '200% 200%'
+                }}
+              />
+            </button>
+            <button type="button" className="inline-flex items-center rounded-[24px] bg-white/10 text-white hover:bg-white/15 h-9 w-9 justify-center px-0 shrink-0" title="Modify flight phase">
+              <img src={process.env.PUBLIC_URL + '/flight icon.svg'} alt="Flight icon" className="w-4 h-4" />
+            </button>
+            <button type="button" className="inline-flex items-center rounded-[24px] bg-white/10 text-white hover:bg-white/15 h-9 w-9 justify-center px-0 shrink-0" title="Update cards">
+              <ArrowsUpDownIcon className="w-4 h-4" />
+            </button>
+            <button type="button" className="inline-flex items-center rounded-[24px] bg-white/10 text-white hover:bg-white/15 h-9 w-9 justify-center px-0 shrink-0" title="Add content">
+              <PlayIcon className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -271,7 +327,7 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [], defau
   );
 }
 
-function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], inputFieldRef, defaultLabel, lastCardRef }) {
+function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], inputFieldRef, defaultLabel, lastCardRef, isLoading = false, hideBeforeIndex = 0, themeColor = '#1E1E1E', replacementIndex = -1, selectedFlightIndex = 0, onSelectFlight, onEnterPromptMode, onTriggerPromptBubble }) {
   const moveCard = useCallback((dragIndex, hoverIndex) => {
     const newRoutes = [...routes];
     const [reorderedRoute] = newRoutes.splice(dragIndex, 1);
@@ -287,24 +343,64 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
   return (
     <div className="relative">
       {/* Route Cards */}
-      <div className="relative z-10 flex flex-row items-start w-full">
+      <div className="relative z-10 flex flex-row items-center w-full gap-2">
+        {(() => { return null; })()}
+        {/* Compute number of visible flight cards */}
+        {/**/}
         {routes.map((route, index) => (
           <React.Fragment key={route.id}>
-            <div className="flex-1">
-              <RouteCard
-                route={route}
-                index={index}
-                moveCard={moveCard}
-                onRemove={() => onRemoveRoute(index)}
-                selectedDates={selectedDates}
-                defaultLabel={defaultLabel}
-                cardRef={index === routes.length - 1 ? lastCardRef : undefined}
-                isLast={index === routes.length - 1}
-              />
-            </div>
-            {/* Arrow between cards - show for all except the last card */}
-            {index < routes.length - 1 && (
-              <div className="flex items-center justify-center px-2 py-8">
+            {(() => {
+              // Decide what to render for this slot; skip wrapper entirely if nothing
+              // Hide the last route card during generation phase (no corresponding flight segment)
+              const shouldHideLast = isLoading && index === routes.length - 1;
+              if (shouldHideLast) return null;
+
+              if (index <= replacementIndex && index < routes.length - 1) {
+                const segIndex = index;
+                const segment = { origin: routes[segIndex], destination: routes[segIndex + 1] };
+                const flightsVisible = Math.min(replacementIndex + 1, routes.length - 1);
+                const isActive = segIndex === selectedFlightIndex; // selected is active/expanded
+                return (
+                  <div className="basis-0" style={{ flex: flightsVisible >= 4 ? (isActive ? 2 : 1) : 1, minWidth: 0 }}>
+                    <FlightCardInline
+                      segment={segment}
+                      index={segIndex}
+                      activeIndex={selectedFlightIndex}
+                      themeColor={themeColor}
+                      onSelect={() => { if (typeof onSelectFlight === 'function') onSelectFlight(segIndex); }}
+                      onEnterPromptMode={onEnterPromptMode}
+                      onTriggerPromptBubble={onTriggerPromptBubble}
+                    />
+                  </div>
+                );
+              }
+              return (
+                <div className="flex-1 min-w-0 basis-0">
+                  <RouteCard
+                    route={route}
+                    index={index}
+                    moveCard={moveCard}
+                    onRemove={() => onRemoveRoute(index)}
+                    selectedDates={selectedDates}
+                    defaultLabel={defaultLabel}
+                    cardRef={index === routes.length - 1 ? lastCardRef : undefined}
+                    isLast={index === routes.length - 1}
+                    isLoading={isLoading}
+                  />
+                </div>
+              );
+            })()}
+            {/* Arrow logic: show only if both left and right items are visible */}
+            {(() => {
+              if (index >= routes.length - 1) return false;
+              // Slot is visible if it has either a flight (index <= replacementIndex) or a route (index >= hideBeforeIndex)
+              const isSlotVisible = (i) => {
+                if (isLoading && i === routes.length - 1) return false; // hide last during generation
+                return i <= replacementIndex || i >= hideBeforeIndex;
+              };
+              return isSlotVisible(index) && isSlotVisible(index + 1);
+            })() && (
+              <div className="flex items-center justify-center flex-shrink-0 px-1 py-6">
                 <span className="text-white text-lg font-bold opacity-60" style={{ fontSize: '18px', fontWeight: '300' }}>→</span>
               </div>
             )}
@@ -315,7 +411,7 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
   );
 }
 
-function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized, onSelectedDatesChange, themeColor = '#1E1E1E' }) {
+function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized, onSelectedDatesChange, themeColor = '#1E1E1E', onEnterPromptMode, onTriggerPromptBubble }) {
   // Date picker state and logic (moved from ThemeCreator)
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [dates, setDates] = useState(selectedDates || []);
@@ -324,6 +420,10 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
   const [isTyping, setIsTyping] = useState(false);
   const datePickerRef = useRef(null);
   const [dropdownPosition, setDropdownPosition] = useState('down');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatingProgressIndex, setGeneratingProgressIndex] = useState(0);
+  const [replacementIndex, setReplacementIndex] = useState(-1); // -1 means none replaced yet
+  const [selectedInlineFlightIndex, setSelectedInlineFlightIndex] = useState(0);
 
   // Airport search dropdown state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -392,6 +492,34 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1);
     setCurrentDate(newDate);
   };
+
+  // Progressive hide+replace: spinner on all, then replace route i with flight i left->right
+  useEffect(() => {
+    if (!isGenerating) return;
+    setGeneratingProgressIndex(0);
+    setReplacementIndex(-1);
+    const total = routes.length;
+    let i = 0;
+    const id = setInterval(() => {
+      i += 1;
+      setGeneratingProgressIndex(prev => (prev < total ? prev + 1 : prev));
+      // start replacing after the first tick, progress i corresponds to replacing index i-1
+      setReplacementIndex(prev => {
+        const next = Math.min(routes.length - 2, (i - 1));
+        return next;
+      });
+      if (i >= total) clearInterval(id);
+    }, 500);
+    return () => clearInterval(id);
+  }, [isGenerating, routes.length]);
+
+  // Clamp selected inline flight index to available flights
+  useEffect(() => {
+    const maxIndex = Math.max(0, Math.min(replacementIndex, routes.length - 2));
+    if (replacementIndex >= 0 && selectedInlineFlightIndex > maxIndex) {
+      setSelectedInlineFlightIndex(maxIndex);
+    }
+  }, [replacementIndex, routes.length, selectedInlineFlightIndex]);
 
   // Refs for positioning
   const dropdownRef = useRef(null);
@@ -525,9 +653,34 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     }
   }, [routes.length, inputFieldRef, isMinimized]); // <-- add isMinimized
 
-  // Tooltip colors derived from theme color
-  const tooltipBgColor = themeColor || '#1E1E1E';
+  // Tooltip colors should match ThemeCreator background, not theme color
+  const tooltipBgColor = '#1E1E1E'; // Fixed to match TC background
   const tooltipTextColor = getReadableOnColor(tooltipBgColor);
+
+  // Inject Light Sweep CSS for the Show Preview button
+  if (typeof document !== 'undefined' && !document.getElementById('btn-sweep-style')) {
+    const style = document.createElement('style');
+    style.id = 'btn-sweep-style';
+    style.innerHTML = `
+      .sweep-btn::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -30%;
+        width: 30%;
+        height: 200%;
+        background: linear-gradient(120deg, rgba(59,130,246,0) 0%, rgba(147,197,253,0.6) 50%, rgba(59,130,246,0) 100%);
+        transform: skewX(-20deg);
+        animation: sweep-move 5s ease-in-out infinite;
+        pointer-events: none;
+      }
+      @keyframes sweep-move {
+        0% { left: -30%; }
+        100% { left: 130%; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
 
   return (
     <div className="space-y-12 relative">
@@ -610,9 +763,15 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
               {/* Date display */}
               <div className="flex items-center w-full">
                 <CalendarIcon className="w-4 h-4 text-gray-400 mr-2" />
-                <span className="text-gray-500 text-sm font-semibold">
+                <span className="text-gray-500 text-sm font-semibold flex-1">
                   {dates.length === 2 ? `${dates[0]} to ${dates[1]}` : dates.length === 1 ? dates[0] : 'Select date'}
                 </span>
+                {/* Chevron toggle icon */}
+                {isDatePickerOpen ? (
+                  <ChevronUpIcon className="w-4 h-4 text-gray-400 ml-2" />
+                ) : (
+                  <ChevronDownIcon className="w-4 h-4 text-gray-400 ml-2" />
+                )}
               </div>
             </div>
             {/* Former inline label removed; now rendered above input */}
@@ -639,19 +798,25 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
 
           {/* Generate flights button moved here */}
           <button
-            className={`h-12 px-4 rounded-tl-[0px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px] transition-colors flex items-center justify-center w-[240px] ${
+            className={`h-12 px-4 rounded-tl-[0px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px] transition-colors flex items-center justify-center w-[240px] relative overflow-hidden ${
               routes.length >= 2 
-                ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                ? 'bg-blue-600 text-white hover:bg-blue-700 sweep-btn' 
                 : 'backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] text-white/70 cursor-not-allowed'
-            }`}
+            } ${isGenerating ? 'opacity-90' : ''}`}
             disabled={routes.length < 2}
             onClick={() => {
-              const event = new CustomEvent('airport-search-generate-flights');
-              window.dispatchEvent(event);
+              if (!isGenerating) {
+                setIsGenerating(true);
+                const event = new CustomEvent('airport-search-generate-flights');
+                window.dispatchEvent(event);
+              } else {
+                const previewEvent = new CustomEvent('airport-search-show-preview');
+                window.dispatchEvent(previewEvent);
+              }
             }}
             title="Generate flights"
           >
-            Generate flights
+            {isGenerating ? 'Add Themes' : 'Generate flights'}
           </button>
         </div>
         
@@ -668,6 +833,14 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
           inputFieldRef={inputFieldRef}
           defaultLabel={defaultLabel}
           lastCardRef={lastCardRef}
+          isLoading={isGenerating}
+          hideBeforeIndex={generatingProgressIndex}
+          replacementIndex={replacementIndex}
+          themeColor={themeColor}
+          selectedFlightIndex={selectedInlineFlightIndex}
+          onSelectFlight={(i) => setSelectedInlineFlightIndex(i)}
+          onEnterPromptMode={onEnterPromptMode}
+          onTriggerPromptBubble={onTriggerPromptBubble}
         />
       )}
     </div>

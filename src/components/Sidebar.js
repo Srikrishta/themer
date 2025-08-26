@@ -11,7 +11,7 @@ export default function Sidebar() {
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto px-6 pb-4">
           <div className="mt-4">
-            <ThemeCreator />
+            <ThemeCreator isInHeader={true} />
           </div>
         </div>
       </div>

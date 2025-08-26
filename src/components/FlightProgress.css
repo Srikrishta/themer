@@ -13,6 +13,7 @@
   height: 4px;
   background: #e5e7eb; /* light gray for the path */
   border-radius: 2px;
+  opacity: 0.4;
 }
 
 .flight-progress {

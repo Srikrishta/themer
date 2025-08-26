@@ -1,4 +1,5 @@
 import LogoAnimationOverlay from './LogoAnimationOverlay';
+import { getReadableOnColor } from '../utils/color';
 const img = "http://localhost:3845/assets/ff3d1da9a24aa2fb4488e3512b8899f58fd11a82.svg";
 const img1 = "http://localhost:3845/assets/a2d0c66b9b0a23635dabe1c4fa6f42ce32813ae3.svg";
 const img2 = "http://localhost:3845/assets/0ff569c01d28eabc86e809a3f7e631571ba23fb8.svg";
@@ -15,25 +16,20 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
     return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
   }
 
-  // Skeleton component for loading state (shimmer, no opacity pulsing)
+  // Use adaptive text color based on FJB container background (themeColor)
+  const textColor = getReadableOnColor(themeColor);
+
+  // Placeholder component matching logo placeholder styling
   const SkeletonCard = ({ width, alignment = 'left' }) => (
     <div
-      className="h-[88px] relative rounded-2xl shrink-0 flex items-center justify-center bg-white/60 border border-gray-300"
+      className={`h-[88px] relative rounded-2xl shrink-0 flex items-center justify-center ${isLandingPage ? 'bg-white border border-gray-300' : 'backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)]'}`}
       style={{ width }}
     >
-      <div className="space-y-2 w-full px-6">
-        <div className={`h-6 rounded ${alignment === 'left' ? 'w-32' : 'w-28'} ${alignment === 'right' ? 'ml-auto' : ''} bg-gray-200`}></div>
-        <div className={`h-4 rounded ${alignment === 'left' ? 'w-24' : 'w-20'} ${alignment === 'right' ? 'ml-auto' : ''} bg-gray-200`}></div>
-      </div>
     </div>
   );
 
   const SkeletonLandingCard = () => (
-    <div className="h-[88px] relative rounded-2xl shrink-0 w-[294px] flex items-center justify-center bg-white/60 border border-gray-300">
-      <div className="space-y-2 text-center w-full px-6">
-        <div className="h-6 rounded w-32 mx-auto bg-gray-200"></div>
-        <div className="h-4 rounded w-24 mx-auto bg-gray-200"></div>
-      </div>
+    <div className={`h-[88px] relative rounded-2xl shrink-0 w-[294px] flex items-center justify-center ${isLandingPage ? 'bg-white border border-gray-300' : 'backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)]'}`}>
     </div>
   );
 
@@ -264,8 +260,8 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
           ) : (
             <>
               <div className="text-center">
-                <div className="text-[16px] font-semibold text-black mb-1">LOGO</div>
-                <div className="text-[12px] text-black/70">PLACEHOLDER</div>
+                <div className="text-[16px] font-semibold mb-1" style={{ color: textColor }}>LOGO</div>
+                <div className="text-[12px]" style={{ color: textColor, opacity: 0.7 }}>PLACEHOLDER</div>
               </div>
               {!isPromptMode && (
                 <div className="absolute border border-[rgba(0,0,0,0.2)] border-solid inset-0 pointer-events-none rounded-2xl" />
@@ -295,7 +291,8 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
           >
             <div className="h-[88px] overflow-clip relative w-[400px]">
               <div
-                className="absolute box-border content-stretch flex flex-row gap-2 items-start justify-start leading-[0] left-6 not-italic p-0 text-[#000000] text-[20px] text-left text-nowrap top-[13px]"
+                className="absolute box-border content-stretch flex flex-row gap-2 items-start justify-start leading-[0] left-6 not-italic p-0 text-[20px] text-left text-nowrap top-[13px]"
+                style={{ color: textColor }}
                 data-name="Departure location"
                 id="node-77_5577"
               >
@@ -317,7 +314,8 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
                 </div>
               </div>
               <div
-                className="absolute font-['Lufthansa_Text:Bold',_sans-serif] leading-[0] right-6 not-italic text-[#000000] text-[20px] text-nowrap text-right top-[13px] tracking-[0.8px]"
+                className="absolute font-['Lufthansa_Text:Bold',_sans-serif] leading-[0] right-6 not-italic text-[20px] text-nowrap text-right top-[13px] tracking-[0.8px]"
+                style={{ color: textColor }}
                 id="node-77_5580"
               >
                 <p className="adjustLetterSpacing block leading-[32px] whitespace-pre">
@@ -325,7 +323,8 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
                 </p>
               </div>
               <div
-                className="absolute font-['Lufthansa_Text:Regular',_sans-serif] leading-[0] left-[26px] not-italic text-[#000000] text-[0px] text-left text-nowrap top-[51px] tracking-[1.4px] uppercase"
+                className="absolute font-['Lufthansa_Text:Regular',_sans-serif] leading-[0] left-[26px] not-italic text-[0px] text-left text-nowrap top-[51px] tracking-[1.4px] uppercase"
+                style={{ color: textColor }}
                 id="node-77_5581"
               >
                 <p className="leading-[24px] text-[14px] whitespace-pre">
@@ -379,7 +378,7 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
             data-name="landing info"
             id="node-77_5602"
           >
-            <div className="box-border content-stretch flex flex-col gap-1.5 h-[88px] items-center justify-center leading-[0] not-italic overflow-clip px-5 py-0 relative text-[#000000] text-left text-nowrap w-[294px]">
+            <div className="box-border content-stretch flex flex-col gap-1.5 h-[88px] items-center justify-center leading-[0] not-italic overflow-clip px-5 py-0 relative text-left text-nowrap w-[294px]" style={{ color: textColor }}>
               <div
                 className="font-['Lufthansa_Text:Bold',_sans-serif] relative shrink-0 text-[20px] tracking-[0.8px]"
                 id="node-77_5603"
@@ -413,7 +412,8 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
           >
             <div className="h-[88px] overflow-clip relative w-[400px]">
               <div
-                className="absolute box-border content-stretch flex flex-row gap-2 items-start justify-end leading-[0] not-italic p-0 right-6 text-[#000000] text-nowrap text-right top-[13px]"
+                className="absolute box-border content-stretch flex flex-row gap-2 items-start justify-end leading-[0] not-italic p-0 right-6 text-nowrap text-right top-[13px]"
+                style={{ color: textColor }}
                 data-name="Destionation"
                 id="node-77_5606"
               >
@@ -438,7 +438,8 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
                 </div>
               </div>
               <div
-                className="absolute font-['Lufthansa_Text:Bold',_sans-serif] leading-[0] left-6 not-italic text-[#000000] text-[20px] text-left text-nowrap top-[13px] tracking-[0.8px]"
+                className="absolute font-['Lufthansa_Text:Bold',_sans-serif] leading-[0] left-6 not-italic text-[20px] text-left text-nowrap top-[13px] tracking-[0.8px]"
+                style={{ color: textColor }}
                 id="node-77_5609"
               >
                 <p className="adjustLetterSpacing block leading-[32px] whitespace-pre">
@@ -446,7 +447,8 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
                 </p>
               </div>
               <div
-                className="absolute font-['Lufthansa_Text:Regular',_sans-serif] leading-[0] not-italic right-6 text-[#000000] text-[0px] text-nowrap text-right top-[51px] tracking-[1.4px] uppercase"
+                className="absolute font-['Lufthansa_Text:Regular',_sans-serif] leading-[0] not-italic right-6 text-[0px] text-nowrap text-right top-[51px] tracking-[1.4px] uppercase"
+                style={{ color: textColor }}
                 id="node-77_5610"
               >
                 <p className="leading-[24px] text-[14px] whitespace-pre">
