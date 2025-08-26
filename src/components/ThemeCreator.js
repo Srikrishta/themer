@@ -9,7 +9,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useNavigate } from 'react-router-dom';
 import { getReadableOnColor } from '../utils/color';
 
-export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips, onStartThemeBuild, themeColor = '#1E1E1E', onTriggerPromptBubble, selectedLogo, onThemeAnimationComplete }) {
+export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips, onStartThemeBuild, themeColor = '#1E1E1E', onTriggerPromptBubble, selectedLogo, onThemeAnimationComplete, onGeneratingStateChange, onBuildThemes }) {
   const navigate = useNavigate();
   const DEFAULT_THEME_COLOR = '#1E1E1E';
   // Get current date in Berlin timezone for initial state
@@ -1217,6 +1217,16 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                 themeColor={themeColor}
                 onEnterPromptMode={onEnterPromptMode}
                 onTriggerPromptBubble={onTriggerPromptBubble}
+                onGeneratingStateChange={(isGenerating) => {
+                  if (onGeneratingStateChange) {
+                    onGeneratingStateChange(isGenerating);
+                  }
+                }}
+                onBuildThemes={() => {
+                  if (onBuildThemes) {
+                    onBuildThemes();
+                  }
+                }}
                 onToggleMinimized={() => {
                   setIsMinimized(!isMinimized);
                   if (!isMinimized) {

@@ -261,6 +261,19 @@ export default function LandingPage() {
     }
   };
   
+  // Helper function to create lighter version of theme color (matching Component3Cards)
+  const getLightThemeColor = (opacity = 0.1) => {
+    if (mockThemeColor.startsWith('#')) {
+      // Convert hex to rgba with opacity
+      const hex = mockThemeColor.slice(1);
+      const r = parseInt(hex.substr(0, 2), 16);
+      const g = parseInt(hex.substr(2, 2), 16);
+      const b = parseInt(hex.substr(4, 2), 16);
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+    return `rgba(255,255,255,${opacity})`; // fallback
+  };
+  
   // Debug theme color changes
   useEffect(() => {
     console.log('=== THEME COLOR CHANGED ===', { currentThemeColor, mockThemeColor });
@@ -336,9 +349,9 @@ export default function LandingPage() {
                 <div className="mt-10 flex items-center justify-center">
                   <div
                     onClick={() => {
-                      console.log('=== CREATE BUTTON CLICKED ===');
-                      console.log('=== NAVIGATING TO DASHBOARD ===');
-                      navigate('/dashboard');
+                      console.log('=== BUILD THEMES BUTTON CLICKED ===');
+                      console.log('=== NAVIGATING TO DASHBOARD WITH FLIGHTS VIEW ===');
+                      navigate('/dashboard?view=flights');
                     }}
                     className="shadow-md cursor-pointer transition-all duration-200 hover:opacity-90"
                     style={{
@@ -379,7 +392,7 @@ export default function LandingPage() {
               style={{ position: 'absolute', top: -40, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none' }}
             />
             <div style={{ position: 'relative', zIndex: 2, width: 1302, margin: '92px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
-              <div className="fjb-fps-container" style={{ width: 1328, maxWidth: 1328, marginLeft: -2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, background: getBackgroundColor(mockThemeColor), borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 16, paddingTop: 80, paddingBottom: 40, marginTop: 4 }}>
+              <div className="fjb-fps-container" style={{ width: 1328, maxWidth: 1328, marginLeft: -2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, background: mockThemeColor, borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 16, paddingTop: 80, paddingBottom: 40, marginTop: 4, position: 'relative' }}>
                 <div style={{ width: '100%', marginTop: -32, display: 'flex', flexDirection: 'column', gap: 28 }}>
                   <FlightJourneyBar origin={mockOrigin} destination={mockDestination} minutesLeft={minutesLeft} themeColor={mockThemeColor} isLandingPage={true} />
                   <FlightProgress 
@@ -445,7 +458,7 @@ export default function LandingPage() {
                       style={{ 
                         width: '100%', 
                         height: '184px',
-                        background: tile.color,
+                        backgroundColor: getLightThemeColor(0.1),
                         borderTopLeftRadius: '8px',
                         borderTopRightRadius: '8px',
                         borderBottomLeftRadius: '0px',
@@ -458,10 +471,7 @@ export default function LandingPage() {
                       onDragEnd={handleDragEnd}
                     >
                       <div className="text-center">
-                        <span className="text-sm font-medium block" style={{ color: getReadableOnColor(tile.color) }}>
-                          Tile {tile.id}
-                        </span>
-                        <span className="text-xs font-medium" style={{ color: getReadableOnColor(tile.color) }}>
+                        <span className="font-semibold block" style={{ color: '#000000', fontSize: '24px', lineHeight: '32px', opacity: 0.7 }}>
                           Add content
                         </span>
                       </div>

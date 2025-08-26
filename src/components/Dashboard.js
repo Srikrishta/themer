@@ -7,7 +7,7 @@ import Component3Cards from './Component3Cards';
 import PlusIconCursor from './PlusIconCursor';
 import PromptBubble from './PromptBubble';
 import MousePointer from './MousePointer';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { mapThemeChipToAnimation } from '../utils/themeAnimationMapper';
 
 function formatTime(minutes) {
@@ -316,6 +316,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
 
 export default function Dashboard() {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const minimizeThemeCreator = location.state?.minimizeThemeCreator;
   // Lifted state for routes
   const [routes, setRoutes] = useState([]);
@@ -338,6 +339,14 @@ export default function Dashboard() {
       setCurrentThemeColor('#1E72AE'); // Discover blue for theme build view
     }
   }, [isThemeBuildStarted]);
+
+  // Handle URL changes for view parameter
+  useEffect(() => {
+    const viewParam = searchParams.get('view');
+    if (viewParam === 'flights') {
+      setIsThemeBuildStarted(true);
+    }
+  }, [searchParams]);
   
   // NEW: Prompt mode state
   const [isPromptMode, setIsPromptMode] = useState(false);
@@ -403,6 +412,7 @@ export default function Dashboard() {
   const timerRef = useRef();
   const [dragging, setDragging] = useState(false);
   const [flightsGenerated, setFlightsGenerated] = useState(false);
+  const [isGeneratingFlights, setIsGeneratingFlights] = useState(false);
 
   // Listen for generate flights event
   useEffect(() => {
@@ -428,19 +438,7 @@ export default function Dashboard() {
     }
   }, [routes.length]);
 
-  // Debug function to test animation mapping
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.debugAnimationMapping = () => {
-        console.log('Current selected theme chip:', selectedThemeChip);
-        console.log('Current selected logo:', selectedLogo);
-        if (selectedThemeChip) {
-          const animationType = mapThemeChipToAnimation(selectedThemeChip.label, selectedThemeChip.color);
-          console.log('Mapped animation type:', animationType);
-        }
-      };
-    }
-  }, [selectedThemeChip, selectedLogo]);
+
 
   useEffect(() => {
     setMinutesLeft(maxFlightMinutes);
@@ -777,11 +775,33 @@ export default function Dashboard() {
   }, [isThemeBuildStarted]);
 
   return (
-    <div className={`min-h-screen ${!isThemeBuildStarted ? 'h-screen overflow-hidden' : ''}`}>
+    <div 
+      className={`min-h-screen ${(!isThemeBuildStarted && !isGeneratingFlights) ? 'h-screen overflow-hidden' : ''}`}
+      style={{
+        height: (!isThemeBuildStarted && !isGeneratingFlights) ? '100vh' : 'auto',
+        overflow: (!isThemeBuildStarted && !isGeneratingFlights) ? 'hidden' : 'visible',
+        overflowY: (!isThemeBuildStarted && !isGeneratingFlights) ? 'hidden' : 'visible',
+        position: 'relative',
+        // Force scrolling when content is visible
+        ...((isThemeBuildStarted || isGeneratingFlights) && {
+          overflow: 'visible',
+          overflowY: 'visible',
+          height: 'auto',
+          minHeight: 'auto'
+        }),
+
+      }}
+      data-name="dashboard-container"
+    >
             {/* Dashboard Header */}
       {/* Header removed as requested */}
       {/* ThemeCreator positioned below header (always visible) */}
-      <div className={`w-full flex justify-center transition-all duration-300 ${!isThemeBuildStarted ? 'h-full' : ''}`} style={{ marginTop: 0 }}>
+      <div 
+        className="w-full flex justify-center transition-all duration-300"
+        style={{ 
+          marginTop: 0
+        }}
+      >
         <ThemeCreator
           routes={routes}
           setRoutes={setRoutes}
@@ -813,8 +833,16 @@ export default function Dashboard() {
           selectedLogo={selectedLogo}
           isInHeader={false}
           onThemeAnimationComplete={handleThemeAnimationComplete}
+          onGeneratingStateChange={(isGenerating) => {
+            setIsGeneratingFlights(isGenerating);
+          }}
+          onBuildThemes={() => {
+            setIsThemeBuildStarted(true);
+          }}
         />
       </div>
+      
+
       
       {/* Plus Icon Cursor for Prompt Mode */}
       <PlusIconCursor 
@@ -1022,18 +1050,23 @@ export default function Dashboard() {
         </div>
       )}
       
-      {/* Frame Content - Show IFE frame only in flights view, not in routes view */}
+
+
+      {/* Original IFE frame logic */}
       {(() => {
-        console.log('IFE Frame render check:', { isThemeBuildStarted });
-        return isThemeBuildStarted;
-      })() ? (
-        // Flights view - Title + IFE frame content
+        const shouldShow = isGeneratingFlights || isThemeBuildStarted || true; // Always true for routes view
+        
+
+        
+        return shouldShow;
+      })() && (
         <>
-          <div className="w-full flex justify-center" style={{ marginTop: 12 }}>
+          <div className="w-full flex justify-center" style={{ marginTop: isThemeBuildStarted ? 12 : 24 }}>
             <div style={{ width: '1302px' }}>
               <p className="block font-bold text-black" style={{ fontSize: '28px', lineHeight: '36px', margin: 0 }}>In-flight GUI</p>
             </div>
           </div>
+
           <div className="w-full flex justify-center" style={{ marginTop: 8, height: '880px' }}>
             <div style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', contain: 'layout paint', transform: 'scale(0.8)', transformOrigin: 'top center' }}>
               <img
@@ -1066,51 +1099,6 @@ export default function Dashboard() {
               />
             </div>
           </div>
-        </>
-      ) : (
-        // Routes view - Show in-flight GUI content after animation completion
-        <>
-          {themeAnimationComplete && (
-            <>
-              <div className="w-full flex justify-center" style={{ marginTop: 24 }}>
-                <div style={{ width: '1302px' }}>
-                  <p className="block font-bold text-black" style={{ fontSize: '28px', lineHeight: '36px', margin: 0 }}>In-flight GUI</p>
-                </div>
-              </div>
-              <div className="w-full flex justify-center" style={{ marginTop: 8, height: '880px' }}>
-                <div style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', contain: 'layout paint', transform: 'scale(0.8)', transformOrigin: 'top center' }}>
-                  <img
-                    src={process.env.PUBLIC_URL + '/ife-frame.svg'}
-                    alt="Mobile Frame"
-                    style={{ position: 'absolute', top: -40, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none', willChange: 'transform', transform: 'translateZ(0)' }}
-                  />
-                  <FrameContent
-                    origin={origin}
-                    destination={destination}
-                    minutesLeft={minutesLeft}
-                    landingIn={landingIn}
-                    maxFlightMinutes={maxFlightMinutes}
-                    handleProgressChange={handleProgressChange}
-                    themeColor={currentThemeColor}
-                    routes={routes}
-                    isPromptMode={isPromptMode}
-                    onPromptHover={handlePromptHover}
-                    onPromptClick={handlePromptClick}
-                    fpsPrompts={fpsPrompts}
-                    isThemeBuildStarted={isThemeBuildStarted}
-                    selectedLogo={selectedLogo}
-                    flightsGenerated={flightsGenerated}
-                    onAnimationProgress={(progress) => {
-                      // Detect when animation reaches completion (20% progress, which is the target)
-                      if (progress >= 0.2 && !themeAnimationComplete) {
-                        handleThemeAnimationComplete();
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            </>
-          )}
         </>
       )}
     </div>

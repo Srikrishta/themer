@@ -411,7 +411,7 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
   );
 }
 
-function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized, onSelectedDatesChange, themeColor = '#1E1E1E', onEnterPromptMode, onTriggerPromptBubble }) {
+function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized, onSelectedDatesChange, themeColor = '#1E1E1E', onEnterPromptMode, onTriggerPromptBubble, onGeneratingStateChange, onBuildThemes }) {
   // Date picker state and logic (moved from ThemeCreator)
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [dates, setDates] = useState(selectedDates || []);
@@ -512,6 +512,14 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     }, 500);
     return () => clearInterval(id);
   }, [isGenerating, routes.length]);
+
+  // Notify parent component when generating state changes
+  useEffect(() => {
+    console.log('=== AIRPORTSEARCH: isGenerating changed to ===', isGenerating);
+    if (onGeneratingStateChange) {
+      onGeneratingStateChange(isGenerating);
+    }
+  }, [isGenerating, onGeneratingStateChange]);
 
   // Clamp selected inline flight index to available flights
   useEffect(() => {
@@ -657,30 +665,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
   const tooltipBgColor = '#1E1E1E'; // Fixed to match TC background
   const tooltipTextColor = getReadableOnColor(tooltipBgColor);
 
-  // Inject Light Sweep CSS for the Show Preview button
-  if (typeof document !== 'undefined' && !document.getElementById('btn-sweep-style')) {
-    const style = document.createElement('style');
-    style.id = 'btn-sweep-style';
-    style.innerHTML = `
-      .sweep-btn::after {
-        content: '';
-        position: absolute;
-        top: -50%;
-        left: -30%;
-        width: 30%;
-        height: 200%;
-        background: linear-gradient(120deg, rgba(59,130,246,0) 0%, rgba(147,197,253,0.6) 50%, rgba(59,130,246,0) 100%);
-        transform: skewX(-20deg);
-        animation: sweep-move 5s ease-in-out infinite;
-        pointer-events: none;
-      }
-      @keyframes sweep-move {
-        0% { left: -30%; }
-        100% { left: 130%; }
-      }
-    `;
-    document.head.appendChild(style);
-  }
+
 
   return (
     <div className="space-y-12 relative">
@@ -800,7 +785,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
           <button
             className={`h-12 px-4 rounded-tl-[0px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px] transition-colors flex items-center justify-center w-[240px] relative overflow-hidden ${
               routes.length >= 2 
-                ? 'bg-blue-600 text-white hover:bg-blue-700 sweep-btn' 
+                ? 'bg-blue-600 text-white hover:bg-blue-700' 
                 : 'backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] text-white/70 cursor-not-allowed'
             } ${isGenerating ? 'opacity-90' : ''}`}
             disabled={routes.length < 2}
@@ -810,13 +795,15 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                 const event = new CustomEvent('airport-search-generate-flights');
                 window.dispatchEvent(event);
               } else {
-                const previewEvent = new CustomEvent('airport-search-show-preview');
-                window.dispatchEvent(previewEvent);
+                // When "Build themes" is clicked, trigger theme build
+                if (onBuildThemes) {
+                  onBuildThemes();
+                }
               }
             }}
             title="Generate flights"
           >
-            {isGenerating ? 'Add Themes' : 'Generate flights'}
+            <span>{isGenerating ? 'Add Themes' : 'Generate flights'}</span>
           </button>
         </div>
         
