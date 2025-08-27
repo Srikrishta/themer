@@ -22,7 +22,8 @@ export default function PromptBubble({
   themeChips = [],
   selectedLogo = null,
   onLogoSelect,
-  flightsGenerated = false
+  flightsGenerated = false,
+  selectedFlightPhase = null
 }) {
   console.log('=== PROMPT BUBBLE RENDER ===', {
     isVisible,
@@ -966,9 +967,10 @@ export default function PromptBubble({
               >
                 {availableChips.map((chip) => {
                   // Show all chips as selected when flights are generated, except "Add new"
+                  // Also check if this chip matches the selected flight phase from the progress bar
                   const isSelected = flightsGenerated 
                     ? chip.id !== 'add-new' 
-                    : selectedChip === chip.id;
+                    : (selectedChip === chip.id || selectedFlightPhase === chip.id);
                   return (
                     <button
                       key={chip.id}
@@ -977,15 +979,19 @@ export default function PromptBubble({
                       onClick={() => handleChipClick(chip.label)}
                       className={`inline-flex items-center px-3 py-2 rounded-full text-xs transition-all cursor-pointer border font-medium flex-shrink-0`}
                       style={{
-                        backgroundColor: `${chip.color}10`,
-                        borderColor: finalBorderColor,
-                        color: adaptiveTextColor
+                        backgroundColor: selectedFlightPhase === chip.id ? themeColor : `${chip.color}10`,
+                        borderColor: selectedFlightPhase === chip.id ? themeColor : finalBorderColor,
+                        color: selectedFlightPhase === chip.id ? getReadableOnColor(themeColor) : adaptiveTextColor
                       }}
                       onMouseEnter={(e) => {
-                        e.target.style.backgroundColor = `${chip.color}25`;
+                        if (selectedFlightPhase !== chip.id) {
+                          e.target.style.backgroundColor = `${chip.color}25`;
+                        }
                       }}
                       onMouseLeave={(e) => {
-                        e.target.style.backgroundColor = `${chip.color}10`;
+                        if (selectedFlightPhase !== chip.id) {
+                          e.target.style.backgroundColor = `${chip.color}10`;
+                        }
                       }}
                     >
                       {isSelected && <CheckIcon className="w-3 h-3 mr-1.5 flex-shrink-0" />}

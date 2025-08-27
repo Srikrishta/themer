@@ -9,7 +9,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useNavigate } from 'react-router-dom';
 import { getReadableOnColor } from '../utils/color';
 
-export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips, onStartThemeBuild, themeColor = '#1E1E1E', onTriggerPromptBubble, selectedLogo, onThemeAnimationComplete, onGeneratingStateChange, onBuildThemes }) {
+export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips, onStartThemeBuild, themeColor = '#1E1E1E', onTriggerPromptBubble, selectedLogo, onThemeAnimationComplete, onGeneratingStateChange, onBuildThemes, onFlightSelect }) {
   const navigate = useNavigate();
   const DEFAULT_THEME_COLOR = '#1E1E1E';
   // Get current date in Berlin timezone for initial state
@@ -1088,6 +1088,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
         minHeight: isInHeader ? undefined : '400px',
         maxHeight: isInHeader ? 'none' : '400px',
         transition: 'width 0.2s, height 0.2s',
+        overflow: 'visible',
         paddingLeft: '170px',
         paddingRight: '170px',
         paddingTop: isCreatingThemes ? '48px' : undefined,
@@ -1185,7 +1186,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
           {/* Date Picker Dropdown removed; now handled in AirportSearch */}
 
           {/* Brand logo above Add Route input (visible on dashboard inside theme container) */}
-          {!isMinimized && dates.length > 0 && (
+          {!isMinimized && (
             <div className="mb-6" style={{ marginTop: '50px' }} data-name="themer-logo">
               <span
                 className="text-2xl font-bold themer-gradient cursor-pointer"
@@ -1217,6 +1218,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                 themeColor={themeColor}
                 onEnterPromptMode={onEnterPromptMode}
                 onTriggerPromptBubble={onTriggerPromptBubble}
+                onFlightSelect={onFlightSelect}
                 onGeneratingStateChange={(isGenerating) => {
                   if (onGeneratingStateChange) {
                     onGeneratingStateChange(isGenerating);

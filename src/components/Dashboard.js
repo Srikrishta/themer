@@ -16,7 +16,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect }) {
   return (
     <div style={{ position: 'relative', zIndex: 2, width: 1302, margin: '92px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
       <div
@@ -80,6 +80,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
             fpsPrompts={fpsPrompts}
             flightsGenerated={flightsGenerated}
             onAnimationProgress={onAnimationProgress}
+            onFlightPhaseSelect={onFlightPhaseSelect}
           />
         </div>
       </div>
@@ -350,6 +351,10 @@ export default function Dashboard() {
   const [fjbThemeChips, setFjbThemeChips] = useState([]);
   // Track the currently selected theme chip for logo animation
   const [selectedThemeChip, setSelectedThemeChip] = useState(null);
+  // NEW: Track the currently selected flight phase
+  const [selectedFlightPhase, setSelectedFlightPhase] = useState(null);
+  // NEW: Track the currently selected flight segment for FJB
+  const [selectedFlightSegment, setSelectedFlightSegment] = useState(null);
   // Hover hint bubble for FPS ("Select flight phase")
   const [fpsHoverTip, setFpsHoverTip] = useState({ visible: false, x: 0, y: 0, progress: 0 });
   // Hover hint bubble for Promo Cards ("Edit promo card")
@@ -383,9 +388,9 @@ export default function Dashboard() {
   
   // Removed scroll-collapsed header behavior
 
-  // Use selected segment's origin/destination if set, else default to full route
-  const origin = selectedSegment?.origin || (routes.length > 0 ? routes[0] : null);
-  const destination = selectedSegment?.destination || (routes.length > 1 ? routes[routes.length - 1] : null);
+  // Use selected flight segment if available, then selected segment, else default to full route
+  const origin = selectedFlightSegment?.origin || selectedSegment?.origin || (routes.length > 0 ? routes[0] : null);
+  const destination = selectedFlightSegment?.destination || selectedSegment?.destination || (routes.length > 1 ? routes[routes.length - 1] : null);
 
   // Countdown state
   const maxFlightMinutes = 370; // 6h10m
@@ -394,6 +399,9 @@ export default function Dashboard() {
   const [dragging, setDragging] = useState(false);
   const [flightsGenerated, setFlightsGenerated] = useState(false);
   const [isGeneratingFlights, setIsGeneratingFlights] = useState(false);
+  const [showInFlightGUI, setShowInFlightGUI] = useState(false);
+  const [showIFEFrame, setShowIFEFrame] = useState(false);
+  const [showSweepAnimation, setShowSweepAnimation] = useState(false);
 
   // Listen for generate flights event
   useEffect(() => {
@@ -405,21 +413,115 @@ export default function Dashboard() {
     return () => window.removeEventListener('airport-search-generate-flights', handleGenerateFlights);
   }, []);
 
+  // Reset flightsGenerated when not generating flights
+  useEffect(() => {
+    if (!isGeneratingFlights) {
+      setFlightsGenerated(false);
+    }
+  }, [isGeneratingFlights]);
+
   // Handle theme animation completion
   const handleThemeAnimationComplete = () => {
     setThemeAnimationComplete(true);
   };
 
-  // Set flightsGenerated to true when user has added 2 or more routes
+  // Animation sequence for In-flight GUI and IFE frame appearance
   useEffect(() => {
-    if (routes.length >= 2) {
-      setFlightsGenerated(true);
+    if (flightsGenerated) {
+      // Reset animation states
+      setShowInFlightGUI(false);
+      setShowIFEFrame(false);
+      
+      // Wait 500ms after flights are generated, then show "In-flight GUI" text with fade-in
+      const guiTimer = setTimeout(() => {
+        setShowInFlightGUI(true);
+        
+        // Scroll to show only flight cards when GUI text starts appearing
+        const scrollToFlightCards = () => {
+          try {
+            // Find the input container to calculate how much to scroll past it
+            const inputContainer = document.querySelector('.flex.items-end.gap-3');
+            const flightCardsContainer = document.querySelector('[data-flight-cards-container]');
+            
+            let targetScrollY;
+            if (inputContainer && flightCardsContainer) {
+              const inputRect = inputContainer.getBoundingClientRect();
+              const cardsRect = flightCardsContainer.getBoundingClientRect();
+              const currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
+              
+              // Calculate scroll to position flight cards at the very top, hiding all input fields
+              targetScrollY = currentScrollY + cardsRect.top - 30; // Just 30px from top edge
+            } else if (flightCardsContainer) {
+              // Fallback: just use flight cards position
+              const rect = flightCardsContainer.getBoundingClientRect();
+              const currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
+              targetScrollY = currentScrollY + rect.top - 30;
+            } else {
+              // Fallback: scroll past the typical ThemeCreator height
+              targetScrollY = 450;
+            }
+            
+            // Custom smooth scroll with 1.2s duration to match IFE frame animation
+            const startScrollY = window.pageYOffset || document.documentElement.scrollTop;
+            const finalTargetY = Math.max(0, targetScrollY);
+            const scrollDistance = finalTargetY - startScrollY;
+            const scrollDuration = 1200; // 1.2s to match CSS transition
+            const startTime = performance.now();
+            
+            const animateScroll = (currentTime) => {
+              const elapsed = currentTime - startTime;
+              const progress = Math.min(elapsed / scrollDuration, 1);
+              
+              // Use ease-in-out easing to match CSS transition
+              const easeInOut = progress < 0.5 
+                ? 2 * progress * progress 
+                : -1 + (4 - 2 * progress) * progress;
+              
+              const currentScrollY = startScrollY + (scrollDistance * easeInOut);
+              window.scrollTo(0, currentScrollY);
+              
+              if (progress < 1) {
+                requestAnimationFrame(animateScroll);
+              }
+            };
+            
+            requestAnimationFrame(animateScroll);
+          } catch (error) {
+            console.log('Could not scroll to flight cards:', error);
+            // Fallback: use browser smooth scroll
+            window.scrollTo({
+              top: 450,
+              behavior: 'smooth'
+            });
+          }
+        };
+        
+        scrollToFlightCards();
+        
+        // Wait another 300ms, then show IFE frame with fade-in
+        const frameTimer = setTimeout(() => {
+          setShowIFEFrame(true);
+        }, 300);
+        
+        return () => clearTimeout(frameTimer);
+      }, 500);
+      
+      return () => clearTimeout(guiTimer);
     } else {
-      setFlightsGenerated(false);
+      // Reset animation states when flights are not generated
+      setShowInFlightGUI(false);
+      setShowIFEFrame(false);
     }
-  }, [routes.length]);
+  }, [flightsGenerated]);
 
-
+  // Show sweep animation when entering prompt mode
+  useEffect(() => {
+    if (isPromptMode && flightsGenerated) {
+      setShowSweepAnimation(true);
+    } else {
+      setShowSweepAnimation(false);
+    }
+  }, [isPromptMode, flightsGenerated]);
 
   useEffect(() => {
     setMinutesLeft(maxFlightMinutes);
@@ -741,6 +843,11 @@ export default function Dashboard() {
     return () => clearTimeout(t);
   }, []);
 
+  // NEW: Handle flight phase selection from FlightProgress
+  const handleFlightPhaseSelect = (phase) => {
+    setSelectedFlightPhase(phase);
+  };
+
   return (
     <div 
       className="min-h-screen"
@@ -797,9 +904,12 @@ export default function Dashboard() {
           onGeneratingStateChange={(isGenerating) => {
             setIsGeneratingFlights(isGenerating);
           }}
-          onBuildThemes={() => {
-            setIsThemeBuildStarted(true);
-          }}
+                      onBuildThemes={() => {
+              setIsThemeBuildStarted(true);
+            }}
+            onFlightSelect={(segment) => {
+              setSelectedFlightSegment(segment);
+            }}
         />
       </div>
       
@@ -865,6 +975,7 @@ export default function Dashboard() {
           }
         }}
         flightsGenerated={flightsGenerated}
+        selectedFlightPhase={selectedFlightPhase}
       />
 
       {/* FJB hover tip bubble: shows label and plus; click opens color PB */}
@@ -1013,23 +1124,108 @@ export default function Dashboard() {
       
 
 
-      {/* Original IFE frame logic */}
-      {(() => {
-        const shouldShow = isGeneratingFlights || isThemeBuildStarted; // Always true since isThemeBuildStarted is always true
-        
-
-        
-        return shouldShow;
-      })() && (
+      {/* IFE frame logic with staggered animations */}
+      {flightsGenerated && (
         <>
-          <div className="w-full flex justify-center" style={{ marginTop: isThemeBuildStarted ? 12 : 24, marginBottom: 32 }}>
+          {/* In-flight GUI text with slide-in from bottom animation */}
+          <div 
+            className="w-full flex justify-center" 
+            style={{ 
+              marginTop: isThemeBuildStarted ? 12 : 24, 
+              marginBottom: 32,
+              opacity: showInFlightGUI ? 1 : 0,
+              transform: showInFlightGUI ? 'translateY(0)' : 'translateY(20px)',
+              transition: 'opacity 1.2s ease-in-out, transform 1.2s ease-in-out'
+            }}
+          >
             <div style={{ width: '1302px' }}>
               <p className="block font-bold text-black text-center" style={{ fontSize: '28px', lineHeight: '36px', margin: 0 }}>In-flight GUI</p>
             </div>
           </div>
 
-          <div className="w-full flex justify-center" style={{ marginTop: 8, height: '880px' }}>
+          {/* IFE frame with slide-in from bottom animation */}
+          <div 
+            className="w-full flex justify-center" 
+            style={{ 
+              marginTop: 8, 
+              height: '880px',
+              opacity: showIFEFrame ? 1 : 0,
+              transform: showIFEFrame ? 'translateY(0)' : 'translateY(40px)',
+              transition: 'opacity 1.2s ease-in-out, transform 1.2s ease-in-out'
+            }}
+          >
             <div style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', contain: 'layout paint', transform: 'scale(0.8)', transformOrigin: 'top center' }}>
+              {/* Sweep Animation Overlay for Prompt Mode */}
+              {showSweepAnimation && (
+                <>
+                  <style>{`
+                    @keyframes sweepPath {
+                      0% {
+                        left: -75px;
+                        top: calc(100% + 75px);
+                        opacity: 0;
+                      }
+                      5% {
+                        left: -75px;
+                        top: calc(100% + 75px);
+                        opacity: 0.6;
+                      }
+                      25% {
+                        left: -75px;
+                        top: -75px;
+                        opacity: 0.6;
+                      }
+                      50% {
+                        left: calc(100% + 75px);
+                        top: -75px;
+                        opacity: 0.6;
+                      }
+                      75% {
+                        left: calc(100% + 75px);
+                        top: calc(100% + 75px);
+                        opacity: 0.6;
+                      }
+                      95% {
+                        left: -75px;
+                        top: calc(100% + 75px);
+                        opacity: 0.6;
+                      }
+                      100% {
+                        left: -75px;
+                        top: calc(100% + 75px);
+                        opacity: 0;
+                      }
+                    }
+                  `}</style>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      pointerEvents: 'none',
+                      zIndex: 10,
+                      borderRadius: '20px',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <div
+                      style={{
+                        position: 'absolute',
+                        width: '150px',
+                        height: '150px',
+                        background: 'radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%)',
+                        borderRadius: '50%',
+                        filter: 'blur(20px)',
+                        animation: 'sweepPath 4s linear infinite',
+                        transform: 'translate(-50%, -50%)',
+                        boxShadow: '0 0 30px rgba(255, 255, 255, 0.3), 0 0 60px rgba(255, 255, 255, 0.1)'
+                      }}
+                    />
+                  </div>
+                </>
+              )}
               <img
                 src={process.env.PUBLIC_URL + '/ife-frame.svg'}
                 alt="Mobile Frame"
@@ -1057,6 +1253,7 @@ export default function Dashboard() {
                     handleThemeAnimationComplete();
                   }
                 }}
+                onFlightPhaseSelect={handleFlightPhaseSelect}
               />
             </div>
           </div>

@@ -343,7 +343,7 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
   return (
     <div className="relative">
       {/* Route Cards */}
-      <div className="relative z-10 flex flex-row items-center w-full gap-2">
+      <div className="relative z-10 flex flex-row items-center w-full gap-2" data-flight-cards-container>
         {(() => { return null; })()}
         {/* Compute number of visible flight cards */}
         {/**/}
@@ -411,7 +411,7 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
   );
 }
 
-function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized, onSelectedDatesChange, themeColor = '#1E1E1E', onEnterPromptMode, onTriggerPromptBubble, onGeneratingStateChange, onBuildThemes }) {
+function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized, onSelectedDatesChange, themeColor = '#1E1E1E', onEnterPromptMode, onTriggerPromptBubble, onGeneratingStateChange, onBuildThemes, onFlightSelect }) {
   // Date picker state and logic (moved from ThemeCreator)
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [dates, setDates] = useState(selectedDates || []);
@@ -419,11 +419,12 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const datePickerRef = useRef(null);
-  const [dropdownPosition, setDropdownPosition] = useState('down');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatingProgressIndex, setGeneratingProgressIndex] = useState(0);
   const [replacementIndex, setReplacementIndex] = useState(-1); // -1 means none replaced yet
   const [selectedInlineFlightIndex, setSelectedInlineFlightIndex] = useState(0);
+  const [isReversingToRoutes, setIsReversingToRoutes] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 200, left: 200 });
 
   // Airport search dropdown state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -493,6 +494,22 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     setCurrentDate(newDate);
   };
 
+  // Calculate dropdown position relative to the date input field
+  const calculateDateDropdownPosition = () => {
+    try {
+      const dateInputContainer = document.querySelector('[data-date-input-container]');
+      if (dateInputContainer) {
+        const rect = dateInputContainer.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom + 4,
+          left: rect.left + (rect.width / 2) - 200 // Center the 400px dropdown
+        });
+      }
+    } catch (error) {
+      console.log('Could not calculate dropdown position:', error);
+    }
+  };
+
   // Progressive hide+replace: spinner on all, then replace route i with flight i left->right
   useEffect(() => {
     if (!isGenerating) return;
@@ -513,6 +530,36 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     return () => clearInterval(id);
   }, [isGenerating, routes.length]);
 
+  // Reverse animation: flight cards transform back to route cards left->right
+  useEffect(() => {
+    if (!isReversingToRoutes) return;
+    const total = routes.length;
+    let i = total;
+    const id = setInterval(() => {
+      i -= 1;
+      // Reduce replacement index from right to left
+      setReplacementIndex(prev => Math.max(-1, i - 1));
+      if (i <= 0) {
+        clearInterval(id);
+        // Animation complete, reset states
+        setIsReversingToRoutes(false);
+        setIsGenerating(false);
+        setGeneratingProgressIndex(0);
+        setReplacementIndex(-1);
+      }
+    }, 500);
+    return () => clearInterval(id);
+  }, [isReversingToRoutes, routes.length]);
+
+  // Recalculate dropdown position on window resize
+  useEffect(() => {
+    if (isDatePickerOpen) {
+      const handleResize = () => calculateDateDropdownPosition();
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, [isDatePickerOpen]);
+
   // Notify parent component when generating state changes
   useEffect(() => {
     console.log('=== AIRPORTSEARCH: isGenerating changed to ===', isGenerating);
@@ -521,13 +568,25 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     }
   }, [isGenerating, onGeneratingStateChange]);
 
-  // Clamp selected inline flight index to available flights
+  // Clamp selected inline flight index to available flights and notify parent of selection
   useEffect(() => {
     const maxIndex = Math.max(0, Math.min(replacementIndex, routes.length - 2));
     if (replacementIndex >= 0 && selectedInlineFlightIndex > maxIndex) {
       setSelectedInlineFlightIndex(maxIndex);
     }
-  }, [replacementIndex, routes.length, selectedInlineFlightIndex]);
+    
+    // Automatically notify parent of the current selection when flights are generated
+    if (replacementIndex >= 0 && onFlightSelect && routes.length > 1) {
+      const currentIndex = Math.min(selectedInlineFlightIndex, maxIndex);
+      if (routes.length > currentIndex + 1) {
+        const segment = {
+          origin: routes[currentIndex],
+          destination: routes[currentIndex + 1]
+        };
+        onFlightSelect(segment);
+      }
+    }
+  }, [replacementIndex, routes.length, selectedInlineFlightIndex, onFlightSelect]);
 
   // Refs for positioning
   const dropdownRef = useRef(null);
@@ -668,12 +727,12 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
 
 
   return (
-    <div className="space-y-12 relative">
+    <div className="space-y-12 relative" style={{ overflow: 'visible' }}>
       {/* Timeline line - from input field center to last card center */}
       {/* Input field and toggle button container */}
-      <div className="flex items-end gap-3">
+      <div className="flex items-end gap-3" style={{ overflow: 'visible' }}>
         {/* Input field and badges */}
-        <div className="relative w-[55%]" ref={dropdownRef}>
+        <div className={`relative ${isGenerating ? 'w-[50%]' : 'w-[55%]'}`} ref={dropdownRef}>
           {/* Label above Add route input */}
           <div className="mb-1 text-white text-sm font-medium">Add route</div>
           {/* Custom input container with badges - offset to avoid timeline overlap */}
@@ -716,6 +775,23 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                     </span>
                   );
                 })}
+              
+              {/* Add new chip */}
+              <span 
+                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all cursor-pointer bg-transparent text-white/80 border border-white/40 hover:border-white/60 hover:bg-transparent hover:text-white relative group"
+                onClick={() => {
+                  // Handle add new functionality - could open a modal or expand search
+                  console.log('Add new clicked');
+                }}
+                title="Add new route"
+              >
+                Add new
+                {/* Plus icon */}
+                <div className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full transition-colors">
+                  <PlusIcon className="w-3 h-3" />
+                </div>
+              </span>
+              
               {/* Input field - hidden when not searching */}
               {searchTerm && (
                 <input
@@ -738,13 +814,21 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
         </div>
         
         {/* Date picker input field - styled like add route input field */}
-        <div className="relative w-[45%] flex items-end gap-3">
+        <div className="relative w-[50%] flex items-end gap-3" style={{ zIndex: 100000 }}>
           {/* Date input + centered dropdown wrapper */}
-          <div className="relative flex-1">
+          <div className="relative flex-1" style={{ overflow: 'visible' }}>
             {/* Label above Add date input */}
             <div className="mb-1 text-white text-sm font-medium">Add date</div>
             {/* Custom input container for date picker */}
-            <div className="relative min-h-[3rem] px-4 py-3 rounded-lg backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] focus-within:ring-0 w-full cursor-pointer" onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}>
+            <div 
+              data-date-input-container
+              className="relative min-h-[3rem] px-4 py-3 rounded-lg backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] focus-within:ring-0 w-full cursor-pointer" 
+              onClick={() => {
+                if (!isDatePickerOpen) {
+                  calculateDateDropdownPosition();
+                }
+                setIsDatePickerOpen(!isDatePickerOpen);
+              }}>
               {/* Date display */}
               <div className="flex items-center w-full">
                 <CalendarIcon className="w-4 h-4 text-gray-400 mr-2" />
@@ -760,9 +844,17 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
               </div>
             </div>
             {/* Former inline label removed; now rendered above input */}
-            {/* Date Picker Dropdown - centered to input */}
+            {/* Date Picker Dropdown - positioned using fixed to bypass parent clipping */}
             {isDatePickerOpen && (
-              <div className="absolute left-1/2 -translate-x-1/2 rounded-lg shadow-lg z-50 top-full mt-1" style={{ width: '400px', backgroundColor: '#1E1E1E' }}>
+              <div 
+                className="fixed rounded-lg shadow-lg" 
+                style={{ 
+                  width: '400px', 
+                  backgroundColor: '#1E1E1E', 
+                  zIndex: 999999,
+                  left: `${dropdownPosition.left}px`,
+                  top: `${dropdownPosition.top}px`
+                }}>
                 <DatePicker
                   currentDate={currentDate}
                   onNavigateMonth={navigateMonth}
@@ -781,30 +873,52 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
             )}
           </div>
 
-          {/* Generate flights button moved here */}
-          <button
-            className={`h-12 px-4 rounded-tl-[0px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px] transition-colors flex items-center justify-center w-[240px] relative overflow-hidden ${
-              routes.length >= 2 
-                ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                : 'backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] text-white/70 cursor-not-allowed'
-            } ${isGenerating ? 'opacity-90' : ''}`}
-            disabled={routes.length < 2}
-            onClick={() => {
-              if (!isGenerating) {
+          {/* Generate flights / Add Themes button and Modify button */}
+          {!isGenerating ? (
+            // Show only Generate flights button when not generating
+            <button
+              className={`h-12 px-4 rounded-tl-[0px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px] transition-colors flex items-center justify-center w-[240px] relative overflow-hidden ${
+                routes.length >= 2 
+                  ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                  : 'backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] text-white/70 cursor-not-allowed'
+              }`}
+              disabled={routes.length < 2}
+              onClick={() => {
                 setIsGenerating(true);
                 const event = new CustomEvent('airport-search-generate-flights');
                 window.dispatchEvent(event);
-              } else {
-                // When "Build themes" is clicked, trigger theme build
-                if (onBuildThemes) {
-                  onBuildThemes();
-                }
-              }
-            }}
-            title="Generate flights"
-          >
-            <span>{isGenerating ? 'Add Themes' : 'Generate flights'}</span>
-          </button>
+              }}
+              title="Generate flights"
+            >
+              <span>Generate flights</span>
+            </button>
+          ) : (
+            // Show both Add Themes and Modify buttons when generating
+            <div className="flex gap-2">
+              <button
+                className="h-12 px-4 rounded-tl-[0px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px] transition-colors flex items-center justify-center w-[240px] relative overflow-hidden bg-blue-600 text-white hover:bg-blue-700 opacity-90"
+                onClick={() => {
+                  // When "Build themes" is clicked, trigger theme build
+                  if (onBuildThemes) {
+                    onBuildThemes();
+                  }
+                }}
+                title="Add themes"
+              >
+                <span>Add Themes</span>
+              </button>
+              <button
+                className="h-12 px-4 rounded-tl-[24px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px] transition-colors flex items-center justify-center w-[140px] relative overflow-hidden bg-gray-600 text-white hover:bg-gray-700"
+                onClick={() => {
+                  // Start reverse animation: flight cards transform back to route cards
+                  setIsReversingToRoutes(true);
+                }}
+                title="Modify routes"
+              >
+                <span>Modify route</span>
+              </button>
+            </div>
+          )}
         </div>
         
         {/* Toggle button removed per request */}
@@ -825,7 +939,17 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
           replacementIndex={replacementIndex}
           themeColor={themeColor}
           selectedFlightIndex={selectedInlineFlightIndex}
-          onSelectFlight={(i) => setSelectedInlineFlightIndex(i)}
+          onSelectFlight={(i) => {
+            setSelectedInlineFlightIndex(i);
+            // Notify parent component of the selected flight segment
+            if (onFlightSelect && routes.length > i + 1) {
+              const segment = {
+                origin: routes[i],
+                destination: routes[i + 1]
+              };
+              onFlightSelect(segment);
+            }
+          }}
           onEnterPromptMode={onEnterPromptMode}
           onTriggerPromptBubble={onTriggerPromptBubble}
         />

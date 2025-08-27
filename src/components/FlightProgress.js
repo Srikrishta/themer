@@ -18,7 +18,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFlightMinutes = 370, minutesLeft: externalMinutesLeft, onProgressChange, themeColor = '#1E72AE', isPromptMode = false, onPromptHover, onPromptClick, fpsPrompts = {}, showMovingIcon = false, onAnimationProgressChange, onPromoCardLoadingChange, onAnimationProgress, onCruiseLabelShow, onMiddleCardPromptClose, onThemeColorChange, flightsGenerated = false }) {
+export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFlightMinutes = 370, minutesLeft: externalMinutesLeft, onProgressChange, themeColor = '#1E72AE', isPromptMode = false, onPromptHover, onPromptClick, fpsPrompts = {}, showMovingIcon = false, onAnimationProgressChange, onPromoCardLoadingChange, onAnimationProgress, onCruiseLabelShow, onMiddleCardPromptClose, onThemeColorChange, flightsGenerated = false, onFlightPhaseSelect }) {
   console.log('=== FlightProgress themeColor ===', { themeColor, isGradient: themeColor.includes('gradient') });
   
   // Helper function to determine color based on theme type
@@ -58,6 +58,8 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
   const [showPromptBubbleAtFJB, setShowPromptBubbleAtFJB] = useState(false);
   const [promptBubbleFJBPosition, setPromptBubbleFJBPosition] = useState({ x: 0, y: 0 });
   const [showFlightPhases, setShowFlightPhases] = useState(false);
+  // NEW: State to track selected flight phase
+  const [selectedFlightPhase, setSelectedFlightPhase] = useState(null);
   const barRef = useRef();
   const iconRef = useRef();
 
@@ -67,6 +69,15 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
       setShowFlightPhases(true);
     }
   }, [flightsGenerated]);
+
+  // NEW: Handle flight phase click and notify parent
+  const handleFlightPhaseClick = (phase) => {
+    setSelectedFlightPhase(phase);
+    // Notify parent component about the selection
+    if (onFlightPhaseSelect) {
+      onFlightPhaseSelect(phase);
+    }
+  };
 
   // Set CSS custom property for theme color
   useEffect(() => {
@@ -895,14 +906,21 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               position: 'absolute',
               left: `${barWidth * 0.05}px`,
               top: '40px',
-              color: onColor,
+              color: selectedFlightPhase === 'takeoff' ? getElementColor() : onColor,
               fontSize: '10px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
               whiteSpace: 'nowrap',
               zIndex: 10,
-              transform: 'translateX(-50%)'
+              transform: 'translateX(-50%)',
+              cursor: 'pointer',
+              padding: '4px 8px',
+              borderRadius: '12px',
+              backgroundColor: selectedFlightPhase === 'takeoff' ? onColor : 'transparent',
+              border: `1px solid ${onColor}`,
+              transition: 'all 0.2s ease'
             }}
+            onClick={() => handleFlightPhaseClick('takeoff')}
           >
             TAKEOFF
           </div>
@@ -914,33 +932,47 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               position: 'absolute',
               left: `${barWidth * 0.20}px`,
               top: '40px',
-              color: onColor,
+              color: selectedFlightPhase === 'climb' ? getElementColor() : onColor,
               fontSize: '10px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
               whiteSpace: 'nowrap',
               zIndex: 10,
-              transform: 'translateX(-50%)'
+              transform: 'translateX(-50%)',
+              cursor: 'pointer',
+              padding: '4px 8px',
+              borderRadius: '12px',
+              backgroundColor: selectedFlightPhase === 'climb' ? onColor : 'transparent',
+              border: `1px solid ${onColor}`,
+              transition: 'all 0.2s ease'
             }}
+            onClick={() => handleFlightPhaseClick('climb')}
           >
             CLIMB
           </div>
           
           {/* Cruise - 35% */}
           <div 
-            className="flight-phase-label"
+            className="flightPhase-label"
             style={{
               position: 'absolute',
               left: `${barWidth * 0.35}px`,
               top: '40px',
-              color: onColor,
+              color: selectedFlightPhase === 'cruise' ? getElementColor() : onColor,
               fontSize: '10px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
               whiteSpace: 'nowrap',
               zIndex: 10,
-              transform: 'translateX(-50%)'
+              transform: 'translateX(-50%)',
+              cursor: 'pointer',
+              padding: '4px 8px',
+              borderRadius: '12px',
+              backgroundColor: selectedFlightPhase === 'cruise' ? onColor : 'transparent',
+              border: `1px solid ${onColor}`,
+              transition: 'all 0.2s ease'
             }}
+            onClick={() => handleFlightPhaseClick('cruise')}
           >
             CRUISE
           </div>
@@ -952,14 +984,21 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               position: 'absolute',
               left: `${barWidth * 0.75}px`,
               top: '40px',
-              color: onColor,
+              color: selectedFlightPhase === 'descent' ? getElementColor() : onColor,
               fontSize: '10px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
               whiteSpace: 'nowrap',
               zIndex: 10,
-              transform: 'translateX(-50%)'
+              transform: 'translateX(-50%)',
+              cursor: 'pointer',
+              padding: '4px 8px',
+              borderRadius: '12px',
+              backgroundColor: selectedFlightPhase === 'descent' ? onColor : 'transparent',
+              border: `1px solid ${onColor}`,
+              transition: 'all 0.2s ease'
             }}
+            onClick={() => handleFlightPhaseClick('descent')}
           >
             DESCENT
           </div>
@@ -971,14 +1010,21 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               position: 'absolute',
               left: `${barWidth * 0.88}px`,
               top: '40px',
-              color: onColor,
+              color: selectedFlightPhase === 'landing' ? getElementColor() : onColor,
               fontSize: '10px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
               whiteSpace: 'nowrap',
               zIndex: 10,
-              transform: 'translateX(-50%)'
+              transform: 'translateX(-50%)',
+              cursor: 'pointer',
+              padding: '4px 8px',
+              borderRadius: '12px',
+              backgroundColor: selectedFlightPhase === 'landing' ? onColor : 'transparent',
+              border: `1px solid ${onColor}`,
+              transition: 'all 0.2s ease'
             }}
+            onClick={() => handleFlightPhaseClick('landing')}
           >
             LANDING
           </div>
