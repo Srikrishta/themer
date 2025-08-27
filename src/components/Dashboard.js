@@ -10,15 +10,79 @@ import MousePointer from './MousePointer';
 import { useLocation } from 'react-router-dom';
 import { mapThemeChipToAnimation } from '../utils/themeAnimationMapper';
 
+// Add CSS animation for gradient border
+const gradientAnimationCSS = `
+  @keyframes gradientAnimation {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+`;
+
 function formatTime(minutes) {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, cardOrder, onCardReorder }) {
+  
+  // Helper function to get border style when flight phase is selected
+  const getBorderStyle = () => {
+    if (selectedFlightPhase) {
+      return {
+        position: 'relative',
+        border: '2px solid transparent',
+      };
+    }
+    return {};
+  };
+
+  // Helper function to create animated border overlay for content cards
+  const getAnimatedBorderOverlay = () => {
+    if (!selectedFlightPhase) return null;
+    
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          top: '-12px',
+          left: '-12px',
+          right: '-12px', 
+          bottom: '-12px',
+          borderRadius: '20px',
+          background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, #10b981 100%)',
+          backgroundSize: '200% 200%',
+          animation: 'gradientAnimation 3s ease infinite',
+          zIndex: -1,
+          mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+          maskComposite: 'xor',
+          WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+          WebkitMaskComposite: 'xor',
+          padding: '12px',
+          opacity: 1
+        }}
+      />
+    );
+  };
+
+  // Helper function to get content text based on flight phase
+  const getContentText = () => {
+    return selectedFlightPhase 
+      ? `Add content for ${selectedFlightPhase.charAt(0).toUpperCase() + selectedFlightPhase.slice(1)}`
+      : "Add content";
+  };
+
   return (
-    <div style={{ position: 'relative', zIndex: 2, width: 1302, margin: '92px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
+    <>
+      <style>{gradientAnimationCSS}</style>
+      <div style={{ position: 'relative', zIndex: 2, width: 1302, margin: '92px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
       <div
         className="fjb-fps-container"
         style={{ width: 1336, maxWidth: 1336, marginLeft: -2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, background: themeColor, borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 16, paddingTop: 80, paddingBottom: 40, marginTop: 4, position: 'relative' }}
@@ -81,6 +145,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
             flightsGenerated={flightsGenerated}
             onAnimationProgress={onAnimationProgress}
             onFlightPhaseSelect={onFlightPhaseSelect}
+            selectedFlightPhase={selectedFlightPhase}
           />
         </div>
       </div>
@@ -91,6 +156,10 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         onPromptHover={onPromptHover}
         onPromptClick={onPromptClick}
         isThemeBuildStarted={isThemeBuildStarted}
+        selectedFlightPhase={selectedFlightPhase}
+        promoCardContents={promoCardContents}
+        cardOrder={cardOrder}
+        onCardReorder={onCardReorder}
       />
       
       {/* Recommended for you section */}
@@ -219,11 +288,26 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   borderTopRightRadius: '8px',
                   borderBottomLeftRadius: '0px',
                   borderBottomRightRadius: '0px',
-
+                  ...getBorderStyle()
                 }}
               >
-                <span className="font-semibold" style={{ color: '#000000', fontSize: '24px', lineHeight: '32px', opacity: 0.7 }}>
-                  Add content
+                {getAnimatedBorderOverlay()}
+                <span className="font-semibold" style={{ 
+                  color: getReadableOnColor((() => {
+                    if (themeColor.startsWith('#')) {
+                      const hex = themeColor.slice(1);
+                      const r = parseInt(hex.substr(0, 2), 16);
+                      const g = parseInt(hex.substr(2, 2), 16);
+                      const b = parseInt(hex.substr(4, 2), 16);
+                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
+                    }
+                    return 'rgba(255,255,255,0.1)';
+                  })()), 
+                  fontSize: '24px', 
+                  lineHeight: '32px', 
+                  opacity: 0.7 
+                }}>
+                  {getContentText()}
                 </span>
               </div>
               {/* Tile 2 */}
@@ -246,11 +330,26 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   borderTopRightRadius: '8px',
                   borderBottomLeftRadius: '0px',
                   borderBottomRightRadius: '0px',
-
+                  ...getBorderStyle()
                 }}
               >
-                <span className="font-semibold" style={{ color: '#000000', fontSize: '24px', lineHeight: '32px', opacity: 0.7 }}>
-                  Add content
+                {getAnimatedBorderOverlay()}
+                <span className="font-semibold" style={{ 
+                  color: getReadableOnColor((() => {
+                    if (themeColor.startsWith('#')) {
+                      const hex = themeColor.slice(1);
+                      const r = parseInt(hex.substr(0, 2), 16);
+                      const g = parseInt(hex.substr(2, 2), 16);
+                      const b = parseInt(hex.substr(4, 2), 16);
+                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
+                    }
+                    return 'rgba(255,255,255,0.1)';
+                  })()), 
+                  fontSize: '24px', 
+                  lineHeight: '32px', 
+                  opacity: 0.7 
+                }}>
+                  {getContentText()}
                 </span>
               </div>
               {/* Tile 3 */}
@@ -273,11 +372,26 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   borderTopRightRadius: '8px',
                   borderBottomLeftRadius: '0px',
                   borderBottomRightRadius: '0px',
-
+                  ...getBorderStyle()
                 }}
               >
-                <span className="font-semibold" style={{ color: '#000000', fontSize: '24px', lineHeight: '32px', opacity: 0.7 }}>
-                  Add content
+                {getAnimatedBorderOverlay()}
+                <span className="font-semibold" style={{ 
+                  color: getReadableOnColor((() => {
+                    if (themeColor.startsWith('#')) {
+                      const hex = themeColor.slice(1);
+                      const r = parseInt(hex.substr(0, 2), 16);
+                      const g = parseInt(hex.substr(2, 2), 16);
+                      const b = parseInt(hex.substr(4, 2), 16);
+                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
+                    }
+                    return 'rgba(255,255,255,0.1)';
+                  })()), 
+                  fontSize: '24px', 
+                  lineHeight: '32px', 
+                  opacity: 0.7 
+                }}>
+                  {getContentText()}
                 </span>
               </div>
               {/* Tile 4 */}
@@ -300,18 +414,34 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   borderTopRightRadius: '8px',
                   borderBottomLeftRadius: '0px',
                   borderBottomRightRadius: '0px',
-
+                  ...getBorderStyle()
                 }}
               >
-                <span className="font-semibold" style={{ color: '#000000', fontSize: '24px', lineHeight: '32px', opacity: 0.7 }}>
-                  Add content
+                {getAnimatedBorderOverlay()}
+                <span className="font-semibold" style={{ 
+                  color: getReadableOnColor((() => {
+                    if (themeColor.startsWith('#')) {
+                      const hex = themeColor.slice(1);
+                      const r = parseInt(hex.substr(0, 2), 16);
+                      const g = parseInt(hex.substr(2, 2), 16);
+                      const b = parseInt(hex.substr(4, 2), 16);
+                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
+                    }
+                    return 'rgba(255,255,255,0.1)';
+                  })()), 
+                  fontSize: '24px', 
+                  lineHeight: '32px', 
+                  opacity: 0.7 
+                }}>
+                  {getContentText()}
                 </span>
               </div>
             </>
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -353,6 +483,9 @@ export default function Dashboard() {
   const [selectedThemeChip, setSelectedThemeChip] = useState(null);
   // NEW: Track the currently selected flight phase
   const [selectedFlightPhase, setSelectedFlightPhase] = useState(null);
+  const [promoCardContents, setPromoCardContents] = useState({});
+  // NEW: Track the order of promo cards for drag-drop functionality
+  const [cardOrder, setCardOrder] = useState([0, 1, 2]); // Default order: left, middle, right
   // NEW: Track the currently selected flight segment for FJB
   const [selectedFlightSegment, setSelectedFlightSegment] = useState(null);
   // Hover hint bubble for FPS ("Select flight phase")
@@ -620,6 +753,13 @@ export default function Dashboard() {
   };
 
   const handlePromptClick = (elementType, elementData, position) => {
+    console.log('=== PROMPT CLICK CALLED ===', { 
+      elementType, 
+      elementData, 
+      position, 
+      isPromptMode,
+      currentPromoCardContents: promoCardContents
+    });
     if (isPromptMode) {
       // Generate unique key for different element types
       let positionKey;
@@ -636,7 +776,32 @@ export default function Dashboard() {
       }
       
       // Get existing text for this position
-      const existingText = fpsPrompts[positionKey] || '';
+      let existingText = '';
+      if (elementType === 'promo-card' && elementData?.cardIndex !== undefined) {
+        // For promo cards, get existing content from promoCardContents
+        const cardContent = promoCardContents[elementData.cardIndex];
+        console.log('=== DEBUG PROMO CARD RETRIEVAL ===', {
+          elementType,
+          cardIndex: elementData.cardIndex,
+          promoCardContents,
+          cardContent,
+          hasUpdated: cardContent?.updated
+        });
+        if (cardContent && cardContent.updated) {
+          existingText = `text:${cardContent.text || ''},image:${cardContent.image || ''}`;
+          console.log('=== FORMATTED EXISTING TEXT ===', { existingText });
+        } else {
+          console.log('=== NO EXISTING CONTENT FOUND ===', { 
+            hasCardContent: !!cardContent,
+            hasUpdated: cardContent?.updated,
+            fullPromoCardContents: promoCardContents,
+            cardIndex: elementData.cardIndex,
+            allKeys: Object.keys(promoCardContents)
+          });
+        }
+      } else {
+        existingText = fpsPrompts[positionKey] || '';
+      }
       
       // Positioning per element type: FPS relative to container, others at viewport point
       if (elementType === 'flight-icon') {
@@ -746,7 +911,70 @@ export default function Dashboard() {
   };
 
   const handlePromptBubbleSubmit = (promptText, elementType, elementData, positionKey) => {
-    console.log('Prompt submitted:', promptText, 'for', elementType, elementData);
+    console.log('=== PROMPT BUBBLE SUBMIT CALLED ===', {
+      promptText, 
+      elementType, 
+      elementData, 
+      positionKey,
+      currentPromoCardContents: promoCardContents
+    });
+    
+    // Handle promo card submissions
+    if (elementType === 'promo-card' && elementData && elementData.cardIndex !== undefined) {
+      console.log('=== DASHBOARD RECEIVED PROMO SUBMISSION ===', { 
+        promptText, 
+        elementType, 
+        elementData, 
+        positionKey 
+      });
+      
+      // Parse the submitted text (format: "text:value,image:value")
+      const parts = promptText.split(',');
+      let textContent = '';
+      let imageContent = '';
+      
+      parts.forEach(part => {
+        if (part.startsWith('text:')) {
+          textContent = part.substring(5).trim();
+        } else if (part.startsWith('image:')) {
+          imageContent = part.substring(6).trim();
+        }
+      });
+      
+      console.log('=== PARSED PROMO CONTENT ===', { 
+        parts, 
+        textContent, 
+        imageContent 
+      });
+      
+      // Update the promo card content
+      setPromoCardContents(prev => {
+        const existingContent = prev[elementData.cardIndex] || {};
+        const newContent = {
+          ...prev,
+          [elementData.cardIndex]: {
+            text: textContent,
+            // Only update image if a new one is provided, otherwise keep existing
+            image: imageContent.trim() ? imageContent : existingContent.image,
+            updated: true
+          }
+        };
+        console.log('=== UPDATING PROMO CARD CONTENTS ===', {
+          cardIndex: elementData.cardIndex,
+          textContent,
+          imageContent,
+          previousContent: prev,
+          newContent
+        });
+        return newContent;
+      });
+      
+      console.log('=== PROMO CARD CONTENT UPDATED ===', { 
+        cardIndex: elementData.cardIndex, 
+        textContent, 
+        imageContent 
+      });
+    }
     
     // Store the submitted text for this position
     if (positionKey) {
@@ -757,7 +985,7 @@ export default function Dashboard() {
     }
     
     // TODO: Handle the actual prompt submission logic here
-    // Don't close the bubble for logo placeholder submissions (logo selection should keep bubble open)
+    // Don't close the bubble for logo placeholder submissions (keep bubble open for editing)
     if (elementType !== 'logo-placeholder') {
       setPromptBubble(null);
     }
@@ -848,6 +1076,46 @@ export default function Dashboard() {
     setSelectedFlightPhase(phase);
   };
 
+  // NEW: Handle card reordering for drag-drop functionality
+  const handleCardReorder = (dragIndex, hoverIndex) => {
+    console.log('=== CARD REORDER ===', { dragIndex, hoverIndex, currentOrder: cardOrder });
+    
+    const draggedCardId = cardOrder[dragIndex];
+    const newOrder = [...cardOrder];
+    
+    // Remove the dragged card from its current position
+    newOrder.splice(dragIndex, 1);
+    // Insert it at the new position
+    newOrder.splice(hoverIndex, 0, draggedCardId);
+    
+    console.log('=== NEW CARD ORDER ===', { oldOrder: cardOrder, newOrder });
+    setCardOrder(newOrder);
+    
+    // Also need to update the promoCardContents to maintain the correct association
+    const updatedContents = {};
+    newOrder.forEach((originalCardId, newPosition) => {
+      if (promoCardContents[originalCardId]) {
+        updatedContents[newPosition] = {
+          ...promoCardContents[originalCardId],
+          // Keep the original content but update any position-dependent logic if needed
+        };
+      }
+    });
+    
+    // Update promoCardContents with the new positions while preserving content
+    const finalContents = {};
+    newOrder.forEach((originalCardId, newPosition) => {
+      if (promoCardContents[originalCardId]) {
+        finalContents[newPosition] = promoCardContents[originalCardId];
+      }
+    });
+    
+    if (Object.keys(finalContents).length > 0) {
+      setPromoCardContents(finalContents);
+      console.log('=== UPDATED PROMO CARD CONTENTS AFTER REORDER ===', finalContents);
+    }
+  };
+
   return (
     <div 
       className="min-h-screen"
@@ -932,6 +1200,7 @@ export default function Dashboard() {
 
       {/* Prompt Bubble */}
       <PromptBubble
+        key={`${promptBubble?.elementType}-${promptBubble?.positionKey}-${promptBubble?.existingText?.length || 0}`}
         isVisible={!!promptBubble}
         position={promptBubble || { x: 0, y: 0 }}
         elementType={promptBubble?.elementType}
@@ -976,6 +1245,7 @@ export default function Dashboard() {
         }}
         flightsGenerated={flightsGenerated}
         selectedFlightPhase={selectedFlightPhase}
+        onFlightPhaseSelect={handleFlightPhaseSelect}
       />
 
       {/* FJB hover tip bubble: shows label and plus; click opens color PB */}
@@ -1072,7 +1342,11 @@ export default function Dashboard() {
               borderTopLeftRadius: 0
             }}
           >
-            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Edit promo card</span>
+            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>
+              {pcHoverTip.elementData && typeof pcHoverTip.elementData.cardIndex === 'number' 
+                ? `Edit promo card ${pcHoverTip.elementData.cardIndex + 1}` 
+                : 'Edit promo card'}
+            </span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -1080,7 +1354,9 @@ export default function Dashboard() {
                 handlePromptClick('promo-card', ed, { x: pcHoverTip.x, y: pcHoverTip.y });
               }}
               className="w-6 h-6 rounded-full border flex items-center justify-center"
-              title="Edit promo card"
+              title={pcHoverTip.elementData && typeof pcHoverTip.elementData.cardIndex === 'number' 
+                ? `Edit promo card ${pcHoverTip.elementData.cardIndex + 1}` 
+                : 'Edit promo card'}
               style={{ pointerEvents: 'auto', borderColor: hoverOnColor, color: hoverOnColor }}
             >
               +
@@ -1254,6 +1530,10 @@ export default function Dashboard() {
                   }
                 }}
                 onFlightPhaseSelect={handleFlightPhaseSelect}
+                selectedFlightPhase={selectedFlightPhase}
+                promoCardContents={promoCardContents}
+                cardOrder={cardOrder}
+                onCardReorder={handleCardReorder}
               />
             </div>
           </div>

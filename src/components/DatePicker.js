@@ -40,7 +40,6 @@ const DatePicker = ({
     
     // Debug logging
     if (month === 'october') {
-      console.log('Checking date:', dayOfMonth, 'of', month, date.getFullYear());
     }
     
     const monthData = festivalsData[month];
@@ -52,7 +51,6 @@ const DatePicker = ({
       const isInRange = dayOfMonth >= festival.startDay && dayOfMonth <= festival.endDay;
       
       if (month === 'october' && isInRange) {
-        console.log('Found festival:', festival.name, 'for day:', dayOfMonth);
       }
       
       return isInRange;
@@ -486,7 +484,6 @@ const DatePicker = ({
       <div className="flex items-center justify-between mb-4">
         <button 
           onClick={() => {
-            console.log('Left click - before navigation, current month:', MONTHS[currentDate.getMonth()], currentDate.getFullYear());
             onNavigateMonth(-1);
           }}
           disabled={false}
@@ -501,7 +498,6 @@ const DatePicker = ({
         </span>
         <button 
           onClick={() => {
-            console.log('Right click - before navigation, current month:', MONTHS[currentDate.getMonth()], currentDate.getFullYear());
             onNavigateMonth(1);
           }}
           disabled={false}
@@ -615,7 +611,6 @@ const DatePicker = ({
 
           // Debug logging for tooltip
           if (dayFestivals.length > 0) {
-            console.log('Date has festivals:', day.day, 'festivals:', dayFestivals.map(f => f.name));
           }
 
           // Determine day text color for readability on themed background

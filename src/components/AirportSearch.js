@@ -506,7 +506,6 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
         });
       }
     } catch (error) {
-      console.log('Could not calculate dropdown position:', error);
     }
   };
 
@@ -562,11 +561,10 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
 
   // Notify parent component when generating state changes
   useEffect(() => {
-    console.log('=== AIRPORTSEARCH: isGenerating changed to ===', isGenerating);
     if (onGeneratingStateChange) {
       onGeneratingStateChange(isGenerating);
     }
-  }, [isGenerating, onGeneratingStateChange]);
+  }, [isGenerating]);
 
   // Clamp selected inline flight index to available flights and notify parent of selection
   useEffect(() => {
@@ -711,7 +709,6 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
       const top = inputCenter;
       const height = lastCardCenter - inputCenter;
       setLinePos({ top, height });
-      console.log('Timeline line height:', height, 'px'); // <-- log the height
     };
     if (routes.length > 0) {
       calcLine();
@@ -781,7 +778,6 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                 className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all cursor-pointer bg-transparent text-white/80 border border-white/40 hover:border-white/60 hover:bg-transparent hover:text-white relative group"
                 onClick={() => {
                   // Handle add new functionality - could open a modal or expand search
-                  console.log('Add new clicked');
                 }}
                 title="Add new route"
               >

@@ -551,7 +551,6 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
     // Keep Add theme button selected when it should be expanded
     useEffect(() => {
       if (selectedActionId === 1) {
-        console.log('Add theme button selected, maintaining expanded state');
       }
     }, [selectedActionId]);
     const [{ handlerId }, drop] = useDrop({
@@ -682,7 +681,6 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                       title={title}
                       onClick={(e) => { 
                         e.stopPropagation(); 
-                        console.log('Button clicked - setting selectedActionId to:', id, 'for label:', label);
                         setSelectedActionId(id); 
                         
                         // Delay onSelect for Add theme, Add logo, and Modify flight phase buttons to prevent state reset
@@ -835,7 +833,6 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
     ];
 
     // Debug log for selection and theme options
-    console.log('segment.id:', segment.id, 'selected:', selectedThemes[segment.id], 'themeOptions:', themeOptions.map(t => t.id + ':' + t.name));
 
     const badgeRowRef = useRef(null);
 
@@ -1028,7 +1025,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
   const navigateMonth = (direction) => {
     const oldDate = currentDate;
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1);
-    console.log('ThemeCreator navigateMonth:', {
+    console.log('=== MONTH NAVIGATION DEBUG ===', {
       direction,
       oldMonth: oldDate.getMonth(),
       oldYear: oldDate.getFullYear(),
@@ -1115,7 +1112,9 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
             <span
               className="text-2xl font-bold themer-gradient cursor-pointer"
               title="Go to landing page"
-              onClick={() => navigate('/')}
+              onClick={() => {
+                navigate('/');
+              }}
             >
               Themer
             </span>

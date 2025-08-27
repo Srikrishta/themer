@@ -18,8 +18,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFlightMinutes = 370, minutesLeft: externalMinutesLeft, onProgressChange, themeColor = '#1E72AE', isPromptMode = false, onPromptHover, onPromptClick, fpsPrompts = {}, showMovingIcon = false, onAnimationProgressChange, onPromoCardLoadingChange, onAnimationProgress, onCruiseLabelShow, onMiddleCardPromptClose, onThemeColorChange, flightsGenerated = false, onFlightPhaseSelect }) {
-  console.log('=== FlightProgress themeColor ===', { themeColor, isGradient: themeColor.includes('gradient') });
+export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFlightMinutes = 370, minutesLeft: externalMinutesLeft, onProgressChange, themeColor = '#1E72AE', isPromptMode = false, onPromptHover, onPromptClick, fpsPrompts = {}, showMovingIcon = false, onAnimationProgressChange, onPromoCardLoadingChange, onAnimationProgress, onCruiseLabelShow, onMiddleCardPromptClose, onThemeColorChange, flightsGenerated = false, onFlightPhaseSelect, selectedFlightPhase = null }) {
   
   // Helper function to determine color based on theme type
   const getElementColor = () => {
@@ -58,8 +57,6 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
   const [showPromptBubbleAtFJB, setShowPromptBubbleAtFJB] = useState(false);
   const [promptBubbleFJBPosition, setPromptBubbleFJBPosition] = useState({ x: 0, y: 0 });
   const [showFlightPhases, setShowFlightPhases] = useState(false);
-  // NEW: State to track selected flight phase
-  const [selectedFlightPhase, setSelectedFlightPhase] = useState(null);
   const barRef = useRef();
   const iconRef = useRef();
 
@@ -72,7 +69,6 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
 
   // NEW: Handle flight phase click and notify parent
   const handleFlightPhaseClick = (phase) => {
-    setSelectedFlightPhase(phase);
     // Notify parent component about the selection
     if (onFlightPhaseSelect) {
       onFlightPhaseSelect(phase);
@@ -88,7 +84,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
 
   // Debug: Track when showPromptBubble changes
   useEffect(() => {
-    console.log('=== showPromptBubble changed ===', { 
+    console.log('=== STATE DEBUG ===', {
       showPromptBubble, 
       showMovingIcon, 
       hasReachedTarget,
@@ -98,13 +94,10 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
 
   // Move pointer to FJB after middle card prompt closes
   useEffect(() => {
-    console.log('=== MIDDLE CARD PROMPT CLOSURE CHECK ===', { middleCardPromptClosed, showMovingIcon });
     if (middleCardPromptClosed && showMovingIcon) {
-      console.log('=== MIDDLE CARD PROMPT CLOSED - MOVING POINTER TO FJB ===');
       
       // Move pointer to FJB after a delay
       setTimeout(() => {
-        console.log('=== HIDING MIDDLE CARD ELEMENTS AND MOVING TO FJB ===');
         setShowPointer(false);
         setMovePointerToMiddleCard(false);
         setShowPlusButtonAtMiddleCard(false);
@@ -112,12 +105,10 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
         
         // Show plus button after pointer appears at FJB
         setTimeout(() => {
-          console.log('=== SHOWING PLUS BUTTON AT FJB ===');
           setShowPlusButtonAtFJB(true);
           
           // Show prompt bubble after plus button appears
           setTimeout(() => {
-            console.log('=== PREPARING FJB PROMPT BUBBLE ===');
             // Calculate FJB prompt bubble position
             // Add a small delay to ensure DOM is ready
             setTimeout(() => {
@@ -132,7 +123,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
                 const absoluteX = containerRect.left + barWidth / 2 + 20; // Plus button X (no spacing)
                 const absoluteY = containerRect.top + (-12 + 16); // Plus button Y + half button height (reduced Y distance)
                 
-                console.log('=== FJB BUBBLE POSITION ===', {
+                console.log('=== FJB POSITION DEBUG ===', {
                   barWidth,
                   containerRect: { left: containerRect.left, top: containerRect.top },
                   absoluteX,
@@ -141,12 +132,11 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
                 
                 setPromptBubbleFJBPosition({ x: absoluteX, y: absoluteY });
                               setShowPromptBubbleAtFJB(true);
-              console.log('=== FJB PROMPT BUBBLE SHOWN FROM FLIGHTPROGRESS ===');
-              console.log('=== FJB PROMPT BUBBLE STATE ===', { 
-                showPromptBubbleAtFJB: true, 
-                showMovingIcon,
-                position: { x: absoluteX, y: absoluteY } 
-              });
+                console.log('=== PROMPT BUBBLE AT FJB ===', {
+                  showPromptBubbleAtFJB: true, 
+                  showMovingIcon,
+                  position: { x: absoluteX, y: absoluteY } 
+                });
               } else {
                 console.error('flight-progress-bar-container not found');
               }
@@ -164,21 +154,49 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
   // Target progress for landing page animation (20%)
   const targetProgress = 0.2;
   
-  // Use animation progress for moving icon, otherwise use normal progress
-  const iconLeft = showMovingIcon 
-    ? Math.max(0, Math.min(barWidth * animationProgress - 16, barWidth - 32))
-    : Math.max(0, Math.min(barWidth * progress - 16, barWidth - 32));
+  // Helper function to get progress for selected flight phase
+  const getFlightPhaseProgress = (phase) => {
+    const phaseProgressMap = {
+      'takeoff': 0.05,
+      'climb': 0.20,
+      'cruise': 0.35,
+      'descent': 0.75,
+      'landing': 0.88
+    };
+    return phaseProgressMap[phase] || null;
+  };
+
+  // Use animation progress for moving icon, selected flight phase progress, or normal progress
+  const iconLeft = (() => {
+    if (showMovingIcon) {
+      return Math.max(0, Math.min(barWidth * animationProgress - 16, barWidth - 32));
+    } else if (selectedFlightPhase) {
+      const phaseProgress = getFlightPhaseProgress(selectedFlightPhase);
+      if (phaseProgress !== null) {
+        return Math.max(0, Math.min(barWidth * phaseProgress - 16, barWidth - 32));
+      }
+    }
+    return Math.max(0, Math.min(barWidth * progress - 16, barWidth - 32));
+  })();
 
   // For moving icon, ensure we have a minimum progress width to show the bar
-  const progressWidth = showMovingIcon 
-    ? Math.max(4, Math.min(barWidth * animationProgress, barWidth)) // Minimum 4px width for visibility
-    : Math.max(0, Math.min(barWidth * progress, barWidth));
+  const progressWidth = (() => {
+    if (showMovingIcon) {
+      return Math.max(4, Math.min(barWidth * animationProgress, barWidth)); // Minimum 4px width for visibility
+    } else if (selectedFlightPhase) {
+      const phaseProgress = getFlightPhaseProgress(selectedFlightPhase);
+      if (phaseProgress !== null) {
+        return Math.max(0, Math.min(barWidth * phaseProgress, barWidth));
+      }
+    }
+    return Math.max(0, Math.min(barWidth * progress, barWidth));
+  })();
 
   // Animation for moving icon to 20% and stopping
   useEffect(() => {
     if (!showMovingIcon) return;
 
-    console.log('=== ANIMATION START ===', { 
+    console.log('=== ANIMATION START DEBUG ===', {
       animationProgress, 
       startProgress: animationProgress, 
       targetProgress: 0.2,
@@ -212,7 +230,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
         
         // Debug: Log animation progress (only log occasionally to avoid spam)
         if (newProgress % 0.05 < 0.01) { // Log every 5% progress
-          console.log('=== ANIMATION PROGRESS ===', {
+          console.log('=== ANIMATION PROGRESS DEBUG ===', {
             elapsed,
             progressRatio,
             startProgress,
@@ -224,7 +242,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
         
         // Debug: Log progress values
         if (newProgress >= 0.19 && newProgress <= 0.21) {
-          console.log('Progress tracking:', {
+          console.log('=== TARGET PROGRESS DEBUG ===', {
             newProgress,
             percentage: (newProgress * 100).toFixed(1) + '%',
             hasReachedTarget
@@ -245,7 +263,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
         
         // Show prompt bubble exactly at 20% progress
         if (newProgress >= 0.20 && newProgress <= 0.205 && !hasReachedTarget) {
-          console.log('=== 20% PROGRESS REACHED ===', { 
+          console.log('=== REACHED TARGET ===', {
             newProgress, 
             hasReachedTarget,
             exactProgress: (newProgress * 100).toFixed(1) + '%'
@@ -265,7 +283,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
           requestAnimationFrame(animate);
         } else {
           // Animation has completed - flight icon has stopped
-          console.log('=== FLIGHT ICON STOPPED ===', { 
+          console.log('=== ANIMATION COMPLETED ===', {
             finalProgress: newProgress,
             percentage: (newProgress * 100).toFixed(1) + '%'
           });
@@ -292,7 +310,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               const bubbleX = targetIconLeft + 8 + 2; // 2px to the right of plus button
               const bubbleY = 48 + 32 + 10; // Plus button Y + button height + spacing
               
-              console.log('=== FPS BUBBLE POSITION CALCULATION ===', {
+              console.log('=== PROMPT BUBBLE POSITION DEBUG ===', {
                 iconLeft,
                 targetIconLeft,
                 plusButtonX: targetIconLeft + 8,
@@ -432,9 +450,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
 
   const handlePromptBubbleSubmit = (promptText, elementType, elementData, positionKey) => {
     // Handle the prompt submission for landing page demo
-    console.log('=== HANDLE PROMPT BUBBLE SUBMIT CALLED ===');
-    console.log('Prompt submitted:', promptText, elementType, elementData, positionKey);
-    console.log('Prompt text comparison:', {
+    console.log('=== PROMPT SUBMISSION DEBUG ===', {
       submitted: promptText,
       expected: "Cruise",
       isMatch: promptText === "Cruise",
@@ -444,7 +460,6 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
     
     // Show the Cruise label below the flight icon
     if (promptText.trim() === "Cruise") {
-      console.log('=== CRUISE DETECTED - SHOWING LABEL ===');
       setShowCruiseLabel(true);
       setShowPromptBubble(false); // Close prompt bubble immediately
       
@@ -455,7 +470,6 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
       
       // Move cursor to middle promo card after a short delay
       setTimeout(() => {
-        console.log('=== MOVING TO MIDDLE CARD ===');
         // Calculate position for middle promo card (Component3Cards)
         // Component3Cards is positioned below the flight progress bar with gap: 32
         // The middle card is the 2nd card (index 1) in a 3-card layout with gap-8 (32px gap)
@@ -485,17 +499,13 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
         
         // Show plus button at middle card after cursor moves
         setTimeout(() => {
-          console.log('=== SHOWING PLUS BUTTON AT MIDDLE CARD ===');
-          console.log('=== MIDDLE CARD POSITION WHEN PLUS APPEARS ===', middleCardPosition);
           setShowPlusButtonAtMiddleCard(true);
           
           // Show prompt bubble at middle card after 1 second
           setTimeout(() => {
-            console.log('=== SHOWING PROMPT BUBBLE AT MIDDLE CARD ===');
             setShowPlusButtonAtMiddleCard(false); // Hide plus button
             
             // Trigger prompt bubble to appear on the actual middle card
-            console.log('=== ATTEMPTING TO FIND MIDDLE CARD ===');
             
             // Try multiple selectors to find the middle card
             const selectors = [
@@ -518,7 +528,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
             
             if (middleCardElement) {
               const rect = middleCardElement.getBoundingClientRect();
-              console.log('=== FOUND MIDDLE CARD ===', { 
+              console.log('=== MIDDLE CARD CLICK DEBUG ===', {
                 usedSelector, 
                 rect,
                 element: middleCardElement
@@ -540,7 +550,6 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               middleCardElement.dispatchEvent(clickEvent);
             } else {
               console.error('Middle card element not found with any selector');
-              console.log('=== ALL AVAILABLE ELEMENTS ===');
               document.querySelectorAll('[data-name="3-cards"] > div').forEach((el, i) => {
                 console.log(`Card ${i}:`, el);
               });
@@ -551,7 +560,6 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
       
       // Animation ends here - no more interactions with promo cards
     } else {
-      console.log('=== CRUISE NOT DETECTED ===');
     }
   };
 
@@ -1054,36 +1062,28 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
         elementType="flight-journey-bar"
         elementData={{ barWidth, themeColor }}
         onClose={() => {
-          console.log('=== FJB PROMPT BUBBLE CLOSED ===');
           setShowPromptBubbleAtFJB(false);
         }}
         onSubmit={(promptText, elementType, elementData, positionKey) => {
-          console.log('=== FJB PROMPT SUBMITTED FROM FLIGHTPROGRESS ===', { 
+          console.log('=== FJB PROMPT SUBMIT ===', {
             promptText, 
             elementType, 
             elementData, 
             positionKey 
           });
-          console.log('=== FLIGHTPROGRESS ONSUBMIT HANDLER CALLED ===');
           setShowPromptBubbleAtFJB(false);
           
           // Update theme color to gradient green for FJB landing page
-          console.log('=== CHECKING POSITION KEY IN FLIGHTPROGRESS ===', { 
+          console.log('=== THEME COLOR CHANGE DEBUG ===', {
             positionKey, 
             isFJBLanding: positionKey === 'fjb-landing' 
           });
           if (positionKey === 'fjb-landing') {
-            console.log('=== UPDATING THEME FROM FLIGHTPROGRESS ===');
-            console.log('=== onThemeColorChange EXISTS ===', { exists: !!onThemeColorChange });
             if (onThemeColorChange) {
-              console.log('=== CALLING onThemeColorChange WITH GRADIENT ===');
               onThemeColorChange('linear-gradient(120deg, #d4fc79 0%, #96e6a1 100%)');
-              console.log('=== THEME COLOR CHANGE CALLED SUCCESSFULLY ===');
             } else {
-              console.log('=== ERROR: onThemeColorChange IS NULL ===');
             }
           } else {
-            console.log('=== POSITION KEY IS NOT FJB-LANDING ===', { positionKey });
           }
         }}
         themeColor={themeColor}
