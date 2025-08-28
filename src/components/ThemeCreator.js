@@ -9,8 +9,9 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useNavigate } from 'react-router-dom';
 import { getReadableOnColor } from '../utils/color';
 
-export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips, onStartThemeBuild, themeColor = '#1E1E1E', onTriggerPromptBubble, selectedLogo, onThemeAnimationComplete, onGeneratingStateChange, onBuildThemes, onFlightSelect }) {
+export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips, onStartThemeBuild, themeColor = '#1E1E1E', onTriggerPromptBubble, selectedLogo, onThemeAnimationComplete, onGeneratingStateChange, onBuildThemes, onFlightSelect, showIFEFrame = false }) {
   const navigate = useNavigate();
+
   const DEFAULT_THEME_COLOR = '#1E1E1E';
   // Get current date in Berlin timezone for initial state
   const getBerlinTodayString = () => {
@@ -35,6 +36,8 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
   // NEW: Theme creation state
   const [isCreatingThemes, setIsCreatingThemes] = useState(initialFlightCreationMode || false);
   const [hasStartedThemeBuild, setHasStartedThemeBuild] = useState(false);
+  
+
   const [revealFlightsCount, setRevealFlightsCount] = useState(0);
   
   // Minimize/maximize state removed; always expanded
@@ -46,6 +49,8 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
       onStateChange(false, isCreatingThemes);
     }
   }, [isCreatingThemes, onStateChange]);
+
+
 
   // Refs
   const datePickerRef = useRef(null);
@@ -596,7 +601,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
       <div
         ref={ref}
         data-handler-id={handlerId}
-        className={`backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] pl-5 pr-3 py-4 rounded-full shadow-sm transition-all cursor-move w-full ${
+        className={`backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.1)] pl-5 pr-3 py-4 rounded-full shadow-sm transition-all cursor-move w-full ${
           activeFlightIndex === index 
             ? 'shadow-lg ring-2 ring-blue-500/60 bg-blue-600/10' 
             : 'hover:shadow-md hover:bg-blue-600/5'
@@ -629,7 +634,15 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
               )}
             </div>
           </div>
-          {activeFlightIndex === index && isInHeader && (
+          {(() => {
+            console.log('🔍 BUTTON DEBUG:', { 
+              activeFlightIndex, 
+              index, 
+              isInHeader, 
+              shouldShow: activeFlightIndex === index && !isInHeader 
+            });
+            return activeFlightIndex === index && !isInHeader;
+          })() && (
             <>
               <div className="hidden md:flex w-px mx-0" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
               <div className="hidden md:flex items-center gap-1" style={{ marginLeft: 5 }}>
@@ -642,7 +655,8 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                     isLogoAdded: !!selectedLogo
                   },
                   { id: 1, label: 'Change theme', title: 'Change theme', icon: null, variant: 'primary', isThemerDot: true, themeColor: themeColor },
-                  { id: 2, label: 'Modify flight phase', title: 'Modify flight phase', icon: null, isFlightIcon: true }
+                  { id: 2, label: 'Modify flight phase', title: 'Modify flight phase', icon: null, isFlightIcon: true },
+                  { id: 3, label: 'Create theme', title: 'Create theme', icon: PaperAirplaneIcon }
                 ].map(({ id, label, title, icon: Icon, variant, isThemerDot, isFlightIcon, isLogoAdded, themeColor: buttonThemeColor }) => {
                   const isSelected = selectedActionId === id;
                   // Special handling for Add theme button to ensure it shows text when selected
@@ -668,7 +682,8 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                   // Force proper layout for Add theme button when selected
                   const isAddLogoButton = id === 0;
                   const isModifyFlightPhaseButton = id === 2;
-                  const finalLayout = ((isAddThemeButton || isAddLogoButton || isModifyFlightPhaseButton) && (isSelected || isLogoAdded)) ? 'h-9 px-3' : layout;
+                  const isCreateThemeButton = id === 3;
+                  const finalLayout = ((isAddThemeButton || isAddLogoButton || isModifyFlightPhaseButton || isCreateThemeButton) && (isSelected || isLogoAdded)) ? 'h-9 px-3' : layout;
                   return (
                     <button
                       key={id}
@@ -748,6 +763,12 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                             onSelect(index, segment);
                           }, 150); // Delay to allow button state update and expansion
                         }
+                        
+                        // If this is the "Create theme" button (id: 3), handle theme creation
+                        if (id === 3) {
+                          // TODO: Add theme creation logic here
+                          console.log('Create theme clicked for segment:', segment);
+                        }
                       }}
                     >
                       {/* Show color circle for Change theme button when theme color is available */}
@@ -757,7 +778,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                           style={{ backgroundColor: buttonThemeColor }}
                         />
                       )}
-                      {(isSelected || (isAddThemeButton && selectedActionId === 1) || (isAddLogoButton && (selectedActionId === 0 || isLogoAdded)) || (isModifyFlightPhaseButton && selectedActionId === 2)) && <span className="text-sm font-medium whitespace-nowrap">{label}</span>}
+                      {(isSelected || (isAddThemeButton && selectedActionId === 1) || (isAddLogoButton && (selectedActionId === 0 || isLogoAdded)) || (isModifyFlightPhaseButton && selectedActionId === 2) || (isCreateThemeButton && selectedActionId === 3)) && <span className="text-sm font-medium whitespace-nowrap">{label}</span>}
                       {isThemerDot ? (
                         <div 
                           className={`w-4 h-4 rounded-full ${isSelected ? 'ml-2' : ''}`}
@@ -1081,19 +1102,18 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
         width: '100%',
         minWidth: '100%',
         maxWidth: '100%',
-        height: isInHeader ? 'auto' : '400px',
-        minHeight: isInHeader ? undefined : '400px',
-        maxHeight: isInHeader ? 'none' : '400px',
-        transition: 'width 0.2s, height 0.2s',
-        overflow: 'visible',
+        height: isInHeader ? 'auto' : (showIFEFrame ? '250px' : (isCreatingThemes ? '350px' : '400px')),
+        minHeight: isInHeader ? undefined : (showIFEFrame ? '250px' : (isCreatingThemes ? '350px' : '400px')),
+        maxHeight: isInHeader ? 'none' : (showIFEFrame ? '250px' : (isCreatingThemes ? '350px' : '400px')),
+        transition: 'width 0.2s, height 1.2s ease-in-out',
+        overflow: isInHeader ? 'visible' : 'visible',
         paddingLeft: '170px',
         paddingRight: '170px',
-        paddingTop: isCreatingThemes ? '48px' : undefined,
-        paddingBottom: isCreatingThemes ? '72px' : undefined,
+        paddingTop: isCreatingThemes ? (showIFEFrame ? '20px' : '24px') : undefined,
+        paddingBottom: isCreatingThemes ? (showIFEFrame ? '30px' : '24px') : undefined,
         backgroundColor: DEFAULT_THEME_COLOR,
         borderRadius: undefined,
         marginTop: isInHeader ? '0' : '0px',
-        overflow: isInHeader ? 'visible' : 'auto',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-start',
@@ -1105,8 +1125,11 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
       {/* Flights view shows only the flight cards (no logo/header) */}
 
       {/* Only Flight Cards Row - Full Width */}
-      {isCreatingThemes && !isMinimized && (
-        <div ref={flightChipsRef} className="w-full" style={{ marginBottom: ((isCreatingThemes ? 48 : 0) + 8) }}>
+      {(() => {
+        console.log('🎯 FLIGHT CARDS VIEW:', { isCreatingThemes, isMinimized, shouldRender: isCreatingThemes && !isMinimized });
+        return isCreatingThemes && !isMinimized;
+      })() && (
+        <div ref={flightChipsRef} className="w-full" style={{ marginBottom: showIFEFrame ? 24 : ((isCreatingThemes ? 48 : 0) + 8) }}>
           {/* Themer logo in flights view */}
           <div className="mt-2 mb-8" data-name="themer-logo">
             <span

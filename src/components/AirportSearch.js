@@ -231,7 +231,7 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [], defau
           
           <div 
             ref={dragRef}
-            className={`backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] p-4 rounded-full shadow-sm transition-all cursor-grab active:cursor-grabbing hover:cursor-grab w-full ${
+            className={`backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.1)] p-4 rounded-full shadow-sm transition-all cursor-grab active:cursor-grabbing hover:cursor-grab w-full ${
               isDragging ? 'shadow-lg' : 'hover:shadow-md'
             }`}
           >
@@ -284,7 +284,7 @@ function RouteCard({ route, index, moveCard, onRemove, selectedDates = [], defau
 function StaticFlightCard({ segment, index }) {
   return (
     <div className="w-full">
-      <div className="backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] pl-5 pr-3 py-4 rounded-full shadow-sm w-full">
+      <div className="backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.1)] pl-5 pr-3 py-4 rounded-full shadow-sm w-full">
         <div className="flex justify-between items-stretch opacity-70">
           <div className="flex items-start gap-1 flex-none pr-0" style={{ paddingRight: 6 }}>
             <div className="flex-none">
@@ -298,36 +298,13 @@ function StaticFlightCard({ segment, index }) {
               </div>
             </div>
           </div>
-          <div className="hidden md:flex items-center gap-1" style={{ marginLeft: 5 }}>
-            <button type="button" className="inline-flex items-center rounded-[24px] bg-white/10 text-white hover:bg-white/15 h-9 w-9 justify-center px-0 shrink-0" title="Add logo">
-              <PhotoIcon className="w-4 h-4" />
-            </button>
-            <button type="button" className="inline-flex items-center rounded-[24px] bg-white/10 text-white hover:bg-white/15 h-9 w-9 justify-center px-0 shrink-0" title="Add theme">
-              <div 
-                className="w-4 h-4 rounded-full"
-                style={{
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, #10b981 100%)',
-                  backgroundSize: '200% 200%'
-                }}
-              />
-            </button>
-            <button type="button" className="inline-flex items-center rounded-[24px] bg-white/10 text-white hover:bg-white/15 h-9 w-9 justify-center px-0 shrink-0" title="Modify flight phase">
-              <img src={process.env.PUBLIC_URL + '/flight icon.svg'} alt="Flight icon" className="w-4 h-4" />
-            </button>
-            <button type="button" className="inline-flex items-center rounded-[24px] bg-white/10 text-white hover:bg-white/15 h-9 w-9 justify-center px-0 shrink-0" title="Update cards">
-              <ArrowsUpDownIcon className="w-4 h-4" />
-            </button>
-            <button type="button" className="inline-flex items-center rounded-[24px] bg-white/10 text-white hover:bg-white/15 h-9 w-9 justify-center px-0 shrink-0" title="Add content">
-              <PlayIcon className="w-4 h-4" />
-            </button>
-          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], inputFieldRef, defaultLabel, lastCardRef, isLoading = false, hideBeforeIndex = 0, themeColor = '#1E1E1E', replacementIndex = -1, selectedFlightIndex = 0, onSelectFlight, onEnterPromptMode, onTriggerPromptBubble }) {
+function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], inputFieldRef, defaultLabel, lastCardRef, isLoading = false, hideBeforeIndex = 0, themeColor = '#1E1E1E', replacementIndex = -1, selectedFlightIndex = 0, onSelectFlight, onEnterPromptMode, onTriggerPromptBubble, isGenerating = false, onBuildThemes, setIsReversingToRoutes, setIsGenerating }) {
   const moveCard = useCallback((dragIndex, hoverIndex) => {
     const newRoutes = [...routes];
     const [reorderedRoute] = newRoutes.splice(dragIndex, 1);
@@ -341,7 +318,7 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
   }, [routes, setRoutes]);
 
   return (
-    <div className="relative">
+    <div className={`relative ${isGenerating ? 'pb-0' : ''}`}>
       {/* Route Cards */}
       <div className="relative z-10 flex flex-row items-center w-full gap-2" data-flight-cards-container>
         {(() => { return null; })()}
@@ -361,7 +338,7 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
                 const flightsVisible = Math.min(replacementIndex + 1, routes.length - 1);
                 const isActive = segIndex === selectedFlightIndex; // selected is active/expanded
                 return (
-                  <div className="basis-0" style={{ flex: flightsVisible >= 4 ? (isActive ? 2 : 1) : 1, minWidth: 0 }}>
+                  <div className="basis-0" style={{ flex: flightsVisible >= 4 ? (isActive ? 1.5 : 0.8) : 0.8, minWidth: 0 }}>
                     <FlightCardInline
                       segment={segment}
                       index={segIndex}
@@ -375,7 +352,7 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
                 );
               }
               return (
-                <div className="flex-1 min-w-0 basis-0">
+                <div className={routes.length === 1 ? 'w-1/2 min-w-0' : 'min-w-0 basis-0'} style={{ flex: routes.length === 1 ? undefined : 0.8 }}>
                   <RouteCard
                     route={route}
                     index={index}
@@ -406,6 +383,40 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
             )}
           </React.Fragment>
         ))}
+        
+        {/* Add Themes and Modify Route buttons - positioned next to flight cards */}
+        {isGenerating && (
+          <div className="flex gap-2 ml-4 items-center">
+            <button
+              className="h-12 px-3 rounded-tl-[0px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px] transition-colors flex items-center justify-center w-[160px] relative overflow-hidden bg-blue-600 text-white hover:bg-blue-700 opacity-90"
+              onClick={() => {
+                // When "Build themes" is clicked, trigger theme build
+                if (onBuildThemes) {
+                  onBuildThemes();
+                }
+              }}
+              title="Add themes"
+            >
+              <span>Add Themes</span>
+            </button>
+            <button
+              className="h-12 px-3 rounded-tl-[24px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px] transition-colors flex items-center justify-center w-[100px] relative overflow-hidden bg-gray-600 text-white hover:bg-gray-700"
+              onClick={() => {
+                // Start reverse animation: flight cards transform back to route cards
+                if (setIsReversingToRoutes) {
+                  setIsReversingToRoutes(true);
+                }
+                // Reset generating state to show input fields
+                if (setIsGenerating) {
+                  setIsGenerating(false);
+                }
+              }}
+              title="Modify routes"
+            >
+              <span>Modify</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -557,6 +568,27 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
       window.addEventListener('resize', handleResize);
       return () => window.removeEventListener('resize', handleResize);
     }
+  }, [isDatePickerOpen]);
+
+  // Close date picker when clicking outside
+  useEffect(() => {
+    if (!isDatePickerOpen) return;
+
+    const handleClickOutside = (event) => {
+      if (datePickerRef.current && !datePickerRef.current.contains(event.target)) {
+        setIsDatePickerOpen(false);
+      }
+    };
+
+    // Add event listener with a slight delay to avoid immediately closing
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [isDatePickerOpen]);
 
   // Notify parent component when generating state changes
@@ -724,16 +756,17 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
 
 
   return (
-    <div className="space-y-12 relative" style={{ overflow: 'visible' }}>
+    <div className={`${isGenerating ? 'space-y-0' : 'space-y-12'} relative`} style={{ overflow: 'visible' }}>
       {/* Timeline line - from input field center to last card center */}
       {/* Input field and toggle button container */}
-      <div className="flex items-end gap-3" style={{ overflow: 'visible' }}>
-        {/* Input field and badges */}
-        <div className={`relative ${isGenerating ? 'w-[50%]' : 'w-[55%]'}`} ref={dropdownRef}>
+      {!isGenerating && (
+        <div className="flex items-end gap-3" style={{ overflow: 'visible' }}>
+          {/* Input field and badges */}
+          <div className="relative w-[55%]" ref={dropdownRef}>
           {/* Label above Add route input */}
           <div className="mb-1 text-white text-sm font-medium">Add route</div>
           {/* Custom input container with badges - offset to avoid timeline overlap */}
-          <div ref={inputFieldRef} className="relative min-h-[3rem] px-4 py-3 rounded-lg backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] focus-within:ring-0 w-full">
+          <div ref={inputFieldRef} className="relative min-h-[3rem] px-4 py-3 rounded-lg backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.1)] focus-within:ring-0 w-full">
                           {/* Airport badges - showing only available airports (not in routes) */}
               <div className="flex flex-wrap gap-2 items-center w-full">
                 {AIRPORTS.filter(airport => !routes.some(route => route.airport.code === airport.code)).map((airport) => {
@@ -812,13 +845,13 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
         {/* Date picker input field - styled like add route input field */}
         <div className="relative w-[50%] flex items-end gap-3" style={{ zIndex: 100000 }}>
           {/* Date input + centered dropdown wrapper */}
-          <div className="relative flex-1" style={{ overflow: 'visible' }}>
+          <div ref={datePickerRef} className="relative flex-1" style={{ overflow: 'visible' }}>
             {/* Label above Add date input */}
             <div className="mb-1 text-white text-sm font-medium">Add date</div>
             {/* Custom input container for date picker */}
             <div 
               data-date-input-container
-              className="relative min-h-[3rem] px-4 py-3 rounded-lg backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] focus-within:ring-0 w-full cursor-pointer" 
+              className="relative min-h-[3rem] px-4 py-3 rounded-lg backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.1)] focus-within:ring-0 w-full cursor-pointer" 
               onClick={() => {
                 if (!isDatePickerOpen) {
                   calculateDateDropdownPosition();
@@ -869,9 +902,8 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
             )}
           </div>
 
-          {/* Generate flights / Add Themes button and Modify button */}
-          {!isGenerating ? (
-            // Show only Generate flights button when not generating
+          {/* Generate flights button */}
+          {!isGenerating && (
             <button
               className={`h-12 px-4 rounded-tl-[0px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px] transition-colors flex items-center justify-center w-[240px] relative overflow-hidden ${
                 routes.length >= 2 
@@ -888,41 +920,18 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
             >
               <span>Generate flights</span>
             </button>
-          ) : (
-            // Show both Add Themes and Modify buttons when generating
-            <div className="flex gap-2">
-              <button
-                className="h-12 px-4 rounded-tl-[0px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px] transition-colors flex items-center justify-center w-[240px] relative overflow-hidden bg-blue-600 text-white hover:bg-blue-700 opacity-90"
-                onClick={() => {
-                  // When "Build themes" is clicked, trigger theme build
-                  if (onBuildThemes) {
-                    onBuildThemes();
-                  }
-                }}
-                title="Add themes"
-              >
-                <span>Add Themes</span>
-              </button>
-              <button
-                className="h-12 px-4 rounded-tl-[24px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px] transition-colors flex items-center justify-center w-[140px] relative overflow-hidden bg-gray-600 text-white hover:bg-gray-700"
-                onClick={() => {
-                  // Start reverse animation: flight cards transform back to route cards
-                  setIsReversingToRoutes(true);
-                }}
-                title="Modify routes"
-              >
-                <span>Modify route</span>
-              </button>
-            </div>
           )}
+
         </div>
         
         {/* Toggle button removed per request */}
-      </div>
+        </div>
+      )}
 
       {/* Route Cards with Drag and Drop - now below input field */}
       {routes.length > 0 && (
-        <RouteList 
+        <div className={isGenerating ? 'mb-0' : ''}>
+          <RouteList 
           routes={routes} 
           setRoutes={setRoutes} 
           onRemoveRoute={onRemoveRoute}
@@ -948,7 +957,12 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
           }}
           onEnterPromptMode={onEnterPromptMode}
           onTriggerPromptBubble={onTriggerPromptBubble}
+          isGenerating={isGenerating}
+          onBuildThemes={onBuildThemes}
+          setIsReversingToRoutes={setIsReversingToRoutes}
+          setIsGenerating={setIsGenerating}
         />
+        </div>
       )}
     </div>
   );

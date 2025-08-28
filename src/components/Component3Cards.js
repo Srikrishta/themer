@@ -321,10 +321,18 @@ export default function Component3Cards({
       isUpdated: promoCardContents[cardIndex]?.updated,
       middleCardPromptClosed,
       cruiseLabelShown,
-      animationProgress
+      animationProgress,
+      selectedFlightPhase
     });
 
-    // Check if this card has user-submitted content and it's marked as updated
+    // Priority 1: If a flight phase is selected, show flight phase content
+    if (selectedFlightPhase && !promoCardContents[cardIndex]?.updated) {
+      const phaseText = `add experiences for ${selectedFlightPhase.charAt(0).toUpperCase() + selectedFlightPhase.slice(1)}`;
+      console.log('=== USING FLIGHT PHASE CONTENT ===', { cardIndex, selectedFlightPhase, phaseText });
+      return { text: phaseText, bgColor: getLightThemeColor() };
+    }
+
+    // Priority 2: Check if this card has user-submitted content and it's marked as updated
     if (promoCardContents[cardIndex] && promoCardContents[cardIndex].updated) {
       const content = promoCardContents[cardIndex];
       console.log('=== USING CUSTOM CONTENT ===', { cardIndex, content });
@@ -434,6 +442,13 @@ export default function Component3Cards({
 
   // Helper function for default card content
   const getDefaultCardContent = (cardIndex) => {
+    // If a flight phase is selected, show "add experiences for [phase]"
+    if (selectedFlightPhase) {
+      const phaseText = `add experiences for ${selectedFlightPhase.charAt(0).toUpperCase() + selectedFlightPhase.slice(1)}`;
+      return { text: phaseText, bgColor: getLightThemeColor() };
+    }
+    
+    // Default content when no flight phase is selected
     const defaultContent = [
       { text: "croissants at 4€", bgColor: getLightThemeColor() },
       { text: "autumn meal", bgColor: getLightThemeColor() },
@@ -545,10 +560,11 @@ export default function Component3Cards({
               />
             )}
             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 rounded-lg">
-              <p className="block text-center font-bold" style={{ 
-                fontSize: '28px', 
-                lineHeight: '36px', 
+              <p className="block text-center font-semibold" style={{ 
+                fontSize: '24px', 
+                lineHeight: '32px', 
                 margin: 0,
+                opacity: 0.7,
                 color: cardContent.backgroundImage ? 'white' : getReadableOnColor(cardContent.bgColor)
               }}>
                 {cardContent.text}
@@ -560,11 +576,12 @@ export default function Component3Cards({
             {cardContent.backgroundImage && (
               <div className="absolute inset-0 bg-black bg-opacity-30 rounded-lg"></div>
             )}
-            <p className="block text-center font-bold relative z-10" 
+            <p className="block text-center font-semibold relative z-10" 
                style={{ 
-                 fontSize: '28px', 
-                 lineHeight: '36px', 
+                 fontSize: '24px', 
+                 lineHeight: '32px', 
                  margin: 0,
+                 opacity: 0.7,
                  color: cardContent.backgroundImage ? 'white' : getReadableOnColor(cardContent.bgColor)
                }}>
               {cardContent.text}

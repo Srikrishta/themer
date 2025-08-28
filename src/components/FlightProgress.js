@@ -24,6 +24,31 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
   const getElementColor = () => {
     return themeColor.includes('gradient') ? '#000000' : themeColor;
   };
+
+  // Helper function to get a darker version of the color for flight progress
+  const getDarkerProgressColor = () => {
+    if (themeColor.includes('gradient')) {
+      return '#000000'; // Keep black for gradients
+    }
+    
+    // For regular colors, make them darker
+    if (themeColor.startsWith('#')) {
+      const hex = themeColor.slice(1);
+      const r = parseInt(hex.substr(0, 2), 16);
+      const g = parseInt(hex.substr(2, 2), 16);
+      const b = parseInt(hex.substr(4, 2), 16);
+      
+      // Make it 20% darker
+      const darkerR = Math.max(0, Math.floor(r * 0.8));
+      const darkerG = Math.max(0, Math.floor(g * 0.8));
+      const darkerB = Math.max(0, Math.floor(b * 0.8));
+      
+      return `#${darkerR.toString(16).padStart(2, '0')}${darkerG.toString(16).padStart(2, '0')}${darkerB.toString(16).padStart(2, '0')}`;
+    }
+    
+    // Fallback to original color if not hex
+    return themeColor;
+  };
   // Readable on-color for text/icons over theme surfaces
   const onColor = getReadableOnColor(themeColor);
   
@@ -568,7 +593,7 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
       <div className="flight-path"></div>
       <div className="flight-progress" style={{ 
         width: `${progressWidth}px`, 
-        background: getElementColor(),
+        background: getDarkerProgressColor(),
         opacity: 1,
         // Ensure minimum contrast - if theme color is very light, use a darker fallback
         filter: themeColor.includes('gradient') ? 'none' : (themeColor && themeColor.toLowerCase() !== '#ffffff' && themeColor.toLowerCase() !== '#fff' ? 'none' : 'brightness(0.2)'),

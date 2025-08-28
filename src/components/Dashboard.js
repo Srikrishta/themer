@@ -9,6 +9,7 @@ import PromptBubble from './PromptBubble';
 import MousePointer from './MousePointer';
 import { useLocation } from 'react-router-dom';
 import { mapThemeChipToAnimation } from '../utils/themeAnimationMapper';
+import { PhotoIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
 // Add CSS animation for gradient border
 const gradientAnimationCSS = `
@@ -31,8 +32,12 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, cardOrder, onCardReorder }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, cardOrder, onCardReorder, contentCardOrder, onContentCardReorder }) {
   
+  // Drag and drop state for content cards
+  const [draggedContentCardIndex, setDraggedContentCardIndex] = useState(null);
+  const [dragOverContentIndex, setDragOverContentIndex] = useState(null);
+
   // Helper function to get border style when flight phase is selected
   const getBorderStyle = () => {
     if (selectedFlightPhase) {
@@ -77,6 +82,113 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
     return selectedFlightPhase 
       ? `Add content for ${selectedFlightPhase.charAt(0).toUpperCase() + selectedFlightPhase.slice(1)}`
       : "Add content";
+  };
+
+  // Drag and drop handlers for content cards
+  const handleContentCardDragStart = (e, displayPosition) => {
+    console.log('=== CONTENT CARD DRAG START ===', { displayPosition });
+    setDraggedContentCardIndex(displayPosition);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.target.outerHTML);
+  };
+
+  const handleContentCardDragEnd = () => {
+    console.log('=== CONTENT CARD DRAG END ===');
+    setDraggedContentCardIndex(null);
+    setDragOverContentIndex(null);
+  };
+
+  const handleContentCardDragOver = (e, displayPosition) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleContentCardDragEnter = (e, displayPosition) => {
+    e.preventDefault();
+    if (displayPosition !== draggedContentCardIndex) {
+      setDragOverContentIndex(displayPosition);
+    }
+  };
+
+  const handleContentCardDragLeave = () => {
+    setDragOverContentIndex(null);
+  };
+
+  const handleContentCardDrop = (e, displayPosition) => {
+    e.preventDefault();
+    console.log('=== CONTENT CARD DROP ===', { draggedContentCardIndex, displayPosition });
+    
+    if (draggedContentCardIndex !== null && draggedContentCardIndex !== displayPosition) {
+      onContentCardReorder(draggedContentCardIndex, displayPosition);
+    }
+    
+    setDraggedContentCardIndex(null);
+    setDragOverContentIndex(null);
+  };
+
+  // Helper function to render a single content card
+  const renderContentCard = (originalCardIndex, displayPosition) => {
+    const isDragging = draggedContentCardIndex === displayPosition;
+    const isDragOver = dragOverContentIndex === displayPosition;
+    
+    const cardStyle = {
+      width: '100%',
+      height: '184px',
+      background: (() => {
+        if (themeColor.startsWith('#')) {
+          const hex = themeColor.slice(1);
+          const r = parseInt(hex.substr(0, 2), 16);
+          const g = parseInt(hex.substr(2, 2), 16);
+          const b = parseInt(hex.substr(4, 2), 16);
+          return `rgba(${r}, ${g}, ${b}, 0.1)`;
+        }
+        return 'rgba(255,255,255,0.1)';
+      })(),
+      borderTopLeftRadius: '8px',
+      borderTopRightRadius: '8px',
+      borderBottomLeftRadius: '0px',
+      borderBottomRightRadius: '0px',
+      transform: isDragging ? 'rotate(5deg)' : 'none',
+      border: isDragOver ? '3px dashed #3b82f6' : 'none',
+      opacity: isDragging ? 0.8 : 1,
+      cursor: 'grab',
+      transition: 'transform 0.2s ease, opacity 0.2s ease',
+      ...getBorderStyle()
+    };
+
+    return (
+      <div
+        key={`content-card-${originalCardIndex}-${displayPosition}`}
+        draggable
+        className="overflow-clip relative shrink-0 flex items-center justify-center backdrop-blur-[10px] backdrop-filter"
+        style={cardStyle}
+        onDragStart={(e) => handleContentCardDragStart(e, displayPosition)}
+        onDragEnd={handleContentCardDragEnd}
+        onDragOver={(e) => handleContentCardDragOver(e, displayPosition)}
+        onDragEnter={(e) => handleContentCardDragEnter(e, displayPosition)}
+        onDragLeave={handleContentCardDragLeave}
+        onDrop={(e) => handleContentCardDrop(e, displayPosition)}
+      >
+        {getAnimatedBorderOverlay()}
+        <span className="font-semibold" style={{ 
+          color: getReadableOnColor((() => {
+            if (themeColor.startsWith('#')) {
+              const hex = themeColor.slice(1);
+              const r = parseInt(hex.substr(0, 2), 16);
+              const g = parseInt(hex.substr(2, 2), 16);
+              const b = parseInt(hex.substr(4, 2), 16);
+              return `rgba(${r}, ${g}, ${b}, 0.1)`;
+            }
+            return 'rgba(255,255,255,0.1)';
+          })()), 
+          fontSize: '24px', 
+          lineHeight: '32px', 
+          opacity: 0.7 
+        }}>
+          {getContentText()}
+        </span>
+      </div>
+    );
   };
 
   return (
@@ -266,177 +378,10 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
               </div>
             </>
           ) : (
-            // Show themed content when theme is built and routes are available
-            <>
-              {/* Tile 1 */}
-              <div
-                className="overflow-clip relative shrink-0 flex items-center justify-center backdrop-blur-[10px] backdrop-filter"
-                style={{
-                  width: '100%',
-                  height: '184px',
-                  background: (() => {
-                    if (themeColor.startsWith('#')) {
-                      const hex = themeColor.slice(1);
-                      const r = parseInt(hex.substr(0, 2), 16);
-                      const g = parseInt(hex.substr(2, 2), 16);
-                      const b = parseInt(hex.substr(4, 2), 16);
-                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
-                    }
-                    return 'rgba(255,255,255,0.1)';
-                  })(),
-                  borderTopLeftRadius: '8px',
-                  borderTopRightRadius: '8px',
-                  borderBottomLeftRadius: '0px',
-                  borderBottomRightRadius: '0px',
-                  ...getBorderStyle()
-                }}
-              >
-                {getAnimatedBorderOverlay()}
-                <span className="font-semibold" style={{ 
-                  color: getReadableOnColor((() => {
-                    if (themeColor.startsWith('#')) {
-                      const hex = themeColor.slice(1);
-                      const r = parseInt(hex.substr(0, 2), 16);
-                      const g = parseInt(hex.substr(2, 2), 16);
-                      const b = parseInt(hex.substr(4, 2), 16);
-                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
-                    }
-                    return 'rgba(255,255,255,0.1)';
-                  })()), 
-                  fontSize: '24px', 
-                  lineHeight: '32px', 
-                  opacity: 0.7 
-                }}>
-                  {getContentText()}
-                </span>
-              </div>
-              {/* Tile 2 */}
-              <div
-                className="overflow-clip relative shrink-0 flex items-center justify-center backdrop-blur-[10px] backdrop-filter"
-                style={{
-                  width: '100%',
-                  height: '184px',
-                  background: (() => {
-                    if (themeColor.startsWith('#')) {
-                      const hex = themeColor.slice(1);
-                      const r = parseInt(hex.substr(0, 2), 16);
-                      const g = parseInt(hex.substr(2, 2), 16);
-                      const b = parseInt(hex.substr(4, 2), 16);
-                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
-                    }
-                    return 'rgba(255,255,255,0.1)';
-                  })(),
-                  borderTopLeftRadius: '8px',
-                  borderTopRightRadius: '8px',
-                  borderBottomLeftRadius: '0px',
-                  borderBottomRightRadius: '0px',
-                  ...getBorderStyle()
-                }}
-              >
-                {getAnimatedBorderOverlay()}
-                <span className="font-semibold" style={{ 
-                  color: getReadableOnColor((() => {
-                    if (themeColor.startsWith('#')) {
-                      const hex = themeColor.slice(1);
-                      const r = parseInt(hex.substr(0, 2), 16);
-                      const g = parseInt(hex.substr(2, 2), 16);
-                      const b = parseInt(hex.substr(4, 2), 16);
-                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
-                    }
-                    return 'rgba(255,255,255,0.1)';
-                  })()), 
-                  fontSize: '24px', 
-                  lineHeight: '32px', 
-                  opacity: 0.7 
-                }}>
-                  {getContentText()}
-                </span>
-              </div>
-              {/* Tile 3 */}
-              <div
-                className="overflow-clip relative shrink-0 flex items-center justify-center backdrop-blur-[10px] backdrop-filter"
-                style={{
-                  width: '100%',
-                  height: '184px',
-                  background: (() => {
-                    if (themeColor.startsWith('#')) {
-                      const hex = themeColor.slice(1);
-                      const r = parseInt(hex.substr(0, 2), 16);
-                      const g = parseInt(hex.substr(2, 2), 16);
-                      const b = parseInt(hex.substr(4, 2), 16);
-                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
-                    }
-                    return 'rgba(255,255,255,0.1)';
-                  })(),
-                  borderTopLeftRadius: '8px',
-                  borderTopRightRadius: '8px',
-                  borderBottomLeftRadius: '0px',
-                  borderBottomRightRadius: '0px',
-                  ...getBorderStyle()
-                }}
-              >
-                {getAnimatedBorderOverlay()}
-                <span className="font-semibold" style={{ 
-                  color: getReadableOnColor((() => {
-                    if (themeColor.startsWith('#')) {
-                      const hex = themeColor.slice(1);
-                      const r = parseInt(hex.substr(0, 2), 16);
-                      const g = parseInt(hex.substr(2, 2), 16);
-                      const b = parseInt(hex.substr(4, 2), 16);
-                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
-                    }
-                    return 'rgba(255,255,255,0.1)';
-                  })()), 
-                  fontSize: '24px', 
-                  lineHeight: '32px', 
-                  opacity: 0.7 
-                }}>
-                  {getContentText()}
-                </span>
-              </div>
-              {/* Tile 4 */}
-              <div
-                className="overflow-clip relative shrink-0 flex items-center justify-center backdrop-blur-[10px] backdrop-filter"
-                style={{
-                  width: '100%',
-                  height: '184px',
-                  background: (() => {
-                    if (themeColor.startsWith('#')) {
-                      const hex = themeColor.slice(1);
-                      const r = parseInt(hex.substr(0, 2), 16);
-                      const g = parseInt(hex.substr(2, 2), 16);
-                      const b = parseInt(hex.substr(4, 2), 16);
-                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
-                    }
-                    return 'rgba(255,255,255,0.1)';
-                  })(),
-                  borderTopLeftRadius: '8px',
-                  borderTopRightRadius: '8px',
-                  borderBottomLeftRadius: '0px',
-                  borderBottomRightRadius: '0px',
-                  ...getBorderStyle()
-                }}
-              >
-                {getAnimatedBorderOverlay()}
-                <span className="font-semibold" style={{ 
-                  color: getReadableOnColor((() => {
-                    if (themeColor.startsWith('#')) {
-                      const hex = themeColor.slice(1);
-                      const r = parseInt(hex.substr(0, 2), 16);
-                      const g = parseInt(hex.substr(2, 2), 16);
-                      const b = parseInt(hex.substr(4, 2), 16);
-                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
-                    }
-                    return 'rgba(255,255,255,0.1)';
-                  })()), 
-                  fontSize: '24px', 
-                  lineHeight: '32px', 
-                  opacity: 0.7 
-                }}>
-                  {getContentText()}
-                </span>
-              </div>
-            </>
+            // Show themed content when theme is built and routes are available - now with drag-and-drop
+            contentCardOrder.map((originalCardIndex, displayPosition) => 
+              renderContentCard(originalCardIndex, displayPosition)
+            )
           )}
         </div>
       </div>
@@ -486,6 +431,8 @@ export default function Dashboard() {
   const [promoCardContents, setPromoCardContents] = useState({});
   // NEW: Track the order of promo cards for drag-drop functionality
   const [cardOrder, setCardOrder] = useState([0, 1, 2]); // Default order: left, middle, right
+  // NEW: Track the order of content cards for drag-drop functionality
+  const [contentCardOrder, setContentCardOrder] = useState([0, 1, 2, 3]); // Default order: 1, 2, 3, 4
   // NEW: Track the currently selected flight segment for FJB
   const [selectedFlightSegment, setSelectedFlightSegment] = useState(null);
   // Hover hint bubble for FPS ("Select flight phase")
@@ -557,6 +504,8 @@ export default function Dashboard() {
   const handleThemeAnimationComplete = () => {
     setThemeAnimationComplete(true);
   };
+
+
 
   // Animation sequence for In-flight GUI and IFE frame appearance
   useEffect(() => {
@@ -1116,6 +1065,22 @@ export default function Dashboard() {
     }
   };
 
+  // NEW: Handle content card reordering for drag-drop functionality
+  const handleContentCardReorder = (dragIndex, hoverIndex) => {
+    console.log('=== CONTENT CARD REORDER ===', { dragIndex, hoverIndex, currentOrder: contentCardOrder });
+    
+    const draggedCardId = contentCardOrder[dragIndex];
+    const newOrder = [...contentCardOrder];
+    
+    // Remove the dragged card from its current position
+    newOrder.splice(dragIndex, 1);
+    // Insert it at the new position
+    newOrder.splice(hoverIndex, 0, draggedCardId);
+    
+    console.log('=== NEW CONTENT CARD ORDER ===', { oldOrder: contentCardOrder, newOrder });
+    setContentCardOrder(newOrder);
+  };
+
   return (
     <div 
       className="min-h-screen"
@@ -1175,9 +1140,10 @@ export default function Dashboard() {
                       onBuildThemes={() => {
               setIsThemeBuildStarted(true);
             }}
-            onFlightSelect={(segment) => {
-              setSelectedFlightSegment(segment);
-            }}
+                      onFlightSelect={(segment) => {
+            setSelectedFlightSegment(segment);
+          }}
+          showIFEFrame={showIFEFrame}
         />
       </div>
       
@@ -1419,6 +1385,103 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Selected Flight Card below In-flight GUI text */}
+          {(selectedFlightSegment || (origin && destination)) && (
+            <div 
+              className="w-full flex justify-center" 
+              style={{ 
+                marginBottom: 24,
+                opacity: showInFlightGUI ? 1 : 0,
+                transform: showInFlightGUI ? 'translateY(0)' : 'translateY(20px)',
+                transition: 'opacity 1.2s ease-in-out, transform 1.2s ease-in-out'
+              }}
+            >
+              <div className="flex items-center gap-4" style={{ width: '434px' }}>
+                <div 
+                  className="backdrop-blur-[10px] backdrop-filter pl-5 pr-3 py-4 rounded-full shadow-sm flex-1"
+                  style={{
+                    ...(typeof currentThemeColor === 'string' && currentThemeColor.includes('gradient')
+                      ? { background: currentThemeColor }
+                      : { backgroundColor: currentThemeColor })
+                  }}
+                >
+                  <div className="flex justify-between items-stretch opacity-100">
+                    <div className="flex items-start gap-1 flex-none pr-0" style={{ paddingRight: 6 }}>
+                      <div className="flex-none">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-base font-semibold text-white break-words">
+                            {selectedFlightSegment 
+                              ? `${selectedFlightSegment.origin?.airport?.code} → ${selectedFlightSegment.destination?.airport?.code}`
+                              : `${origin?.airport?.code} → ${destination?.airport?.code}`
+                            }
+                          </h3>
+                        </div>
+                        <div className="text-xs text-white mt-1 flex items-center gap-3 flex-wrap break-words">
+                          <span className="flex items-center gap-1 font-semibold">Selected Flight</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="hidden md:flex w-px mx-0" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
+                    <div className="hidden md:flex items-center gap-1" style={{ marginLeft: 5 }}>
+                      <button 
+                        type="button" 
+                        className="inline-flex items-center rounded-[24px] bg-white/10 text-white hover:bg-white/15 h-9 w-9 justify-center px-0 shrink-0" 
+                        title="Add Airline Logo"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isPromptMode && typeof handlePromptClick === 'function') {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const position = { x: rect.left, y: rect.top };
+                            handlePromptClick('logo-placeholder', {}, position);
+                          }
+                        }}
+                      >
+                        <PhotoIcon className="w-4 h-4" />
+                      </button>
+                      <button 
+                        type="button" 
+                        className="inline-flex items-center rounded-[24px] bg-white/10 text-white hover:bg-white/15 h-9 w-9 justify-center px-0 shrink-0" 
+                        title="Change Theme"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isPromptMode && typeof handlePromptClick === 'function') {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const position = { x: rect.left, y: rect.top };
+                            handlePromptClick('flight-journey-bar', { themeColor: currentThemeColor }, position);
+                          }
+                        }}
+                      >
+                        <div 
+                          className="w-4 h-4 rounded-full"
+                          style={{
+                            background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, #10b981 100%)',
+                            backgroundSize: '200% 200%'
+                          }}
+                        />
+                      </button>
+                      <button 
+                        type="button" 
+                        className="inline-flex items-center rounded-[24px] bg-white/10 text-white hover:bg-white/15 h-9 w-9 justify-center px-0 shrink-0" 
+                        title="Add Flight Content"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isPromptMode && typeof handlePromptClick === 'function') {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const position = { x: rect.left, y: rect.top };
+                            handlePromptClick('flight-phase-button', { progress: 0.5, minutesLeft: 200 }, position);
+                          }
+                        }}
+                      >
+                        <img src={process.env.PUBLIC_URL + '/flight icon.svg'} alt="Flight icon" className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <ChevronRightIcon className="w-6 h-6 text-black opacity-60 flex-shrink-0" />
+              </div>
+            </div>
+          )}
+
           {/* IFE frame with slide-in from bottom animation */}
           <div 
             className="w-full flex justify-center" 
@@ -1534,6 +1597,8 @@ export default function Dashboard() {
                 promoCardContents={promoCardContents}
                 cardOrder={cardOrder}
                 onCardReorder={handleCardReorder}
+                contentCardOrder={contentCardOrder}
+                onContentCardReorder={handleContentCardReorder}
               />
             </div>
           </div>
