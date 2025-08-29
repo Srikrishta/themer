@@ -1,3 +1,5 @@
+
+
 import { useState, useRef, useEffect } from 'react';
 import { getReadableOnColor } from '../utils/color';
 import ThemeCreator from './ThemeCreator';
@@ -483,9 +485,38 @@ export default function Dashboard() {
   const [showIFEFrame, setShowIFEFrame] = useState(false);
   const [showSweepAnimation, setShowSweepAnimation] = useState(false);
 
+  // DEBUG: Track height changes
+  const dashboardRef = useRef(null);
+  useEffect(() => {
+    console.log('🚀 DASHBOARD DEBUG: Component mounted/updated', {
+      flightsGenerated,
+      isGeneratingFlights,
+      timestamp: new Date().toISOString()
+    });
+    
+    if (dashboardRef.current) {
+      const currentHeight = dashboardRef.current.getBoundingClientRect().height;
+      console.log('🔍 DASHBOARD CURRENT HEIGHT:', currentHeight);
+      
+      const observer = new ResizeObserver(entries => {
+        for (let entry of entries) {
+          console.log('🔍 DASHBOARD HEIGHT CHANGE:', {
+            height: entry.contentRect.height,
+            flightsGenerated,
+            isGeneratingFlights,
+            timestamp: new Date().toISOString()
+          });
+        }
+      });
+      observer.observe(dashboardRef.current);
+      return () => observer.disconnect();
+    }
+  }, [flightsGenerated, isGeneratingFlights]);
+
   // Listen for generate flights event
   useEffect(() => {
     const handleGenerateFlights = () => {
+      console.log('🔥 FLIGHTS GENERATED EVENT TRIGGERED');
       setFlightsGenerated(true);
     };
     
@@ -507,102 +538,25 @@ export default function Dashboard() {
 
 
 
-  // Animation sequence for In-flight GUI and IFE frame appearance
+  // Disable IFE frame animation - flight cards should appear in same position as route cards
   useEffect(() => {
     if (flightsGenerated) {
-      // Reset animation states
+      // Just activate prompt mode immediately without any IFE frame
+      setIsPromptMode(true);
+      
+      // Keep IFE frame hidden - flight cards appear in original position
       setShowInFlightGUI(false);
       setShowIFEFrame(false);
-      
-      // Wait 500ms after flights are generated, then show "In-flight GUI" text with fade-in
-      const guiTimer = setTimeout(() => {
-        setShowInFlightGUI(true);
-        
-        // Scroll to show only flight cards when GUI text starts appearing
-        const scrollToFlightCards = () => {
-          try {
-            // Find the input container to calculate how much to scroll past it
-            const inputContainer = document.querySelector('.flex.items-end.gap-3');
-            const flightCardsContainer = document.querySelector('[data-flight-cards-container]');
-            
-            let targetScrollY;
-            if (inputContainer && flightCardsContainer) {
-              const inputRect = inputContainer.getBoundingClientRect();
-              const cardsRect = flightCardsContainer.getBoundingClientRect();
-              const currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
-              
-              // Calculate scroll to position flight cards at the very top, hiding all input fields
-              targetScrollY = currentScrollY + cardsRect.top - 30; // Just 30px from top edge
-            } else if (flightCardsContainer) {
-              // Fallback: just use flight cards position
-              const rect = flightCardsContainer.getBoundingClientRect();
-              const currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
-              targetScrollY = currentScrollY + rect.top - 30;
-            } else {
-              // Fallback: scroll past the typical ThemeCreator height
-              targetScrollY = 450;
-            }
-            
-            // Custom smooth scroll with 1.2s duration to match IFE frame animation
-            const startScrollY = window.pageYOffset || document.documentElement.scrollTop;
-            const finalTargetY = Math.max(0, targetScrollY);
-            const scrollDistance = finalTargetY - startScrollY;
-            const scrollDuration = 1200; // 1.2s to match CSS transition
-            const startTime = performance.now();
-            
-            const animateScroll = (currentTime) => {
-              const elapsed = currentTime - startTime;
-              const progress = Math.min(elapsed / scrollDuration, 1);
-              
-              // Use ease-in-out easing to match CSS transition
-              const easeInOut = progress < 0.5 
-                ? 2 * progress * progress 
-                : -1 + (4 - 2 * progress) * progress;
-              
-              const currentScrollY = startScrollY + (scrollDistance * easeInOut);
-              window.scrollTo(0, currentScrollY);
-              
-              if (progress < 1) {
-                requestAnimationFrame(animateScroll);
-              }
-            };
-            
-            requestAnimationFrame(animateScroll);
-          } catch (error) {
-            console.log('Could not scroll to flight cards:', error);
-            // Fallback: use browser smooth scroll
-            window.scrollTo({
-              top: 450,
-              behavior: 'smooth'
-            });
-          }
-        };
-        
-        scrollToFlightCards();
-        
-        // Wait another 300ms, then show IFE frame with fade-in
-        const frameTimer = setTimeout(() => {
-          setShowIFEFrame(true);
-        }, 300);
-        
-        return () => clearTimeout(frameTimer);
-      }, 500);
-      
-      return () => clearTimeout(guiTimer);
     } else {
-      // Reset animation states when flights are not generated
+      // Reset states when flights are not generated
       setShowInFlightGUI(false);
       setShowIFEFrame(false);
     }
   }, [flightsGenerated]);
 
-  // Show sweep animation when entering prompt mode
+  // Disable sweep animation - keep flight cards in original position
   useEffect(() => {
-    if (isPromptMode && flightsGenerated) {
-      setShowSweepAnimation(true);
-    } else {
-      setShowSweepAnimation(false);
-    }
+    setShowSweepAnimation(false);
   }, [isPromptMode, flightsGenerated]);
 
   useEffect(() => {
@@ -998,27 +952,8 @@ export default function Dashboard() {
     };
   }, []);
 
-  // Auto-scroll to hide the themer logo when entering flights view
-  useEffect(() => {
-    const doScroll = () => {
-      try {
-        const logoEl = document.querySelector('[data-name="themer-logo"]');
-        const currentY = window.pageYOffset || document.documentElement.scrollTop;
-        if (logoEl) {
-          const rect = logoEl.getBoundingClientRect();
-          const targetTop = Math.max(0, currentY + rect.bottom + 4);
-          window.scrollTo({ top: targetTop, behavior: 'smooth' });
-        } else {
-          window.scrollTo({ top: 150, behavior: 'smooth' });
-        }
-      } catch {
-        window.scrollTo({ top: 150, behavior: 'smooth' });
-      }
-    };
-    // Delay to allow ThemeCreator to render the logo
-    const t = setTimeout(doScroll, 200);
-    return () => clearTimeout(t);
-  }, []);
+  // Keep all elements visible - no auto-scroll to hide themer logo or input fields
+  // Removed auto-scroll to maintain visibility of input fields and generate flights button
 
   // NEW: Handle flight phase selection from FlightProgress
   const handleFlightPhaseSelect = (phase) => {
@@ -1083,13 +1018,16 @@ export default function Dashboard() {
 
   return (
     <div 
+      ref={dashboardRef}
       className="min-h-screen"
       style={{
         height: 'auto',
         overflow: 'visible',
         overflowY: 'visible',
         position: 'relative',
-        minHeight: 'auto'
+        minHeight: '100vh',
+        borderBottomLeftRadius: '24px',
+        borderBottomRightRadius: '24px'
       }}
       data-name="dashboard-container"
     >
@@ -1097,7 +1035,7 @@ export default function Dashboard() {
       {/* Header removed as requested */}
       {/* ThemeCreator positioned below header (always visible) */}
       <div 
-        className="w-full flex justify-center transition-all duration-300"
+        className="w-full flex justify-center"
         style={{ 
           marginTop: 0,
           marginBottom: 80
@@ -1143,7 +1081,7 @@ export default function Dashboard() {
                       onFlightSelect={(segment) => {
             setSelectedFlightSegment(segment);
           }}
-          showIFEFrame={showIFEFrame}
+          showIFEFrame={false}
         />
       </div>
       
@@ -1366,10 +1304,11 @@ export default function Dashboard() {
       
 
 
-      {/* IFE frame logic with staggered animations */}
-      {flightsGenerated && (
+      {/* IFE frame logic - DISABLED to keep flight cards in original position */}
+      {false && (
         <>
-          {/* In-flight GUI text with slide-in from bottom animation */}
+          {/* In-flight GUI text - HIDDEN */}
+          {false && (
           <div 
             className="w-full flex justify-center" 
             style={{ 
@@ -1384,9 +1323,10 @@ export default function Dashboard() {
               <p className="block font-bold text-black text-center" style={{ fontSize: '28px', lineHeight: '36px', margin: 0 }}>In-flight GUI</p>
             </div>
           </div>
+          )}
 
-          {/* Selected Flight Card below In-flight GUI text */}
-          {(selectedFlightSegment || (origin && destination)) && (
+          {/* Selected Flight Card below In-flight GUI text - HIDDEN */}
+          {false && (selectedFlightSegment || (origin && destination)) && (
             <div 
               className="w-full flex justify-center" 
               style={{ 
@@ -1482,7 +1422,8 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* IFE frame with slide-in from bottom animation */}
+          {/* IFE frame - DISABLED to keep flight cards in original position */}
+          {false && (
           <div 
             className="w-full flex justify-center" 
             style={{ 
@@ -1602,6 +1543,7 @@ export default function Dashboard() {
               />
             </div>
           </div>
+          )}
         </>
       )}
     </div>

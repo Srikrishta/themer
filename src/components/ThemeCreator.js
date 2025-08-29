@@ -57,13 +57,30 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
   const containerRef = useRef(null);
   const colorCardsRef = useRef(null);
   const flightChipsRef = useRef(null);
+
+  // DEBUG: Track ThemeCreator height changes
+  useEffect(() => {
+    if (containerRef.current) {
+      const observer = new ResizeObserver(entries => {
+        for (let entry of entries) {
+          console.log('🔍 THEME CREATOR HEIGHT CHANGE:', {
+            height: entry.contentRect.height,
+            isCreatingThemes,
+            timestamp: new Date().toISOString()
+          });
+        }
+      });
+      observer.observe(containerRef.current);
+      return () => observer.disconnect();
+    }
+  }, [isCreatingThemes]);
   const chipsInitialBottomRef = useRef(null);
   const [isChipsCollapsed, setIsChipsCollapsed] = useState(false);
   // Sticky chips only after user scrolls
   const chipsInitialTopRef = useRef(null);
   const [isChipsSticky, setIsChipsSticky] = useState(false);
   const lastScrollYRef = useRef(0);
-  // Auto-enter prompt mode on first chip after generating flights
+  // Auto-select first chip after generating flights (prompt mode activated later in Dashboard)
   const autoPromptOnFirstChipRef = useRef(false);
 
   // NEW: Badge hover state
@@ -256,11 +273,12 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
 
   // NEW: Handle create flight themes button click
   const handleCreateFlightThemes = () => {
+    console.log('🔥 THEME CREATOR: Setting isCreatingThemes to true');
     setIsCreatingThemes(true);
     setHasStartedThemeBuild(true);
     setIsDatePickerOpen(false);
     setInputValue('');
-    // Mark that when chips render we should select first and enter prompt mode
+    // Mark that when chips render we should select first chip (prompt mode activated later)
     autoPromptOnFirstChipRef.current = true;
     // Smooth scroll to flight chips (and build theme button)
     // Scrolling handled centrally in Dashboard when flights view starts
@@ -279,11 +297,11 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
         ];
         if (typeof onExposeThemeChips === 'function') onExposeThemeChips(chips);
         if (typeof onStartThemeBuild === 'function') onStartThemeBuild(true);
-        // Auto-select first chip and enter prompt mode
+        // Auto-select first chip (but don't enter prompt mode yet)
         setActiveFlightIndex(0);
         if (typeof onColorCardSelect === 'function') onColorCardSelect(currentSeg);
         if (typeof onFilterChipSelect === 'function') onFilterChipSelect(true);
-        if (typeof onEnterPromptMode === 'function') onEnterPromptMode(currentSeg?.id);
+        // Note: prompt mode will be activated when flight card appears in Dashboard
       }
     } catch {}
   };
@@ -493,7 +511,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
     });
   }, [routes, isCreatingThemes, revealFlightsCount]);
 
-  // Ensure we select the first chip and enter prompt mode after Generate flights
+  // Ensure we select the first chip after Generate flights (but don't enter prompt mode yet)
   useEffect(() => {
     if (!isCreatingThemes) return;
     if (!autoPromptOnFirstChipRef.current) return;
@@ -503,7 +521,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
     try {
       if (typeof onColorCardSelect === 'function') onColorCardSelect(firstSeg);
       if (typeof onFilterChipSelect === 'function') onFilterChipSelect(true);
-      if (typeof onEnterPromptMode === 'function') onEnterPromptMode(firstSeg?.id);
+      // Note: prompt mode will be activated when flight card appears in Dashboard
       if (typeof onStartThemeBuild === 'function') onStartThemeBuild(true);
     } catch {}
     autoPromptOnFirstChipRef.current = false;
@@ -551,13 +569,9 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
 
   function FlightCard({ segment, index, activeFlightIndex, selectedThemeId, onSelect, collapsed, selectedLogo, themeColor }) {
     const ref = useRef(null);
-    const [selectedActionId, setSelectedActionId] = useState(null);
+    // Remove selected action state to eliminate selected UI
 
-    // Keep Add theme button selected when it should be expanded
-    useEffect(() => {
-      if (selectedActionId === 1) {
-      }
-    }, [selectedActionId]);
+    // Remove selected state logic to eliminate selected UI
     const [{ handlerId }, drop] = useDrop({
       accept: SEGMENT_ITEM_TYPE,
       collect: monitor => ({ handlerId: monitor.getHandlerId() }),
@@ -598,15 +612,40 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
     drag(drop(ref));
 
     return (
-      <div
-        ref={ref}
-        data-handler-id={handlerId}
-        className={`backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.1)] pl-5 pr-3 py-4 rounded-full shadow-sm transition-all cursor-move w-full ${
-          activeFlightIndex === index 
-            ? 'shadow-lg ring-2 ring-blue-500/60 bg-blue-600/10' 
-            : 'hover:shadow-md hover:bg-blue-600/5'
-        }`}
-        style={{ opacity: isDragging ? 0.5 : 1, minWidth: 0 }}
+      <>
+        {/* Add CSS for animated gradient border */}
+        {index === 0 && (
+          <style>{`
+            @keyframes gradientRotate {
+              0% { background-position: 0% 50%; }
+              50% { background-position: 100% 50%; }
+              100% { background-position: 0% 50%; }
+            }
+            .animated-gradient-border::before {
+              content: '';
+              position: absolute;
+              top: -3px;
+              left: -3px;
+              right: -3px;
+              bottom: -3px;
+              border-radius: 50px;
+              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, #10b981 100%);
+              background-size: 200% 200%;
+              animation: gradientRotate 3s ease infinite;
+              z-index: -1;
+            }
+          `}</style>
+        )}
+        <div
+          ref={ref}
+          data-handler-id={handlerId}
+          className={`backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.1)] pl-5 pr-3 py-4 rounded-full shadow-sm transition-all cursor-move w-full hover:shadow-md hover:bg-blue-600/5 ${
+            index === 0 ? 'relative animated-gradient-border' : ''
+          }`}
+          style={{ 
+            opacity: isDragging ? 0.5 : 1, 
+            minWidth: 0
+          }}
         onClick={() => {
           onSelect(index, segment);
           try {
@@ -617,7 +656,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
           } catch {}
         }}
       >
-        <div className={`flex justify-between items-stretch ${activeFlightIndex === index ? 'opacity-100' : 'opacity-70'}`}>
+        <div className="flex justify-between items-stretch opacity-100">
           <div className="flex items-start gap-1 flex-none pr-0" style={{ paddingRight: 6 }}>
             <div className="flex-none">
               <div className="flex items-center gap-2">
@@ -634,15 +673,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
               )}
             </div>
           </div>
-          {(() => {
-            console.log('🔍 BUTTON DEBUG:', { 
-              activeFlightIndex, 
-              index, 
-              isInHeader, 
-              shouldShow: activeFlightIndex === index && !isInHeader 
-            });
-            return activeFlightIndex === index && !isInHeader;
-          })() && (
+          {false && (
             <>
               <div className="hidden md:flex w-px mx-0" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
               <div className="hidden md:flex items-center gap-1" style={{ marginLeft: 5 }}>
@@ -658,45 +689,27 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                   { id: 2, label: 'Modify flight phase', title: 'Modify flight phase', icon: null, isFlightIcon: true },
                   { id: 3, label: 'Create theme', title: 'Create theme', icon: PaperAirplaneIcon }
                 ].map(({ id, label, title, icon: Icon, variant, isThemerDot, isFlightIcon, isLogoAdded, themeColor: buttonThemeColor }) => {
-                  const isSelected = selectedActionId === id;
-                  // Special handling for Add theme button to ensure it shows text when selected
-                  const shouldShowText = isSelected && (id === 1 || id !== 1);
+                  // Remove all selected state logic for clean appearance
                   const isAddThemeButton = id === 1;
-                  
-                  // For the Change theme button, use the theme color if available
-                  const baseColor = (() => {
-                    if (isSelected) {
-                      return 'bg-blue-600 text-white hover:bg-blue-700';
-                    }
-                    if (isLogoAdded) {
-                      return 'bg-green-600 text-white hover:bg-green-700';
-                    }
-                    if (id === 1 && buttonThemeColor) {
-                      // Use the theme color for the Change theme button
-                      return 'text-white hover:opacity-80';
-                    }
-                    return 'bg-white/10 text-white hover:bg-white/15';
-                  })();
-                  
-                  const layout = (isSelected || isLogoAdded) ? 'h-9 px-3' : 'h-9 w-9 justify-center px-0';
-                  // Force proper layout for Add theme button when selected
                   const isAddLogoButton = id === 0;
                   const isModifyFlightPhaseButton = id === 2;
                   const isCreateThemeButton = id === 3;
-                  const finalLayout = ((isAddThemeButton || isAddLogoButton || isModifyFlightPhaseButton || isCreateThemeButton) && (isSelected || isLogoAdded)) ? 'h-9 px-3' : layout;
+                  
+                  // Simple styling without selected states
+                  const baseColor = isLogoAdded ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-white/10 text-white hover:bg-white/15';
+                  const layout = isLogoAdded ? 'h-9 px-3' : 'h-9 w-9 justify-center px-0';
                   return (
                     <button
                       key={id}
                       type="button"
-                      className={`inline-flex items-center rounded-[24px] transition-colors ${baseColor} ${finalLayout} shrink-0`}
+                      className={`inline-flex items-center rounded-[24px] transition-colors ${baseColor} ${layout} shrink-0`}
                       style={{
-                        ...(isSelected ? { borderTopLeftRadius: '0px' } : {}),
                         ...(id === 1 && buttonThemeColor ? { backgroundColor: buttonThemeColor } : {})
                       }}
                       title={title}
                       onClick={(e) => { 
                         e.stopPropagation(); 
-                        setSelectedActionId(id); 
+                        // Remove selected action state logic 
                         
                         // Delay onSelect for Add theme, Add logo, and Modify flight phase buttons to prevent state reset
                         if (id !== 1 && id !== 0 && id !== 2) {
@@ -778,10 +791,10 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                           style={{ backgroundColor: buttonThemeColor }}
                         />
                       )}
-                      {(isSelected || (isAddThemeButton && selectedActionId === 1) || (isAddLogoButton && (selectedActionId === 0 || isLogoAdded)) || (isModifyFlightPhaseButton && selectedActionId === 2) || (isCreateThemeButton && selectedActionId === 3)) && <span className="text-sm font-medium whitespace-nowrap">{label}</span>}
+                      {isLogoAdded && <span className="text-sm font-medium whitespace-nowrap">{label}</span>}
                       {isThemerDot ? (
                         <div 
-                          className={`w-4 h-4 rounded-full ${isSelected ? 'ml-2' : ''}`}
+                          className="w-4 h-4 rounded-full"
                           style={{
                             background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, #10b981 100%)',
                             backgroundSize: '200% 200%',
@@ -792,10 +805,10 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                         <img 
                           src={process.env.PUBLIC_URL + '/flight icon.svg'} 
                           alt="Flight icon" 
-                          className={`w-4 h-4 ${isSelected ? 'ml-2' : ''}`}
+                          className="w-4 h-4"
                         />
                       ) : (
-                        <Icon className={`w-4 h-4 ${isSelected ? 'ml-2' : ''}`} />
+                        <Icon className="w-4 h-4" />
                       )}
                     </button>
                   );
@@ -805,6 +818,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
           )}
         </div>
       </div>
+      </>
     );
   }
 
@@ -1098,21 +1112,24 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
     <div 
       ref={containerRef}
       className={`px-10 py-3 border border-gray-200 ${isCreatingThemes && isChipsSticky ? 'sticky top-0 z-40' : ''}`}
+      data-component="ThemeCreator"
+      data-is-creating-themes={isCreatingThemes}
       style={{
         width: '100%',
         minWidth: '100%',
         maxWidth: '100%',
-        height: isInHeader ? 'auto' : (showIFEFrame ? '250px' : (isCreatingThemes ? '350px' : '400px')),
-        minHeight: isInHeader ? undefined : (showIFEFrame ? '250px' : (isCreatingThemes ? '350px' : '400px')),
-        maxHeight: isInHeader ? 'none' : (showIFEFrame ? '250px' : (isCreatingThemes ? '350px' : '400px')),
+        height: '360px',
+        minHeight: '360px',
+        maxHeight: '360px',
         transition: 'width 0.2s, height 1.2s ease-in-out',
         overflow: isInHeader ? 'visible' : 'visible',
         paddingLeft: '170px',
         paddingRight: '170px',
-        paddingTop: isCreatingThemes ? (showIFEFrame ? '20px' : '24px') : undefined,
-        paddingBottom: isCreatingThemes ? (showIFEFrame ? '30px' : '24px') : undefined,
+        paddingTop: undefined,
+        paddingBottom: undefined,
         backgroundColor: DEFAULT_THEME_COLOR,
-        borderRadius: undefined,
+        borderBottomLeftRadius: '24px',
+        borderBottomRightRadius: '24px',
         marginTop: isInHeader ? '0' : '0px',
         display: 'flex',
         flexDirection: 'column',
@@ -1124,12 +1141,12 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
 
       {/* Flights view shows only the flight cards (no logo/header) */}
 
-      {/* Only Flight Cards Row - Full Width */}
+      {/* Only Flight Cards Row - Full Width - HIDDEN to keep cards in original position */}
       {(() => {
-        console.log('🎯 FLIGHT CARDS VIEW:', { isCreatingThemes, isMinimized, shouldRender: isCreatingThemes && !isMinimized });
-        return isCreatingThemes && !isMinimized;
+        console.log('🎯 FLIGHT CARDS VIEW:', { isCreatingThemes, isMinimized, shouldRender: false });
+        return false;
       })() && (
-        <div ref={flightChipsRef} className="w-full" style={{ marginBottom: showIFEFrame ? 24 : ((isCreatingThemes ? 48 : 0) + 8) }}>
+        <div ref={flightChipsRef} className="w-full" style={{ marginBottom: 48 }}>
           {/* Themer logo in flights view */}
           <div className="mt-2 mb-8" data-name="themer-logo">
             <span
@@ -1153,9 +1170,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                 return (
                   <div
                     key={segment.id}
-                    className={`flex items-center gap-6 min-w-0 ${
-                      activeFlightIndex === index ? 'flex-[2]' : 'flex-1'
-                    }`}
+                    className="flex items-center gap-6 min-w-0 flex-1"
                   >
                     <div className="flex-1 min-w-0">
                       <FlightCard
@@ -1196,9 +1211,9 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
         </div>
       )}
 
-      {/* Content - Changes based on state */}
-      {!isMinimized && (isCreatingThemes ? (
-        // Theme Creation Content
+      {/* Content - Always show route creation content to maintain height */}
+      {!isMinimized && (false ? (
+        // Theme Creation Content - DISABLED to maintain height
         <>
           {/* Flights view: no extra UI below, chips above handle selection */}
         </>
