@@ -9,7 +9,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useNavigate } from 'react-router-dom';
 import { getReadableOnColor } from '../utils/color';
 
-export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips, onStartThemeBuild, themeColor = '#1E1E1E', onTriggerPromptBubble, selectedLogo, onThemeAnimationComplete, onGeneratingStateChange, onBuildThemes, onFlightSelect, showIFEFrame = false }) {
+export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips, onStartThemeBuild, themeColor = '#1E1E1E', onTriggerPromptBubble, selectedLogo, onThemeAnimationComplete, onGeneratingStateChange, onBuildThemes, onFlightSelect, showIFEFrame = false, flightsGenerated = false, onShowPreview, onBuildThemeClicked }) {
   const navigate = useNavigate();
 
   const DEFAULT_THEME_COLOR = '#1E1E1E';
@@ -24,6 +24,22 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
   const [dates, setDates] = useState([getBerlinTodayString()]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [isScrollingUp, setIsScrollingUp] = useState(false);
+  
+  // Trigger preview mode when container shrinks
+  useEffect(() => {
+    console.log('🎯 ThemeCreator: isScrollingUp changed to:', isScrollingUp, 'onShowPreview exists:', !!onShowPreview);
+    if (isScrollingUp && onShowPreview) {
+      console.log('🎯 ThemeCreator: Setting timer to show preview in 250ms');
+      // Delay to allow container shrink animation to complete
+      const timer = setTimeout(() => {
+        console.log('🎯 ThemeCreator: Timer executed, calling onShowPreview(true)');
+        onShowPreview(true);
+      }, 250); // Slight delay after 200ms animation
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isScrollingUp, onShowPreview]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState('down'); // 'up' or 'down'
@@ -1118,10 +1134,10 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
         width: '100%',
         minWidth: '100%',
         maxWidth: '100%',
-        height: '360px',
-        minHeight: '360px',
-        maxHeight: '360px',
-        transition: 'width 0.2s, height 1.2s ease-in-out',
+        height: isScrollingUp ? '156px' : '360px',
+        minHeight: isScrollingUp ? '156px' : '360px',
+        maxHeight: isScrollingUp ? '156px' : '360px',
+        transition: 'width 0.2s, height 0.2s ease-in',
         overflow: isInHeader ? 'visible' : 'visible',
         paddingLeft: '170px',
         paddingRight: '170px',
@@ -1256,6 +1272,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                 onEnterPromptMode={onEnterPromptMode}
                 onTriggerPromptBubble={onTriggerPromptBubble}
                 onFlightSelect={onFlightSelect}
+                flightsGenerated={flightsGenerated}
                 onGeneratingStateChange={(isGenerating) => {
                   if (onGeneratingStateChange) {
                     onGeneratingStateChange(isGenerating);
@@ -1266,6 +1283,8 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                     onBuildThemes();
                   }
                 }}
+                onScrollingStateChange={setIsScrollingUp}
+                onBuildThemeClicked={onBuildThemeClicked}
                 onToggleMinimized={() => {
                   setIsMinimized(!isMinimized);
                   if (!isMinimized) {

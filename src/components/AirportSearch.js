@@ -1,8 +1,10 @@
+
+
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { getReadableOnColor } from '../utils/color';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { CalendarIcon, PlusIcon, MapPinIcon, ClockIcon, Bars3Icon, ChevronRightIcon, ChevronDownIcon, ChevronUpIcon, PhotoIcon, PlayIcon, ArrowsUpDownIcon } from '@heroicons/react/24/outline';
+import { CalendarIcon, PlusIcon, MapPinIcon, ClockIcon, Bars3Icon, ChevronRightIcon, ChevronLeftIcon, ChevronDownIcon, ChevronUpIcon, PhotoIcon, PlayIcon, ArrowsUpDownIcon } from '@heroicons/react/24/outline';
 import FlightCardInline from './FlightCardInline';
 import DatePicker from './DatePicker';
 import festivalsData from '../data/festivals.json';
@@ -304,7 +306,7 @@ function StaticFlightCard({ segment, index }) {
   );
 }
 
-function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], inputFieldRef, defaultLabel, lastCardRef, isLoading = false, hideBeforeIndex = 0, themeColor = '#1E1E1E', replacementIndex = -1, selectedFlightIndex = 0, onSelectFlight, onEnterPromptMode, onTriggerPromptBubble, isGenerating = false, onBuildThemes, setIsReversingToRoutes, setIsGenerating }) {
+function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], inputFieldRef, defaultLabel, lastCardRef, isLoading = false, hideBeforeIndex = 0, themeColor = '#1E1E1E', replacementIndex = -1, selectedFlightIndex = 0, onSelectFlight, onEnterPromptMode, onTriggerPromptBubble, isGenerating = false, onBuildThemes, setIsReversingToRoutes, setIsGenerating, onEditTheme }) {
   const moveCard = useCallback((dragIndex, hoverIndex) => {
     const newRoutes = [...routes];
     const [reorderedRoute] = newRoutes.splice(dragIndex, 1);
@@ -338,7 +340,11 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
                 const flightsVisible = Math.min(replacementIndex + 1, routes.length - 1);
                 const isActive = segIndex === selectedFlightIndex; // selected is active/expanded
                 return (
-                  <div className="basis-0" style={{ flex: 0.8, minWidth: 0 }}>
+                  <div 
+                    className="basis-0" 
+                    style={{ flex: 0.8, minWidth: 0 }}
+                    data-flight-card-index={segIndex}
+                  >
                     <FlightCardInline
                       segment={segment}
                       index={segIndex}
@@ -347,6 +353,7 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
                       onSelect={() => { if (typeof onSelectFlight === 'function') onSelectFlight(segIndex); }}
                       onEnterPromptMode={onEnterPromptMode}
                       onTriggerPromptBubble={onTriggerPromptBubble}
+                      onEditTheme={onEditTheme}
                     />
                   </div>
                 );
@@ -390,7 +397,7 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
   );
 }
 
-function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized, onSelectedDatesChange, themeColor = '#1E1E1E', onEnterPromptMode, onTriggerPromptBubble, onGeneratingStateChange, onBuildThemes, onFlightSelect }) {
+function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized, onSelectedDatesChange, themeColor = '#1E1E1E', onEnterPromptMode, onTriggerPromptBubble, onGeneratingStateChange, onBuildThemes, onFlightSelect, flightsGenerated = false, onScrollingStateChange, onBuildThemeClicked }) {
   // Date picker state and logic (moved from ThemeCreator)
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [dates, setDates] = useState(selectedDates || []);
@@ -409,6 +416,12 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
   const [selectedInlineFlightIndex, setSelectedInlineFlightIndex] = useState(0);
   const [isReversingToRoutes, setIsReversingToRoutes] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 200, left: 200 });
+  const [isScrollingUp, setIsScrollingUp] = useState(false);
+  const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0, width: 0, height: 0 });
+  const [selectedFlightCard, setSelectedFlightCard] = useState(null); // { index, segment, position, html }
+  const [totalFlightCards, setTotalFlightCards] = useState(0);
+  const originalButtonRef = useRef(null);
+  const containerRef = useRef(null);
 
   // Airport search dropdown state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -481,23 +494,64 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
   // Calculate dropdown position relative to the date input field
   const calculateDateDropdownPosition = () => {
     try {
-      const dateInputContainer = document.querySelector('[data-date-input-container]');
+      // Try to use the datePickerRef first, then fall back to querySelector
+      let dateInputContainer = null;
+      
+      if (datePickerRef.current) {
+        // Find the input container within the datePickerRef
+        dateInputContainer = datePickerRef.current.querySelector('[data-date-input-container]');
+      }
+      
+      // Fallback to document querySelector
+      if (!dateInputContainer) {
+        dateInputContainer = document.querySelector('[data-date-input-container]');
+      }
+      
       if (dateInputContainer) {
         const rect = dateInputContainer.getBoundingClientRect();
         
         // For fixed positioning, use viewport coordinates (no scroll offset needed)
-        setDropdownPosition({
-          top: rect.bottom + 8, // Add some spacing below the input
-          left: Math.max(8, rect.left + (rect.width / 2) - 200) // Center the 400px dropdown, but ensure it's not off-screen
-        });
+        const dropdownWidth = 400;
+        const spacing = 8;
+        
+        // Calculate position below the input field
+        const top = rect.bottom + spacing;
+        const left = Math.max(spacing, rect.left + (rect.width / 2) - (dropdownWidth / 2));
+        
+        // Ensure dropdown doesn't go off the right edge of the screen
+        const maxLeft = window.innerWidth - dropdownWidth - spacing;
+        const finalLeft = Math.min(left, maxLeft);
+        
+        const newPosition = {
+          top,
+          left: finalLeft
+        };
+        
+        setDropdownPosition(newPosition);
         
         console.log('Date dropdown position calculated:', {
           inputRect: rect,
-          calculatedPosition: {
-            top: rect.bottom + 8,
-            left: Math.max(8, rect.left + (rect.width / 2) - 200)
-          }
+          windowSize: { width: window.innerWidth, height: window.innerHeight },
+          calculatedPosition: newPosition,
+          elementFound: 'data-date-input-container'
         });
+      } else {
+        console.warn('Date input container not found with data-date-input-container');
+        
+        // Fallback: use datePickerRef directly
+        if (datePickerRef.current) {
+          const rect = datePickerRef.current.getBoundingClientRect();
+          const dropdownWidth = 400;
+          const spacing = 8;
+          
+          const fallbackPosition = {
+            top: rect.bottom + spacing,
+            left: Math.max(spacing, rect.left + (rect.width / 2) - (dropdownWidth / 2))
+          };
+          
+          setDropdownPosition(fallbackPosition);
+          console.log('Using fallback position from datePickerRef:', fallbackPosition);
+        }
       }
     } catch (error) {
       console.warn('Could not calculate date dropdown position:', error);
@@ -549,14 +603,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     return () => clearInterval(id);
   }, [isReversingToRoutes, routes.length]);
 
-  // Recalculate dropdown position on window resize
-  useEffect(() => {
-    if (isDatePickerOpen) {
-      const handleResize = () => calculateDateDropdownPosition();
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
-    }
-  }, [isDatePickerOpen]);
+  // No longer needed - using CSS positioning instead of calculated positioning
 
   // Close date picker when clicking outside
   useEffect(() => {
@@ -712,6 +759,8 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     }
   };
 
+
+
   // Calculate line position and height
   useEffect(() => {
     const calcLine = () => {
@@ -737,6 +786,54 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     }
   }, [routes.length, inputFieldRef, isMinimized]); // <-- add isMinimized
 
+  // Function to navigate to a different flight card
+  const navigateToFlightCard = (targetIndex) => {
+    const flightCards = document.querySelectorAll('[data-flight-card-index]');
+    let targetCard = null;
+    
+    // Calculate alignment Y based on the 156px container height
+    const containerElement = document.querySelector('[data-component="ThemeCreator"]');
+    let alignmentY = 120; // Default fallback position
+    
+    if (containerElement) {
+      const containerRect = containerElement.getBoundingClientRect();
+      // Center elements vertically in the 156px container
+      alignmentY = containerRect.top + (156 / 2);
+    }
+    
+    flightCards.forEach(card => {
+      const cardIndex = parseInt(card.getAttribute('data-flight-card-index'));
+      if (cardIndex === targetIndex) {
+        const cardRect = card.getBoundingClientRect();
+        const cardHTML = card.innerHTML;
+        
+        // Calculate the center of the dashboard/viewport horizontally
+        const viewportCenterX = window.innerWidth / 2;
+        const cardCenterX = cardRect.left + cardRect.width / 2;
+        const targetX = viewportCenterX - cardCenterX;
+        
+        // Align vertically with Themer logo
+        const targetY = alignmentY - (cardRect.top + cardRect.height / 2);
+        
+        targetCard = {
+          index: targetIndex,
+          initialTop: cardRect.top,
+          initialLeft: cardRect.left,
+          width: cardRect.width,
+          height: cardRect.height,
+          targetX,
+          targetY,
+          alignmentY,
+          html: cardHTML
+        };
+      }
+    });
+    
+    if (targetCard) {
+      setSelectedFlightCard(targetCard);
+    }
+  };
+
   // Tooltip colors should match ThemeCreator background, not theme color
   const tooltipBgColor = '#1E1E1E'; // Fixed to match TC background
   const tooltipTextColor = getReadableOnColor(tooltipBgColor);
@@ -744,17 +841,148 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
 
 
   return (
-    <div className={`space-y-12 relative`} style={{ overflow: 'visible' }}>
+    <>
+      <style>{`
+        @keyframes containerFadeOut {
+          0% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0;
+          }
+        }
+        
+        @keyframes moveToCenter {
+          0% {
+            transform: translateX(0) translateY(0);
+            opacity: 1;
+          }
+          100% {
+            transform: translateX(var(--target-x)) translateY(var(--target-y));
+            opacity: 1;
+          }
+                  }
+         
+         @keyframes containerHeightShrink {
+           0% {
+             height: 100vh;
+           }
+           100% {
+             height: 120px;
+           }
+         }
+         
+         .container-height-shrink {
+           animation: containerHeightShrink 0.8s ease-in forwards;
+         }
+          
+          /* Prevent selected flight card from being affected by parent animation */
+        [data-flight-card-index].centering-card {
+          position: fixed !important;
+          z-index: 100 !important;
+        }
+      `}</style>
+      
+      {/* Flight card overlay - completely outside animated container */}
+      {selectedFlightCard && (
+        <div 
+          className="fixed inset-0 z-50 pointer-events-none"
+          style={{
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh'
+          }}
+        >
+          {/* Left Chevron - aligned with Themer logo row */}
+          {selectedFlightCard.index > 0 && (
+            <button
+              className="absolute transform -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center transition-all duration-200 shadow-lg"
+              style={{ 
+                pointerEvents: 'auto',
+                zIndex: 1000,
+                left: `${selectedFlightCard.initialLeft + selectedFlightCard.targetX - 60}px`,
+                top: `${selectedFlightCard.alignmentY}px`
+              }}
+              onClick={() => navigateToFlightCard(selectedFlightCard.index - 1)}
+              title="Previous flight"
+            >
+                              <ChevronLeftIcon className="w-5 h-5" style={{ color: '#000000' }} />
+            </button>
+          )}
+          
+          {/* Flight Card */}
+          <div
+            className="absolute transition-transform duration-200 ease-in-out"
+            style={{
+              top: `${selectedFlightCard.initialTop}px`,
+              left: `${selectedFlightCard.initialLeft}px`,
+              width: `${selectedFlightCard.width}px`,
+              height: `${selectedFlightCard.height}px`,
+              transform: `translateX(${selectedFlightCard.targetX}px) translateY(${selectedFlightCard.targetY}px)`,
+              pointerEvents: 'auto'
+            }}
+            dangerouslySetInnerHTML={{ __html: selectedFlightCard.html }}
+          />
+          
+          {/* Right Chevron - aligned with Themer logo row */}
+          {selectedFlightCard.index < totalFlightCards - 1 && (
+            <button
+              className="absolute transform -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center transition-all duration-200 shadow-lg"
+              style={{ 
+                pointerEvents: 'auto',
+                zIndex: 1000,
+                left: `${selectedFlightCard.initialLeft + selectedFlightCard.targetX + selectedFlightCard.width + 12}px`,
+                top: `${selectedFlightCard.alignmentY}px`
+              }}
+              onClick={() => navigateToFlightCard(selectedFlightCard.index + 1)}
+              title="Next flight"
+            >
+                              <ChevronRightIcon className="w-5 h-5" style={{ color: '#000000' }} />
+            </button>
+          )}
+        </div>
+      )}
+      
+      <div className={`relative ${isScrollingUp ? 'container-height-shrink' : ''}`} ref={containerRef}>
+        {/* Deploy to Aircraft button - positioned at exact captured coordinates */}
+        {(flightsGenerated || isScrollingUp) && buttonPosition.width > 0 && (
+          <button
+            className="absolute z-50 h-10 px-4 rounded-tl-[0px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px] transition-colors flex items-center justify-center w-[240px] relative overflow-hidden backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] text-white/70 cursor-not-allowed"
+            style={{
+              top: `${buttonPosition.top - 10}px`,
+              left: `${buttonPosition.left}px`,
+              width: `${buttonPosition.width}px`,
+              height: `${buttonPosition.height}px`,
+              pointerEvents: 'auto'
+            }}
+            disabled={true}
+            onClick={() => {
+              console.log('Deploy to Aircraft clicked (fixed position)');
+            }}
+            title="Deploy to Aircraft"
+          >
+            <span>Deploy to Aircraft</span>
+          </button>
+        )}
+        
+        <div 
+          className={`space-y-12 relative`} 
+          style={{ 
+            overflow: 'visible',
+            animation: isScrollingUp ? 'containerFadeOut 0.2s ease-in forwards' : 'none'
+          }}
+        >
       {/* Timeline line - from input field center to last card center */}
       {/* Input field and toggle button container - ALWAYS VISIBLE per requirements */}
         {/* Flight route builder background container */}
-        <div className="backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.1)] rounded-full" style={{ padding: '8px' }}>
-          <div className="flex items-end gap-3" style={{ overflow: 'visible' }}>
+        <div className="backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.1)] rounded-full" style={{ paddingTop: '4px', paddingBottom: '4px', paddingLeft: '8px', paddingRight: '8px' }}>
+          <div className="flex items-center gap-3" style={{ overflow: 'visible' }}>
           {/* Input field and badges */}
           <div className="relative w-[55%]" ref={dropdownRef}>
 
           {/* Custom input container with badges - offset to avoid timeline overlap */}
-          <div ref={inputFieldRef} className="relative min-h-[3rem] px-4 py-3 rounded-lg focus-within:ring-0 w-full">
+          <div ref={inputFieldRef} className="relative min-h-[2rem] px-3 py-2 rounded-lg focus-within:ring-0 w-full">
                           {/* Airport badges - showing only available airports (not in routes) */}
               <div className="flex flex-wrap gap-2 items-center w-full">
                 {AIRPORTS.filter(airport => !routes.some(route => route.airport.code === airport.code)).map((airport) => {
@@ -800,9 +1028,9 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                 onClick={() => {
                   // Handle add new functionality - could open a modal or expand search
                 }}
-                title="Add new route"
+                title="Add new airport"
               >
-                Add new
+                Add new airport
                 {/* Plus icon */}
                 <div className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full transition-colors">
                   <PlusIcon className="w-3 h-3" />
@@ -845,9 +1073,6 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
               data-date-input-container
               className="relative min-h-[3rem] px-4 py-3 rounded-lg focus-within:ring-0 w-full cursor-pointer" 
               onClick={() => {
-                if (!isDatePickerOpen) {
-                  calculateDateDropdownPosition();
-                }
                 setIsDatePickerOpen(!isDatePickerOpen);
               }}>
               {/* Date display */}
@@ -865,16 +1090,17 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
               </div>
             </div>
             {/* Former inline label removed; now rendered above input */}
-            {/* Date Picker Dropdown - positioned using fixed to bypass parent clipping */}
+            {/* Date Picker Dropdown - positioned absolutely below the input */}
             {isDatePickerOpen && (
               <div 
-                className="fixed rounded-lg shadow-lg" 
+                className="absolute rounded-lg shadow-lg" 
                 style={{ 
                   width: '400px', 
                   backgroundColor: '#1E1E1E', 
                   zIndex: 999999,
-                  left: `${dropdownPosition.left}px`,
-                  top: `${dropdownPosition.top}px`
+                  left: '50%',
+                  top: 'calc(100% + 8px)',
+                  transform: 'translateX(-50%)'
                 }}>
                 <DatePicker
                   currentDate={currentDate}
@@ -899,31 +1125,32 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
             <div className="w-px h-full bg-white/10"></div>
           </div>
 
-          {/* Generate flights / Deploy theme button */}
-          <button
-            className={`h-12 px-4 rounded-tl-[0px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px] transition-colors flex items-center justify-center w-[240px] relative overflow-hidden ${
-              !isGenerating 
-                ? (routes.length >= 2 
+          {/* Generate flights button - changes to Deploy to Aircraft when flights are generated */}
+          {/* Hide the button during scroll animation since it's shown in fixed position */}
+          {!isScrollingUp && (
+            <button
+              ref={originalButtonRef}
+              className={`h-10 px-4 rounded-tl-[0px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px] transition-colors flex items-center justify-center w-[240px] relative overflow-hidden self-center ${
+                flightsGenerated
+                  ? 'backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] text-white/70 cursor-not-allowed'
+                  : routes.length >= 2 && !isGenerating
                     ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                    : 'backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] text-white/70 cursor-not-allowed')
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-            }`}
-            disabled={!isGenerating && routes.length < 2}
-            onClick={() => {
-              if (!isGenerating) {
-                console.log('🔥 GENERATE FLIGHTS BUTTON CLICKED - Setting isGenerating to true');
-                setIsGenerating(true);
-                const event = new CustomEvent('airport-search-generate-flights');
-                window.dispatchEvent(event);
-              } else {
-                // Deploy to Aircraft functionality - TODO: implement
-                console.log('Deploy to Aircraft clicked');
-              }
-            }}
-            title={isGenerating ? "Deploy to Aircraft" : "Generate flights"}
-          >
-            <span>{isGenerating ? "Deploy to Aircraft" : "Generate flights"}</span>
-          </button>
+                    : 'backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] text-white/70 cursor-not-allowed'
+              }`}
+              disabled={flightsGenerated || routes.length < 2 || isGenerating}
+              onClick={() => {
+                if (!isGenerating && !flightsGenerated) {
+                  console.log('🔥 GENERATE FLIGHTS BUTTON CLICKED - Setting isGenerating to true');
+                  setIsGenerating(true);
+                  const event = new CustomEvent('airport-search-generate-flights');
+                  window.dispatchEvent(event);
+                }
+              }}
+              title={flightsGenerated ? "Deploy to Aircraft" : "Generate flights"}
+            >
+              <span>{flightsGenerated ? "Deploy to Aircraft" : "Generate flights"}</span>
+            </button>
+          )}
 
         </div>
         
@@ -964,10 +1191,108 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
           onBuildThemes={onBuildThemes}
           setIsReversingToRoutes={setIsReversingToRoutes}
           setIsGenerating={setIsGenerating}
+          onEditTheme={(flightIndex, flightSegment) => {
+            console.log('Edit theme triggered for flight:', flightIndex, flightSegment);
+            
+            // Calculate alignment Y based on the new 156px container height
+            // Position elements at the vertical center of the shrunken container
+            const containerElement = document.querySelector('[data-component="ThemeCreator"]');
+            let alignmentY = 120; // Default fallback position
+            
+            if (containerElement) {
+              const containerRect = containerElement.getBoundingClientRect();
+              // When container shrinks to 156px, center elements vertically
+              alignmentY = containerRect.top + (156 / 2); // Center of 156px container
+            }
+            
+            // Capture exact button position before animation and align with Themer logo
+            if (originalButtonRef.current && containerRef.current) {
+              const buttonRect = originalButtonRef.current.getBoundingClientRect();
+              const containerRect = containerRef.current.getBoundingClientRect();
+              
+              // Use the alignment Y from the Themer logo instead of button's original position
+              const alignedTop = alignmentY - containerRect.top - 20; // -20 to center the button vertically
+              
+              setButtonPosition({
+                top: alignedTop,
+                left: buttonRect.left - containerRect.left,
+                width: buttonRect.width,
+                height: buttonRect.height
+              });
+            }
+            
+            // Find and capture the clicked flight card position
+            const flightCards = document.querySelectorAll('[data-flight-card-index]');
+            setTotalFlightCards(flightCards.length); // Update total count
+            let clickedCard = null;
+            
+            flightCards.forEach(card => {
+              const cardIndex = parseInt(card.getAttribute('data-flight-card-index'));
+              if (cardIndex === flightIndex) {
+                const cardRect = card.getBoundingClientRect();
+                
+                // Calculate the center of the dashboard/viewport horizontally
+                const viewportCenterX = window.innerWidth / 2;
+                const cardCenterX = cardRect.left + cardRect.width / 2;
+                const targetX = viewportCenterX - cardCenterX;
+                
+                // Align vertically with Themer logo
+                const targetY = alignmentY - (cardRect.top + cardRect.height / 2);
+                
+                clickedCard = {
+                  index: flightIndex,
+                  segment: flightSegment,
+                  element: card,
+                  targetX,
+                  targetY,
+                  alignmentY // Store for positioning other elements
+                };
+              }
+            });
+            
+            if (clickedCard) {
+              // Clone the card content for the overlay
+              const cardRect = clickedCard.element.getBoundingClientRect();
+              const cardHTML = clickedCard.element.innerHTML;
+              
+              // Hide the original card
+              clickedCard.element.style.opacity = '0';
+              
+              // Set up the overlay card data
+              setSelectedFlightCard({
+                index: flightIndex,
+                segment: flightSegment,
+                initialTop: cardRect.top,
+                initialLeft: cardRect.left,
+                width: cardRect.width,
+                height: cardRect.height,
+                targetX: clickedCard.targetX,
+                targetY: clickedCard.targetY,
+                alignmentY: clickedCard.alignmentY,
+                html: cardHTML
+              });
+            }
+            
+            // Trigger container scroll-up animation
+            setIsScrollingUp(true);
+            
+            // Notify parent component about scrolling state
+            if (onScrollingStateChange) {
+              onScrollingStateChange(true);
+            }
+            
+            // Trigger preview mode
+            if (onBuildThemeClicked) {
+              console.log('🎯 AirportSearch: Calling onBuildThemeClicked');
+              onBuildThemeClicked();
+            }
+          }}
         />
         </div>
       )}
-    </div>
+        </div>
+      </div>
+    </>
   );
 }
 

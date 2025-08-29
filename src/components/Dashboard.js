@@ -13,6 +13,8 @@ import { useLocation } from 'react-router-dom';
 import { mapThemeChipToAnimation } from '../utils/themeAnimationMapper';
 import { PhotoIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
+
+
 // Add CSS animation for gradient border
 const gradientAnimationCSS = `
   @keyframes gradientAnimation {
@@ -483,6 +485,7 @@ export default function Dashboard() {
   const [isGeneratingFlights, setIsGeneratingFlights] = useState(false);
   const [showInFlightGUI, setShowInFlightGUI] = useState(false);
   const [showIFEFrame, setShowIFEFrame] = useState(false);
+  const [showInFlightPreview, setShowInFlightPreview] = useState(false);
   const [showSweepAnimation, setShowSweepAnimation] = useState(false);
 
   // DEBUG: Track height changes
@@ -1016,6 +1019,8 @@ export default function Dashboard() {
     setContentCardOrder(newOrder);
   };
 
+  console.log('🎯 Dashboard RENDER: showInFlightPreview =', showInFlightPreview, 'showIFEFrame =', showIFEFrame, 'isPromptMode =', isPromptMode);
+  
   return (
     <div 
       ref={dashboardRef}
@@ -1075,18 +1080,119 @@ export default function Dashboard() {
           onGeneratingStateChange={(isGenerating) => {
             setIsGeneratingFlights(isGenerating);
           }}
+          flightsGenerated={flightsGenerated}
                       onBuildThemes={() => {
               setIsThemeBuildStarted(true);
+              // DIRECT TRIGGER: Show preview when build themes is clicked
+              console.log('🎯 Dashboard: onBuildThemes called, triggering preview with delay');
+              setTimeout(() => {
+                console.log('🎯 Dashboard: Timer executed, setting preview states');
+                setShowInFlightPreview(true);
+                setShowIFEFrame(true);
+                setIsPromptMode(true);
+              }, 250); // Match ThemeCreator delay
             }}
                       onFlightSelect={(segment) => {
             setSelectedFlightSegment(segment);
           }}
-          showIFEFrame={false}
+          showIFEFrame={showIFEFrame}
+          onShowPreview={(show) => {
+            console.log('🎯 Dashboard: onShowPreview called with:', show);
+            setShowInFlightPreview(show);
+            setShowIFEFrame(show);
+            setIsPromptMode(show);
+            console.log('🎯 Dashboard: States IMMEDIATELY after set - showInFlightPreview:', show, 'showIFEFrame:', show, 'isPromptMode:', show);
+            
+            // Force a re-render check
+            setTimeout(() => {
+              console.log('🎯 Dashboard: States AFTER timeout - showInFlightPreview should be:', show);
+            }, 100);
+          }}
+          onBuildThemeClicked={() => {
+            console.log('🎯 Dashboard: Build theme clicked, triggering preview directly');
+            setTimeout(() => {
+              setShowInFlightPreview(true);
+              setShowIFEFrame(true);
+              setIsPromptMode(true);
+            }, 250);
+          }}
         />
       </div>
       
+      {/* In-flight preview label */}
+      {showInFlightPreview && (
+        <div 
+          className="w-full flex justify-center"
+          style={{
+            marginTop: 20,
+            opacity: showInFlightPreview ? 1 : 0,
+            transform: showInFlightPreview ? 'translateY(0)' : 'translateY(20px)',
+            transition: 'opacity 0.4s ease-out, transform 0.4s ease-out'
+          }}
+        >
+          <h2 className="text-xl font-semibold text-gray-800">In-flight preview</h2>
+        </div>
+      )}
+
+      {/* IFE frame - Shows when preview mode is active */}
+      {showInFlightPreview && (
+        <div 
+          className="w-full flex justify-center" 
+          style={{ 
+            marginTop: 8, 
+            height: '880px',
+            opacity: showInFlightPreview ? 1 : 0,
+            transform: showInFlightPreview ? 'translateY(0)' : 'translateY(40px)',
+            transition: 'opacity 0.6s ease-out, transform 0.6s ease-out'
+          }}
+        >
+          <div style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', contain: 'layout paint', transform: 'scale(0.8)', transformOrigin: 'top center' }}>
+            {/* IFE Frame SVG */}
+            <img
+              src={process.env.PUBLIC_URL + '/ife-frame.svg'}
+              alt="Mobile Frame"
+              style={{ position: 'absolute', top: -40, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none', willChange: 'transform', transform: 'translateZ(0)' }}
+            />
+            
+            {/* Frame Content */}
+            <FrameContent
+              origin={origin}
+              destination={destination}
+              minutesLeft={minutesLeft}
+              landingIn={landingIn}
+              maxFlightMinutes={maxFlightMinutes}
+              handleProgressChange={handleProgressChange}
+              themeColor={currentThemeColor}
+              routes={routes}
+              isPromptMode={isPromptMode}
+              onPromptHover={handlePromptHover}
+              onPromptClick={handlePromptClick}
+              fpsPrompts={fpsPrompts}
+              isThemeBuildStarted={isThemeBuildStarted}
+              selectedLogo={selectedLogo}
+              flightsGenerated={flightsGenerated}
+              onAnimationProgress={(progress) => {
+                if (progress >= 0.2 && !themeAnimationComplete) {
+                  handleThemeAnimationComplete();
+                }
+              }}
+              onFlightPhaseSelect={handleFlightPhaseSelect}
+              selectedFlightPhase={selectedFlightPhase}
+              promoCardContents={promoCardContents}
+              cardOrder={cardOrder}
+              onCardReorder={handleCardReorder}
+              contentCardOrder={contentCardOrder}
+              onContentCardReorder={handleContentCardReorder}
+            />
+          </div>
+        </div>
+      )}
+      
 
       
+
+
+
       {/* Plus Icon Cursor for Prompt Mode */}
       <PlusIconCursor 
         isVisible={isPromptMode && showPlusIcon} 
@@ -1422,130 +1528,10 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* IFE frame - DISABLED to keep flight cards in original position */}
-          {false && (
-          <div 
-            className="w-full flex justify-center" 
-            style={{ 
-              marginTop: 8, 
-              height: '880px',
-              opacity: showIFEFrame ? 1 : 0,
-              transform: showIFEFrame ? 'translateY(0)' : 'translateY(40px)',
-              transition: 'opacity 1.2s ease-in-out, transform 1.2s ease-in-out'
-            }}
-          >
-            <div style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', contain: 'layout paint', transform: 'scale(0.8)', transformOrigin: 'top center' }}>
-              {/* Sweep Animation Overlay for Prompt Mode */}
-              {showSweepAnimation && (
-                <>
-                  <style>{`
-                    @keyframes sweepPath {
-                      0% {
-                        left: -75px;
-                        top: calc(100% + 75px);
-                        opacity: 0;
-                      }
-                      5% {
-                        left: -75px;
-                        top: calc(100% + 75px);
-                        opacity: 0.6;
-                      }
-                      25% {
-                        left: -75px;
-                        top: -75px;
-                        opacity: 0.6;
-                      }
-                      50% {
-                        left: calc(100% + 75px);
-                        top: -75px;
-                        opacity: 0.6;
-                      }
-                      75% {
-                        left: calc(100% + 75px);
-                        top: calc(100% + 75px);
-                        opacity: 0.6;
-                      }
-                      95% {
-                        left: -75px;
-                        top: calc(100% + 75px);
-                        opacity: 0.6;
-                      }
-                      100% {
-                        left: -75px;
-                        top: calc(100% + 75px);
-                        opacity: 0;
-                      }
-                    }
-                  `}</style>
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
-                      pointerEvents: 'none',
-                      zIndex: 10,
-                      borderRadius: '20px',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <div
-                      style={{
-                        position: 'absolute',
-                        width: '150px',
-                        height: '150px',
-                        background: 'radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%)',
-                        borderRadius: '50%',
-                        filter: 'blur(20px)',
-                        animation: 'sweepPath 4s linear infinite',
-                        transform: 'translate(-50%, -50%)',
-                        boxShadow: '0 0 30px rgba(255, 255, 255, 0.3), 0 0 60px rgba(255, 255, 255, 0.1)'
-                      }}
-                    />
-                  </div>
-                </>
-              )}
-              <img
-                src={process.env.PUBLIC_URL + '/ife-frame.svg'}
-                alt="Mobile Frame"
-                style={{ position: 'absolute', top: -40, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none', willChange: 'transform', transform: 'translateZ(0)' }}
-              />
-              <FrameContent
-                origin={origin}
-                destination={destination}
-                minutesLeft={minutesLeft}
-                landingIn={landingIn}
-                maxFlightMinutes={maxFlightMinutes}
-                handleProgressChange={handleProgressChange}
-                themeColor={currentThemeColor}
-                routes={routes}
-                isPromptMode={isPromptMode}
-                onPromptHover={handlePromptHover}
-                onPromptClick={handlePromptClick}
-                fpsPrompts={fpsPrompts}
-                isThemeBuildStarted={isThemeBuildStarted}
-                selectedLogo={selectedLogo}
-                flightsGenerated={flightsGenerated}
-                onAnimationProgress={(progress) => {
-                  // Detect when animation reaches completion (20% progress, which is the target)
-                  if (progress >= 0.2 && !themeAnimationComplete) {
-                    handleThemeAnimationComplete();
-                  }
-                }}
-                onFlightPhaseSelect={handleFlightPhaseSelect}
-                selectedFlightPhase={selectedFlightPhase}
-                promoCardContents={promoCardContents}
-                cardOrder={cardOrder}
-                onCardReorder={handleCardReorder}
-                contentCardOrder={contentCardOrder}
-                onContentCardReorder={handleContentCardReorder}
-              />
-            </div>
-          </div>
-          )}
+          {/* Preview elements will be added here later */}
+
         </>
       )}
     </div>
   );
-} 
+}

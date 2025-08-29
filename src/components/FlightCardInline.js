@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-// Add CSS animation for gradient border
+// Add CSS animation for gradient border and edit theme animations
 const gradientAnimationCSS = `
   @keyframes gradientAnimation {
     0% {
@@ -13,11 +13,34 @@ const gradientAnimationCSS = `
       background-position: 0% 50%;
     }
   }
+  
+  @keyframes containerScrollUp {
+    0% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-100vh);
+      opacity: 0;
+    }
+  }
+  
+  @keyframes themedCardSlideIn {
+    0% {
+      transform: translateY(100vh);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
 `;
 
-export default function FlightCardInline({ segment, index, activeIndex, onSelect, onTriggerPromptBubble, onEnterPromptMode, themeColor = '#1E1E1E' }) {
+export default function FlightCardInline({ segment, index, activeIndex, onSelect, onTriggerPromptBubble, onEnterPromptMode, themeColor = '#1E1E1E', onEditTheme }) {
 
   const isActive = activeIndex === index;
+  const [isInEditMode, setIsInEditMode] = useState(false);
 
   // Helper function to create animated border overlay for active state
   const getAnimatedBorderOverlay = () => {
@@ -47,9 +70,93 @@ export default function FlightCardInline({ segment, index, activeIndex, onSelect
     );
   };
 
+  // Themed flight card component with 3 buttons that slides in from bottom
+  const ThemedFlightCard = () => (
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{
+        background: 'rgba(0, 0, 0, 0.8)',
+        animation: 'themedCardSlideIn 0.8s ease-out forwards'
+      }}
+    >
+      <div 
+        className="backdrop-blur-[10px] backdrop-filter pl-5 pr-3 py-4 rounded-full shadow-lg"
+        style={{
+          ...(typeof themeColor === 'string' && themeColor.includes('gradient')
+            ? { background: themeColor }
+            : { backgroundColor: themeColor }),
+          width: 'auto',
+          minWidth: '500px'
+        }}
+      >
+        <div className="flex justify-between items-stretch opacity-100">
+          <div className="flex items-start gap-1 flex-none pr-0" style={{ paddingRight: 6 }}>
+            <div className="flex-none">
+              <div className="flex items-center gap-2">
+                <div 
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 bg-white text-black"
+                >
+                  {index + 1}
+                </div>
+                <h3 className="text-base font-semibold text-white break-words">
+                  {segment?.origin?.airport?.city} → {segment?.destination?.airport?.city}
+                </h3>
+              </div>
+            </div>
+          </div>
+          
+          {/* Three action buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              className="px-3 py-1 text-xs font-medium text-white bg-white/20 hover:bg-white/30 rounded-full transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('Add logo clicked', index, segment);
+              }}
+            >
+              Add logo
+            </button>
+            <button
+              className="px-3 py-1 text-xs font-medium text-white bg-white/20 hover:bg-white/30 rounded-full transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('Change theme clicked', index, segment);
+              }}
+            >
+              Change theme
+            </button>
+            <button
+              className="px-3 py-1 text-xs font-medium text-white bg-white/20 hover:bg-white/30 rounded-full transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('Modify flight content clicked', index, segment);
+              }}
+            >
+              Modify flight content
+            </button>
+            <button
+              className="px-3 py-1 text-xs font-medium text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors ml-2"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsInEditMode(false);
+                console.log('Done clicked - exiting edit mode');
+              }}
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <>
       <style>{gradientAnimationCSS}</style>
+      
+      {/* Show themed card overlay when in edit mode */}
+      {isInEditMode && <ThemedFlightCard />}
+      
       <div className="w-full flex-1 min-w-0 basis-0" onClick={() => typeof onSelect === 'function' && onSelect(index)}>
         <div 
           className={`backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.1)] pl-5 pr-3 py-4 rounded-full shadow-sm w-full relative ${isActive ? 'shadow-lg' : 'hover:shadow-md'}`}
@@ -78,14 +185,29 @@ export default function FlightCardInline({ segment, index, activeIndex, onSelect
           {/* Edit button */}
           <div className="flex items-center">
             <button
-              className="px-3 py-1 text-xs font-medium text-white bg-white/20 hover:bg-white/30 rounded-full transition-colors"
+              className={`px-3 py-1 text-xs font-medium text-white transition-colors ${
+                isActive 
+                  ? 'bg-blue-600 hover:bg-blue-700' 
+                  : 'bg-white/20 hover:bg-white/30'
+              }`}
+              style={{ 
+                borderTopLeftRadius: '0px', 
+                borderTopRightRadius: '9999px', 
+                borderBottomLeftRadius: '9999px', 
+                borderBottomRightRadius: '9999px' 
+              }}
               onClick={(e) => {
                 e.stopPropagation(); // Prevent card selection when clicking edit
-                // TODO: Add edit functionality
                 console.log('Edit flight card', index, segment);
+                
+                // Trigger animation sequence
+                if (typeof onEditTheme === 'function') {
+                  onEditTheme(index, segment);
+                }
+                setIsInEditMode(true);
               }}
             >
-              Edit
+              Build theme
             </button>
           </div>
 

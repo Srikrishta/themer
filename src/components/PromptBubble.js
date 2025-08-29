@@ -1152,7 +1152,7 @@ export default function PromptBubble({
                 case 'logo-placeholder':
                   return logoStep === 1 ? 'Select Airline Logo' : 'Add Animation';
                 default:
-                  return 'Edit';
+                  return 'Build theme';
               }
             })()}
           </span>
