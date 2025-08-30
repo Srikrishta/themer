@@ -398,7 +398,7 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
   );
 }
 
-function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized, onSelectedDatesChange, themeColor = '#1E1E1E', onEnterPromptMode, onTriggerPromptBubble, onGeneratingStateChange, onBuildThemes, onFlightSelect, flightsGenerated = false, onScrollingStateChange, onBuildThemeClicked }) {
+function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized, onSelectedDatesChange, themeColor = '#1E1E1E', onEnterPromptMode, onTriggerPromptBubble, onGeneratingStateChange, onBuildThemes, onFlightSelect, flightsGenerated = false, onScrollingStateChange, onBuildThemeClicked, onAirlineSelect }) {
   // Date picker state and logic (moved from ThemeCreator)
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [dates, setDates] = useState(selectedDates || []);
@@ -437,7 +437,43 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
   const airlineDropdownRef = useRef(null);
   
   // Airline options
-  const AIRLINE_OPTIONS = ['All Airlines', 'Lufthansa', 'Swiss', 'Austrian Airlines'];
+  const AIRLINE_OPTIONS = ['All Airlines', 'Lufthansa', 'Swiss', 'Austrian Airlines', 'Discover'];
+
+  // Airline logo and theme mappings
+  const AIRLINE_MAPPINGS = {
+    'Lufthansa': {
+      logo: {
+        id: 'lufthansa',
+        src: process.env.PUBLIC_URL + '/lufthansa.png',
+        animationType: 'glow'
+      },
+      themeColor: '#F9BA00' // Lufthansa yellow
+    },
+    'Swiss': {
+      logo: {
+        id: 'swiss',
+        src: process.env.PUBLIC_URL + '/swiss.png',
+        animationType: 'sparkles'
+      },
+      themeColor: '#FF0000' // Swiss red
+    },
+    'Austrian Airlines': {
+      logo: {
+        id: 'austrian',
+        src: process.env.PUBLIC_URL + '/lufthansa.png', // Using Lufthansa as placeholder for now
+        animationType: 'lights'
+      },
+      themeColor: '#C8102E' // Austrian red
+    },
+    'Discover': {
+      logo: {
+        id: 'discover',
+        src: process.env.PUBLIC_URL + '/discover.svg',
+        animationType: 'sparkles'
+      },
+      themeColor: '#1E73AF' // Discover blue
+    }
+  };
 
   // Toggle state is now controlled by parent ThemeCreator via isMinimized prop
 
@@ -1552,6 +1588,15 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
               onClick={() => {
                 setSelectedAirline(airline);
                 setIsAirlineDropdownOpen(false);
+                
+                // Handle airline selection for all airlines
+                if (airline !== 'All Airlines' && AIRLINE_MAPPINGS[airline] && onAirlineSelect) {
+                  const airlineData = AIRLINE_MAPPINGS[airline];
+                  onAirlineSelect(airlineData.logo, airlineData.themeColor);
+                } else if (airline === 'All Airlines' && onAirlineSelect) {
+                  // Reset to default when "All Airlines" is selected
+                  onAirlineSelect(null, '#1E1E1E'); // Default theme color
+                }
               }}
             >
               {airline}

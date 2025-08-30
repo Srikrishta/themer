@@ -223,7 +223,7 @@ export default function PromptBubble({
   const [autoTypeIndex, setAutoTypeIndex] = useState(0);
   const [stickyPosition, setStickyPosition] = useState(null);
   const [selectedChip, setSelectedChip] = useState((elementType === 'flight-icon' || elementType === 'flight-phase-button') && positionKey === 'landing-demo' ? 'cruise' : null);
-  const [selectedLogoChip, setSelectedLogoChip] = useState(null);
+
   
   // Initialize promo card state from existingText if available
   const initializePromoValues = () => {
@@ -274,8 +274,9 @@ export default function PromptBubble({
   useEffect(() => {
     console.log('=== PROMO IMAGE VALUE CHANGED ===', { promoImageValue });
   }, [promoImageValue]);
-  const [logoStep, setLogoStep] = useState(1); // 1: choose logo, 2: describe animation
+
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showGradientPicker, setShowGradientPicker] = useState(false);
   const [selectedColor, setSelectedColor] = useState(() => {
     // Initialize with logo color if available, otherwise use themeColor
     if (selectedLogo && selectedLogo.id) {
@@ -290,7 +291,7 @@ export default function PromptBubble({
   });
   const bubbleRef = useRef(null);
   const inputRef = useRef(null);
-  const logoFileInputRef = useRef(null);
+
 
   // Ensure selectedColor is always in sync with the current theme/logo
   useEffect(() => {
@@ -313,19 +314,20 @@ export default function PromptBubble({
   }, [selectedLogo, themeColor]);
 
   // Determine background color - use blue for flight card related prompts, theme color for IFE frame
-  const isFlightCardPrompt = (elementType === 'logo-placeholder' || elementType === 'flight-journey-bar' || elementType === 'flight-phase-button') 
-    && (positionKey && (positionKey.includes('inline-flight') || positionKey === 'logo-dashboard' || positionKey === 'fjb-dashboard' || positionKey === 'flight-phase-button-dashboard'));
+  const isFlightCardPrompt = (elementType === 'flight-journey-bar' || elementType === 'flight-phase-button') 
+    && (positionKey && (positionKey.includes('inline-flight') || positionKey === 'fjb-dashboard' || positionKey === 'flight-phase-button-dashboard'));
   
   // IFE frame prompts have these position keys
   const isIFEFramePrompt = positionKey && (positionKey.includes('landing') || positionKey.includes('demo') || !positionKey.includes('dashboard') && !positionKey.includes('inline-flight'));
   
   const flightCardBlue = '#2563eb'; // Same blue as generate flights button (bg-blue-600)
+  const darkContainerColor = '#1f2937'; // Dark gray container color (bg-gray-800)
   
   // Determine text/icon color for readability on promo-card bubbles (dashboard)
   const actualBackgroundColor = elementType === 'promo-card' && positionKey === 'middle-card-demo' 
     ? 'rgba(255,255,255,0.2)'
     : isFlightCardPrompt 
-    ? flightCardBlue
+    ? darkContainerColor
     : (selectedColor || themeColor); // IFE frame and other prompts use theme/selected color
   const isGradient = typeof actualBackgroundColor === 'string' && actualBackgroundColor.includes('gradient');
   const parseHex = (hex) => {
@@ -525,8 +527,8 @@ export default function PromptBubble({
       const scrollY = window.pageYOffset || document.documentElement.scrollTop;
       setStickyPosition({ x: position.x + scrollX, y: position.y + scrollY });
       return;
-    } else if (elementType === 'promo-card' || elementType === 'logo-placeholder' || elementType === 'flight-phase-button' || positionKey === 'middle-card-demo' || positionKey === 'middle-card-landing') {
-      // Promo-card/logo-placeholder/flight-phase-button: viewport -> document
+    } else if (elementType === 'promo-card' || elementType === 'flight-phase-button' || positionKey === 'middle-card-demo' || positionKey === 'middle-card-landing') {
+      // Promo-card/flight-phase-button: viewport -> document
       const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
       const scrollY = window.pageYOffset || document.documentElement.scrollTop;
       setStickyPosition({ x: position.x + scrollX, y: position.y + scrollY });
@@ -903,9 +905,7 @@ export default function PromptBubble({
     e.preventDefault();
     
     // Check if submission is valid based on element type and step
-    const isValidSubmission = elementType === 'logo-placeholder'
-      ? (logoStep === 1 ? selectedLogoChip && selectedLogoChip !== 'add-new' : promptText.trim())
-      : elementType === 'flight-journey-bar'
+    const isValidSubmission = elementType === 'flight-journey-bar'
       ? true // No text input required for theme selection
       : elementType === 'promo-card'
       ? (promoTextValue.trim() || promoImageValue.trim()) // At least one field should be filled
@@ -924,40 +924,7 @@ export default function PromptBubble({
     if (isValidSubmission && !isLoading) {
       setIsLoading(true);
       
-      // Apply logo selection when submitting (for logo-placeholder elementType)
-      if (elementType === 'logo-placeholder' && selectedLogoChip && selectedLogoChip !== 'add-new') {
-        try {
-          if (typeof onLogoSelect === 'function') {
-            let src = null;
-            let themeColor = null;
-            if (selectedLogoChip === 'discover') {
-              src = process.env.PUBLIC_URL + '/discover.svg';
-              themeColor = '#1E72AE';
-            } else if (selectedLogoChip === 'lufthansa') {
-              src = process.env.PUBLIC_URL + '/Lufthansa_Logo_2018.svg.png';
-              themeColor = '#050F43';
-            } else if (selectedLogoChip === 'swiss') {
-              src = process.env.PUBLIC_URL + '/swiss.png';
-              themeColor = '#CB0300';
-            }
-            onLogoSelect({ id: selectedLogoChip, src });
-            
-            // Change theme color to match the selected airline
-            if (themeColor && typeof onThemeColorChange === 'function') {
-              onThemeColorChange(themeColor, { label: selectedLogoChip, color: themeColor });
-            }
-            
-            // Update the prompt bubble's own color to match the selected logo
-            setSelectedColor(themeColor);
-          }
-        } catch {}
-        
-        // For logo selection in step 1, don't close the bubble automatically
-        setIsLoading(false);
-        // Don't call onSubmit for logo selection as it would close the bubble
-        // onSubmit(promptText.trim() || '', elementType, elementData, positionKey);
-        return; // Don't execute the normal flow
-      }
+
       
       // For promo cards, combine the text and image values
       const submitText = elementType === 'promo-card' 
@@ -998,9 +965,7 @@ export default function PromptBubble({
         e.preventDefault();
         
         // Check if submission is valid based on element type and step
-        const isValidSubmission = elementType === 'logo-placeholder'
-          ? (logoStep === 1 ? selectedLogoChip && selectedLogoChip !== 'add-new' : promptText.trim())
-          : elementType === 'flight-journey-bar'
+        const isValidSubmission = elementType === 'flight-journey-bar'
           ? true // No text input required for theme selection
           : elementType === 'promo-card'
           ? (promoTextValue.trim() || promoImageValue.trim()) // At least one field should be filled
@@ -1009,40 +974,7 @@ export default function PromptBubble({
         if (isValidSubmission) {
           setIsLoading(true);
           
-          // Apply logo selection when submitting (for logo-placeholder elementType)
-          if (elementType === 'logo-placeholder' && selectedLogoChip && selectedLogoChip !== 'add-new') {
-            try {
-              if (typeof onLogoSelect === 'function') {
-                let src = null;
-                let themeColor = null;
-                if (selectedLogoChip === 'discover') {
-                  src = process.env.PUBLIC_URL + '/discover.svg';
-                  themeColor = '#1E72AE';
-                } else if (selectedLogoChip === 'lufthansa') {
-                  src = process.env.PUBLIC_URL + '/Lufthansa_Logo_2018.svg.png';
-                  themeColor = '#050F43';
-                } else if (selectedLogoChip === 'swiss') {
-                  src = process.env.PUBLIC_URL + '/swiss.png';
-                  themeColor = '#CB0300';
-                }
-                onLogoSelect({ id: selectedLogoChip, src });
-                
-                // Change theme color to match the selected airline
-                if (themeColor && typeof onThemeColorChange === 'function') {
-                  onThemeColorChange(themeColor, { label: selectedLogoChip, color: themeColor });
-                }
-                
-                // Update the prompt bubble's own color to match the selected logo
-                setSelectedColor(themeColor);
-              }
-            } catch {}
-            
-            // For logo selection in step 1, don't close the bubble automatically
-            setIsLoading(false);
-            // Don't call onSubmit for logo selection as it would close the bubble
-            // onSubmit(promptText.trim() || '', elementType, elementData, positionKey);
-            return; // Don't execute the normal flow
-          }
+
           
           // For promo cards, combine the text and image values
           const submitText = elementType === 'promo-card' 
@@ -1093,15 +1025,29 @@ export default function PromptBubble({
     }
   };
 
+  // Helper function to normalize colors for comparison
+  const normalizeColor = (color) => {
+    if (typeof color === 'string') {
+      if (color.startsWith('#')) {
+        return color.toUpperCase();
+      }
+      // For gradients, normalize whitespace and case
+      if (color.includes('gradient')) {
+        return color.replace(/\s+/g, ' ').trim();
+      }
+    }
+    return color;
+  };
+
   const handleLogoChipClick = (chip) => {
     if (chip.id === 'add-new') {
       try {
-        if (logoFileInputRef.current) logoFileInputRef.current.click();
+        // Logo file input functionality removed
       } catch {}
       return;
     }
     // Only update the visual selection state, don't apply logo/color changes yet
-    setSelectedLogoChip(chip.id);
+    // Logo chip selection functionality removed
   };
 
   if (!isVisible || !stickyPosition) return null;
@@ -1128,16 +1074,7 @@ export default function PromptBubble({
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          {elementType === 'logo-placeholder' && logoStep === 2 && (
-            <button
-              type="button"
-              onClick={() => setLogoStep(1)}
-              className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors p-1`}
-              title="Back"
-            >
-              <ArrowLeftIcon className="w-4 h-4" />
-            </button>
-          )}
+
           {/* Title */}
           <span className={`text-sm font-semibold ${useLightText ? 'text-white' : 'text-black'}`}>
             {(() => {
@@ -1149,23 +1086,13 @@ export default function PromptBubble({
                   return 'Select Flight Phase';
                 case 'promo-card':
                   return elementData?.cardIndex === 0 ? 'Edit Promo Card 1' : 'Edit Promo Card';
-                case 'logo-placeholder':
-                  return logoStep === 1 ? 'Select Airline Logo' : 'Add Animation';
+
                 default:
                   return 'Build theme';
               }
             })()}
           </span>
-          {elementType === 'logo-placeholder' && logoStep === 1 && (
-            <button
-              type="button"
-              onClick={() => setLogoStep(2)}
-              className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors p-1`}
-              title="Go to Add Animation"
-            >
-              <ArrowRightIcon className="w-4 h-4" />
-            </button>
-          )}
+
         </div>
         <button
           onClick={onClose}
@@ -1182,7 +1109,7 @@ export default function PromptBubble({
         {/* Hidden file input for logo upload (triggered by image icon) */}
         {elementType === 'logo-placeholder' && (
           <input
-            ref={logoFileInputRef}
+            ref={null}
             type="file"
             accept="image/*"
             style={{ display: 'none' }}
@@ -1208,7 +1135,7 @@ export default function PromptBubble({
         )}
         <div className="relative flex-1">
           <style>{blinkingCSS}</style>
-          {!(elementType === 'logo-placeholder' && logoStep === 1) && elementType !== 'flight-journey-bar' && elementType !== 'flight-icon' && elementType !== 'flight-phase-button' && elementType !== 'promo-card' && (
+          {elementType !== 'flight-journey-bar' && elementType !== 'flight-icon' && elementType !== 'flight-phase-button' && elementType !== 'promo-card' && (
             <>
               <textarea
                 ref={inputRef}
@@ -1222,8 +1149,7 @@ export default function PromptBubble({
                     ? '' // No placeholder for promo card, we'll use custom overlay
                     : elementType === 'flight-journey-bar'
                     ? 'change theme or add animation'
-                    : elementType === 'logo-placeholder'
-                    ? 'Type here'
+
                     : 'select flight phase'
                 }
                 className={`bg-transparent border-0 text-sm ${useLightText ? 'text-white placeholder-white/60' : 'text-black placeholder-black/60'} resize-none focus:ring-0 focus:outline-none`}
@@ -1356,12 +1282,12 @@ export default function PromptBubble({
             </div>
           )}
           {/* Logo Placeholder Label and Chips */}
-          {elementType === 'logo-placeholder' && logoStep === 1 && (
+          {false && (
             <>
               <div className="flex flex-wrap gap-1 p-3 rounded-lg" style={{ backgroundColor: 'rgba(255, 255, 255, 0.9)' }}>
                 <div className="flex flex-wrap gap-1">
               {logoChips.map((chip) => {
-                const isSelected = selectedLogoChip === chip.id;
+                const isSelected = false;
                 
                 // Get logo image source based on chip ID
                 const getLogoSource = (chipId) => {
@@ -1419,7 +1345,7 @@ export default function PromptBubble({
               </div>
             </>
           )}
-          {elementType === 'logo-placeholder' && logoStep === 2 && (
+          {false && (
             null
           )}
         </div>
@@ -1468,13 +1394,6 @@ export default function PromptBubble({
                   ? chip.label
                   : (String(originalChipColor).includes('gradient') ? 'Gradient' : String(originalChipColor));
                 const isGrad = String(originalChipColor).includes('gradient');
-                // Normalize colors for comparison (handle case differences)
-                const normalizeColor = (color) => {
-                  if (typeof color === 'string' && color.startsWith('#')) {
-                    return color.toUpperCase();
-                  }
-                  return color;
-                };
                 const isSelected = normalizeColor(selectedColor) === normalizeColor(originalChipColor);
                 return (
                   <button
@@ -1505,10 +1424,81 @@ export default function PromptBubble({
                 );
               })}
               
+              {/* Gradient Chips */}
+              {[
+                { 
+                  name: 'Spring Gradient', 
+                  gradient: 'linear-gradient(120deg, #d4fc79 0%, #96e6a1 100%)',
+                  label: 'Spring'
+                },
+                { 
+                  name: 'Ocean Gradient', 
+                  gradient: 'linear-gradient(120deg, #a8edea 0%, #fed6e3 100%)',
+                  label: 'Ocean'
+                },
+                { 
+                  name: 'Sunset Gradient', 
+                  gradient: 'linear-gradient(120deg, #ff9a9e 0%, #fecfef 100%)',
+                  label: 'Sunset'
+                },
+                { 
+                  name: 'Purple Gradient', 
+                  gradient: 'linear-gradient(120deg, #667eea 0%, #764ba2 100%)',
+                  label: 'Purple'
+                }
+              ].map((gradientChip, idx) => (
+                <button
+                  key={`gradient-${idx}`}
+                  type="button"
+                  onClick={() => handleColorChange(gradientChip.gradient, { label: gradientChip.label, color: gradientChip.gradient })}
+                  className={`transition-colors flex-shrink-0`}
+                  title={gradientChip.name}
+                >
+                  <div className="flex items-center gap-2 px-2 py-1 border rounded-full" style={{ 
+                    borderColor: finalBorderColor,
+                    backgroundColor: normalizeColor(selectedColor) === normalizeColor(gradientChip.gradient) ? `${gradientChip.gradient}15` : 'transparent'
+                  }}>
+                    <div
+                      className="w-4 h-4 rounded-full border"
+                      style={{
+                        background: gradientChip.gradient,
+                        borderColor: finalBorderColor
+                      }}
+                    />
+                    <span className="text-xs font-medium" style={{ color: adaptiveTextColor }}>{gradientChip.label}</span>
+                  </div>
+                </button>
+              ))}
+
+              {/* Custom Gradient Chip */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowGradientPicker(!showGradientPicker);
+                  setShowColorPicker(false);
+                }}
+                className={`transition-colors flex-shrink-0`}
+                title="Create Custom Gradient"
+              >
+                <div className="flex items-center gap-2 px-2 py-1 border rounded-full" style={{ borderColor: finalBorderColor }}>
+                  <div
+                    className="w-4 h-4 rounded-full border"
+                    style={{
+                      background: 'linear-gradient(45deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff)',
+                      borderColor: finalBorderColor
+                    }}
+                  />
+                  <span className="text-xs font-medium" style={{ color: adaptiveTextColor }}>Gradient+</span>
+                </div>
+              </button>
+
               {/* Color Picker Chip - moved inline with other chips */}
               <button
                 type="button"
-                onClick={() => setShowColorPicker(!showColorPicker)}
+                onClick={() => {
+                  setShowColorPicker(!showColorPicker);
+                  setShowGradientPicker(false);
+                }}
                 className={`transition-colors flex-shrink-0`}
               >
                 <div className="flex items-center gap-2 px-2 py-1 border rounded-full" style={{ borderColor: finalBorderColor }}>
@@ -1613,7 +1603,7 @@ export default function PromptBubble({
               className="text-xs font-medium" 
               style={{ color: adaptiveTextColor }}
             >
-              {logoStep === 1 ? 'Size: 312 x 100' : 'Format: GIF under 500kB'}
+              Logo functionality disabled
             </span>
             
             {/* Right side: Image Icon + Send Button */}
@@ -1621,7 +1611,7 @@ export default function PromptBubble({
               {/* Image Icon */}
               <button
                 type="button"
-                onClick={() => logoFileInputRef.current?.click()}
+                onClick={() => {}}
                 className="p-1 hover:opacity-80 transition-opacity"
                 title="Upload custom logo (312x100 dimensions)"
               >
@@ -1635,7 +1625,7 @@ export default function PromptBubble({
                 type="submit"
                 disabled={
                   isLoading || 
-                  (logoStep === 1 ? !selectedLogoChip || selectedLogoChip === 'add-new' : !promptText.trim())
+                  !promptText.trim()
                 }
                 className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0`}
                 style={{
@@ -1650,17 +1640,86 @@ export default function PromptBubble({
 
         {/* Color Picker for FJB */}
         {elementType === 'flight-journey-bar' && showColorPicker && (
-          <div className="absolute top-full left-0 mt-2 z-50">
+          <div className="absolute top-full left-0 mt-2 z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-lg p-3">
             <HexColorPicker
               color={selectedColor}
               onChange={(color) => handleColorChange(color, { label: 'Custom Color', color: color })}
-              className="shadow-lg rounded-lg"
+              className="rounded-lg"
             />
+            <button
+              onClick={() => setShowColorPicker(false)}
+              className="w-full mt-2 px-3 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        )}
+
+        {/* Custom Gradient Picker for FJB */}
+        {elementType === 'flight-journey-bar' && showGradientPicker && (
+          <div className="absolute top-full left-0 mt-2 z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-lg p-4" style={{ width: '280px' }}>
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-gray-200 mb-2">Create Custom Gradient</label>
+              <div className="space-y-3">
+                {/* Direction Selector */}
+                <div>
+                  <label className="block text-xs text-gray-300 mb-1">Direction</label>
+                  <select 
+                    className="w-full text-xs border border-gray-500 bg-gray-700 text-gray-200 rounded px-2 py-1"
+                    onChange={(e) => {
+                      const direction = e.target.value;
+                      const gradient = `linear-gradient(${direction}, #d4fc79 0%, #96e6a1 100%)`;
+                      handleColorChange(gradient, { label: 'Custom Gradient', color: gradient });
+                    }}
+                  >
+                    <option value="120deg">Diagonal (120°)</option>
+                    <option value="0deg">Horizontal →</option>
+                    <option value="90deg">Vertical ↓</option>
+                    <option value="180deg">Horizontal ←</option>
+                    <option value="270deg">Vertical ↑</option>
+                    <option value="45deg">Diagonal ↘</option>
+                    <option value="135deg">Diagonal ↙</option>
+                    <option value="225deg">Diagonal ↖</option>
+                    <option value="315deg">Diagonal ↗</option>
+                  </select>
+                </div>
+                
+                {/* Preset Gradients */}
+                <div>
+                  <label className="block text-xs text-gray-300 mb-1">Quick Presets</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { name: 'Fire', gradient: 'linear-gradient(120deg, #ff6b6b 0%, #ffa500 100%)' },
+                      { name: 'Ocean', gradient: 'linear-gradient(120deg, #00c9ff 0%, #92fe9d 100%)' },
+                      { name: 'Night', gradient: 'linear-gradient(120deg, #2c3e50 0%, #34495e 100%)' },
+                      { name: 'Aurora', gradient: 'linear-gradient(120deg, #8360c3 0%, #2ebf91 100%)' },
+                      { name: 'Candy', gradient: 'linear-gradient(120deg, #f093fb 0%, #f5576c 100%)' },
+                      { name: 'Forest', gradient: 'linear-gradient(120deg, #134e5e 0%, #71b280 100%)' }
+                    ].map((preset, idx) => (
+                      <button
+                        key={idx}
+                        className="h-8 rounded border border-gray-300 hover:scale-105 transition-transform"
+                        style={{ background: preset.gradient }}
+                        title={preset.name}
+                        onClick={() => handleColorChange(preset.gradient, { label: preset.name, color: preset.gradient })}
+                      />
+                    ))}
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => setShowGradientPicker(false)}
+                  className="w-full mt-2 px-3 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         )}
         
         {/* Send Button for Flight Phase Selection (FPS) */}
-        {elementType !== 'promo-card' && elementType !== 'flight-journey-bar' && elementType !== 'logo-placeholder' && (
+        {elementType !== 'promo-card' && elementType !== 'flight-journey-bar' && (
           <button
             type="submit"
             disabled={!promptText.trim() || isLoading}

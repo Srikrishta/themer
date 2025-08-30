@@ -443,8 +443,7 @@ export default function Dashboard() {
   const [fpsHoverTip, setFpsHoverTip] = useState({ visible: false, x: 0, y: 0, progress: 0 });
   // Hover hint bubble for Promo Cards ("Edit promo card")
   const [pcHoverTip, setPcHoverTip] = useState({ visible: false, x: 0, y: 0, elementData: null });
-  // Hover hint bubble for Logo Placeholder ("Add logo animation")
-  const [logoHoverTip, setLogoHoverTip] = useState({ visible: false, x: 0, y: 0 });
+
 
   // Compute contrasting border color for hover tip PBs (same logic as main PB)
   const isGradientTheme = typeof currentThemeColor === 'string' && currentThemeColor.includes('gradient');
@@ -620,23 +619,7 @@ export default function Dashboard() {
       }
       return;
     }
-    if (elementType === 'logo-placeholder') {
-      if (!promptBubble) {
-        setShowPlusIcon(false);
-        setLogoHoverTip(prev => {
-          if (!isHovering) return { visible: false, x: 0, y: 0 };
-          const dx = Math.abs(prev.x - position.x);
-          const dy = Math.abs(prev.y - position.y);
-          if (!prev.visible || dx > 4 || dy > 4) {
-            return { visible: true, x: position.x, y: position.y };
-          }
-          return prev;
-        });
-      } else {
-        setLogoHoverTip({ visible: false, x: 0, y: 0 });
-      }
-      return;
-    }
+
     if (elementType === 'promo-card') {
       if (!promptBubble) {
         setShowPlusIcon(false);
@@ -675,8 +658,7 @@ export default function Dashboard() {
         positionKey = 'flight-phase-button-dashboard'; // Single key for flight phase button
       } else if (elementType === 'flight-journey-bar') {
         positionKey = 'fjb-dashboard'; // Single key for FJB on dashboard
-      } else if (elementType === 'logo-placeholder') {
-        positionKey = 'logo-dashboard';
+
       } else {
         positionKey = `${elementType}-${elementData.cardIndex || 0}`;
       }
@@ -768,7 +750,7 @@ export default function Dashboard() {
       setFjbHoverTip({ visible: false, x: 0, y: 0 });
       setFpsHoverTip({ visible: false, x: 0, y: 0, progress: 0 });
       setPcHoverTip({ visible: false, x: 0, y: 0, elementData: null });
-      setLogoHoverTip({ visible: false, x: 0, y: 0 });
+  
     }
   };
 
@@ -813,7 +795,7 @@ export default function Dashboard() {
     setPromptBubble(null);
     setShowPlusIcon(false); // Ensure plus icon is hidden when bubble closes
     setFjbHoverTip({ visible: false, x: 0, y: 0 });
-    setLogoHoverTip({ visible: false, x: 0, y: 0 });
+
   };
 
   const handlePromptBubbleSubmit = (promptText, elementType, elementData, positionKey) => {
@@ -1096,6 +1078,11 @@ export default function Dashboard() {
             setSelectedFlightSegment(segment);
           }}
           showIFEFrame={showIFEFrame}
+          onAirlineSelect={(logoInfo, themeColor) => {
+            console.log('🎯 Dashboard: Airline selected:', logoInfo, themeColor);
+            setSelectedLogo(logoInfo); // logoInfo can be null for "All Airlines" reset
+            setCurrentThemeColor(themeColor);
+          }}
           onShowPreview={(show) => {
             console.log('🎯 Dashboard: onShowPreview called with:', show);
             setShowInFlightPreview(show);
@@ -1375,38 +1362,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Logo Placeholder hover tip bubble: shows label and plus; click opens Logo PB */}
-      {isPromptMode && logoHoverTip.visible && !promptBubble && (
-        <div
-          className="fixed z-40"
-          style={{ left: logoHoverTip.x, top: logoHoverTip.y, pointerEvents: 'none' }}
-        >
-          <div
-            className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
-            style={{
-              ...(typeof currentThemeColor === 'string' && currentThemeColor.includes('gradient')
-                ? { background: currentThemeColor }
-                : { backgroundColor: currentThemeColor }),
-              borderColor: hoverBorderColor,
-              opacity: 1,
-              borderTopLeftRadius: 0
-            }}
-          >
-            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Add logo animation</span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePromptClick('logo-placeholder', {}, { x: logoHoverTip.x, y: logoHoverTip.y });
-              }}
-              className="w-6 h-6 rounded-full border flex items-center justify-center"
-              title="Add logo animation"
-              style={{ pointerEvents: 'auto', borderColor: hoverOnColor, color: hoverOnColor }}
-            >
-              +
-            </button>
-          </div>
-        </div>
-      )}
+
       
 
 

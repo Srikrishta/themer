@@ -9,7 +9,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useNavigate } from 'react-router-dom';
 import { getReadableOnColor } from '../utils/color';
 
-export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips, onStartThemeBuild, themeColor = '#1E1E1E', onTriggerPromptBubble, selectedLogo, onThemeAnimationComplete, onGeneratingStateChange, onBuildThemes, onFlightSelect, showIFEFrame = false, flightsGenerated = false, onShowPreview, onBuildThemeClicked }) {
+export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips, onStartThemeBuild, themeColor = '#1E1E1E', onTriggerPromptBubble, selectedLogo, onThemeAnimationComplete, onGeneratingStateChange, onBuildThemes, onFlightSelect, showIFEFrame = false, flightsGenerated = false, onShowPreview, onBuildThemeClicked, onAirlineSelect }) {
   const navigate = useNavigate();
 
   const DEFAULT_THEME_COLOR = '#1E1E1E';
@@ -767,7 +767,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                             if (typeof onEnterPromptMode === 'function') {
                               onEnterPromptMode(segment?.id);
                             }
-                            onTriggerPromptBubble('logo-placeholder', {}, position);
+
                             // Call onSelect after the prompt bubble is triggered to avoid state reset
                             onSelect(index, segment);
                           }, 150); // Delay to allow button state update and expansion
@@ -1285,6 +1285,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                 }}
                 onScrollingStateChange={setIsScrollingUp}
                 onBuildThemeClicked={onBuildThemeClicked}
+                onAirlineSelect={onAirlineSelect}
                 onToggleMinimized={() => {
                   setIsMinimized(!isMinimized);
                   if (!isMinimized) {

@@ -222,27 +222,6 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
         <div
           className="h-[88px] relative rounded-2xl shrink-0 w-[120px] flex items-center justify-center backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)]"
           data-name="logo placeholder"
-          onMouseEnter={(e) => {
-            if (isPromptMode && onPromptHover) {
-              onPromptHover(true, 'logo-placeholder', {}, { x: e.clientX, y: e.clientY });
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (isPromptMode && onPromptHover) {
-              onPromptHover(false, 'logo-placeholder', {}, { x: e.clientX, y: e.clientY });
-            }
-          }}
-          onMouseMove={(e) => {
-            if (isPromptMode && onPromptHover) {
-              onPromptHover(true, 'logo-placeholder', {}, { x: e.clientX, y: e.clientY });
-            }
-          }}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (isPromptMode && onPromptClick) {
-              onPromptClick('logo-placeholder', {}, { x: e.clientX, y: e.clientY });
-            }
-          }}
         >
           {isLandingPage ? (
             <img 
