@@ -640,10 +640,10 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
             .animated-gradient-border::before {
               content: '';
               position: absolute;
-              top: -3px;
-              left: -3px;
-              right: -3px;
-              bottom: -3px;
+              top: -1px;
+              left: -1px;
+              right: -1px;
+              bottom: -1px;
               border-radius: 50px;
               background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, #10b981 100%);
               background-size: 200% 200%;

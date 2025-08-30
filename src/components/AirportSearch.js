@@ -1,6 +1,7 @@
 
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { getReadableOnColor } from '../utils/color';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -416,10 +417,12 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
   const [selectedInlineFlightIndex, setSelectedInlineFlightIndex] = useState(0);
   const [isReversingToRoutes, setIsReversingToRoutes] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 200, left: 200 });
+  const [datePickerPosition, setDatePickerPosition] = useState({ top: 0, left: 0, width: 400 });
   const [isScrollingUp, setIsScrollingUp] = useState(false);
   const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0, width: 0, height: 0 });
   const [selectedFlightCard, setSelectedFlightCard] = useState(null); // { index, segment, position, html }
   const [totalFlightCards, setTotalFlightCards] = useState(0);
+  const [cardAtCenter, setCardAtCenter] = useState(false); // Track when card reaches center
   const originalButtonRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -603,14 +606,73 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     return () => clearInterval(id);
   }, [isReversingToRoutes, routes.length]);
 
-  // No longer needed - using CSS positioning instead of calculated positioning
+  // Calculate date picker position relative to input field
+  const calculateDatePickerPosition = () => {
+    if (datePickerRef.current) {
+      const rect = datePickerRef.current.getBoundingClientRect();
+      return {
+        top: rect.bottom + window.scrollY + 8,
+        left: rect.left + window.scrollX + (rect.width / 2) - 200, // Center the 400px wide dropdown
+        width: 400
+      };
+    }
+    return { top: 0, left: 0, width: 400 };
+  };
+
+  // Update date picker position when it opens or window resizes
+  useEffect(() => {
+    if (isDatePickerOpen) {
+      const position = calculateDatePickerPosition();
+      setDatePickerPosition(position);
+    }
+  }, [isDatePickerOpen]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (isDatePickerOpen) {
+        const position = calculateDatePickerPosition();
+        setDatePickerPosition(position);
+      }
+    };
+
+    if (isDatePickerOpen) {
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, [isDatePickerOpen]);
+
+  // Handle card reaching center position (T+200ms)
+  useEffect(() => {
+    if (cardAtCenter) {
+      console.log('🎯 Card is now at center - showing static progress indicator');
+      // Just log the event, no progress animation needed
+    }
+  }, [cardAtCenter]);
+
+  // Reset cardAtCenter when selectedFlightCard changes or is cleared
+  useEffect(() => {
+    if (!selectedFlightCard) {
+      setCardAtCenter(false);
+    }
+  }, [selectedFlightCard]);
+
+  // Close date picker when container scrolls up to prevent visual conflicts
+  useEffect(() => {
+    if (isScrollingUp) {
+      setIsDatePickerOpen(false);
+    }
+  }, [isScrollingUp]);
 
   // Close date picker when clicking outside
   useEffect(() => {
     if (!isDatePickerOpen) return;
 
     const handleClickOutside = (event) => {
-      if (datePickerRef.current && !datePickerRef.current.contains(event.target)) {
+      // Check if click is outside both the input field and the portal dropdown
+      const isOutsideInput = datePickerRef.current && !datePickerRef.current.contains(event.target);
+      const isOutsideDropdown = !event.target.closest('[data-datepicker-portal]');
+      
+      if (isOutsideInput && isOutsideDropdown) {
         setIsDatePickerOpen(false);
       }
     };
@@ -807,10 +869,17 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
         const cardRect = card.getBoundingClientRect();
         const cardHTML = card.innerHTML;
         
-        // Calculate the center of the dashboard/viewport horizontally
-        const viewportCenterX = window.innerWidth / 2;
+        // Calculate the center aligned with ThemeCreator container
+        const containerElement = document.querySelector('[data-component="ThemeCreator"]');
+        let containerCenterX = window.innerWidth / 2; // Fallback to viewport center
+        
+        if (containerElement) {
+          const containerRect = containerElement.getBoundingClientRect();
+          containerCenterX = containerRect.left + containerRect.width / 2;
+        }
+        
         const cardCenterX = cardRect.left + cardRect.width / 2;
-        const targetX = viewportCenterX - cardCenterX;
+        const targetX = containerCenterX - cardCenterX;
         
         // Align vertically with Themer logo
         const targetY = alignmentY - (cardRect.top + cardRect.height / 2);
@@ -846,9 +915,11 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
         @keyframes containerFadeOut {
           0% {
             opacity: 1;
+            pointer-events: auto;
           }
           100% {
             opacity: 0;
+            pointer-events: none;
           }
         }
         
@@ -922,8 +993,68 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
               transform: `translateX(${selectedFlightCard.targetX}px) translateY(${selectedFlightCard.targetY}px)`,
               pointerEvents: 'auto'
             }}
-            dangerouslySetInnerHTML={{ __html: selectedFlightCard.html }}
-          />
+            onTransitionEnd={(e) => {
+              // Only trigger for transform transitions, not other properties
+              if (e.propertyName === 'transform') {
+                console.log('🎯 Card reached center position at T+200ms');
+                setCardAtCenter(true);
+              }
+            }}
+          >
+            {/* Custom card content with progress indicator instead of cloned HTML */}
+            <div 
+              className="backdrop-blur-[10px] backdrop-filter pl-5 pr-3 py-6 rounded-full shadow-sm w-full h-full flex items-center justify-between"
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.1)',
+                minHeight: '80px'
+              }}
+            >
+              {/* Flight info section */}
+              <div className="flex items-start gap-1 flex-none">
+                <div className="flex-none">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-semibold text-white break-words">
+                      {selectedFlightCard.segment?.origin?.airport?.city} → {selectedFlightCard.segment?.destination?.airport?.city}
+                    </h3>
+                  </div>
+                  <div className="text-xs text-white mt-1 flex items-center gap-3 flex-wrap break-words">
+                    <span className="flex items-center gap-1 font-semibold">Flight {selectedFlightCard.index + 1}</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Static circular progress indicator with 0% text */}
+              <div className="flex items-center">
+                <div className="relative w-16 h-16">
+                  <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 64 64">
+                    <circle
+                      cx="32"
+                      cy="32"
+                      r="28"
+                      stroke="rgba(255, 255, 255, 0.3)"
+                      strokeWidth="4"
+                      fill="transparent"
+                    />
+                    <circle
+                      cx="32"
+                      cy="32"
+                      r="28"
+                      stroke="white"
+                      strokeWidth="4"
+                      fill="transparent"
+                      strokeDasharray={`${2 * Math.PI * 28}`}
+                      strokeDashoffset={`${2 * Math.PI * 28 * (1 - 0 / 100)}`}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  {/* 0% text centered inside the circle */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">0%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
           
           {/* Right Chevron - aligned with Themer logo row */}
           {selectedFlightCard.index < totalFlightCards - 1 && (
@@ -970,7 +1101,9 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
           className={`space-y-12 relative`} 
           style={{ 
             overflow: 'visible',
-            animation: isScrollingUp ? 'containerFadeOut 0.2s ease-in forwards' : 'none'
+            animation: isScrollingUp ? 'containerFadeOut 0.2s ease-in forwards' : 'none',
+            opacity: isScrollingUp ? 0 : 1,
+            pointerEvents: isScrollingUp ? 'none' : 'auto'
           }}
         >
       {/* Timeline line - from input field center to last card center */}
@@ -987,6 +1120,10 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
               <div className="flex flex-wrap gap-2 items-center w-full">
                 {AIRPORTS.filter(airport => !routes.some(route => route.airport.code === airport.code)).map((airport) => {
                   // Only show airports that aren't already in routes
+                  // Get festivals for this airport's city based on selected dates
+                  const airportFestivals = getFestivalsForCityAndDates(airport.city, dates);
+                  const dotColor = airportFestivals.length > 0 ? airportFestivals[0].color : '#1E1E1E';
+                  
                   return (
                     <span 
                       key={airport.code} 
@@ -994,10 +1131,10 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                       onClick={() => handleBadgeClick(airport, false)}
                       title={`${airport.name}, ${airport.city}, ${airport.country}`}
                     >
-                      {/* Colored dot */}
+                      {/* Colored dot - themed based on selected dates */}
                       <div 
                         className="w-2 h-2 rounded-full mr-1.5 flex-shrink-0"
-                        style={{ backgroundColor: '#1E1E1E' }}
+                        style={{ backgroundColor: dotColor }}
                       />
                       {airport.code}
                       {/* Plus icon */}
@@ -1090,34 +1227,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
               </div>
             </div>
             {/* Former inline label removed; now rendered above input */}
-            {/* Date Picker Dropdown - positioned absolutely below the input */}
-            {isDatePickerOpen && (
-              <div 
-                className="absolute rounded-lg shadow-lg" 
-                style={{ 
-                  width: '400px', 
-                  backgroundColor: '#1E1E1E', 
-                  zIndex: 999999,
-                  left: '50%',
-                  top: 'calc(100% + 8px)',
-                  transform: 'translateX(-50%)'
-                }}>
-                <DatePicker
-                  currentDate={currentDate}
-                  onNavigateMonth={navigateMonth}
-                  selectedDates={dates}
-                  onDateClick={handleDateClick}
-                  onCreateTheme={handleCreateTheme}
-                  onEditDates={handleEditDates}
-                  inputValue={inputValue}
-                  onInputChange={handleInputChange}
-                  setCurrentDate={setCurrentDate}
-                  berlinToday={new Date()}
-                  themeColor={themeColor}
-                  containerBgColor="#1E1E1E"
-                />
-              </div>
-            )}
+            {/* Date Picker Dropdown - positioned as portal to avoid z-index issues */}
           </div>
 
           {/* Divider between Add date and Generate flights button */}
@@ -1160,7 +1270,13 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
 
       {/* Route Cards with Drag and Drop - now below input field */}
       {routes.length > 0 && (
-        <div>
+        <div 
+          style={{
+            opacity: isScrollingUp ? 0 : 1,
+            pointerEvents: isScrollingUp ? 'none' : 'auto',
+            transition: 'opacity 0.2s ease-in-out'
+          }}
+        >
           <RouteList 
           routes={routes} 
           setRoutes={setRoutes} 
@@ -1231,10 +1347,17 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
               if (cardIndex === flightIndex) {
                 const cardRect = card.getBoundingClientRect();
                 
-                // Calculate the center of the dashboard/viewport horizontally
-                const viewportCenterX = window.innerWidth / 2;
+                // Calculate the center aligned with ThemeCreator container
+                const containerElement = document.querySelector('[data-component="ThemeCreator"]');
+                let containerCenterX = window.innerWidth / 2; // Fallback to viewport center
+                
+                if (containerElement) {
+                  const containerRect = containerElement.getBoundingClientRect();
+                  containerCenterX = containerRect.left + containerRect.width / 2;
+                }
+                
                 const cardCenterX = cardRect.left + cardRect.width / 2;
-                const targetX = viewportCenterX - cardCenterX;
+                const targetX = containerCenterX - cardCenterX;
                 
                 // Align vertically with Themer logo
                 const targetY = alignmentY - (cardRect.top + cardRect.height / 2);
@@ -1276,6 +1399,9 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
             // Trigger container scroll-up animation
             setIsScrollingUp(true);
             
+            // Close date picker when scrolling up to prevent it from staying visible
+            setIsDatePickerOpen(false);
+            
             // Notify parent component about scrolling state
             if (onScrollingStateChange) {
               onScrollingStateChange(true);
@@ -1292,6 +1418,37 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
       )}
         </div>
       </div>
+
+      {/* Date Picker Portal - renders outside the component hierarchy to avoid z-index issues */}
+      {isDatePickerOpen && createPortal(
+        <div 
+          data-datepicker-portal
+          className="fixed rounded-lg shadow-lg" 
+          style={{ 
+            top: datePickerPosition.top,
+            left: datePickerPosition.left,
+            width: datePickerPosition.width,
+            backgroundColor: '#1E1E1E', 
+            zIndex: 2147483647,
+            position: 'fixed'
+          }}>
+          <DatePicker
+            currentDate={currentDate}
+            onNavigateMonth={navigateMonth}
+            selectedDates={dates}
+            onDateClick={handleDateClick}
+            onCreateTheme={handleCreateTheme}
+            onEditDates={handleEditDates}
+            inputValue={inputValue}
+            onInputChange={handleInputChange}
+            setCurrentDate={setCurrentDate}
+            berlinToday={new Date()}
+            themeColor={themeColor}
+            containerBgColor="#1E1E1E"
+          />
+        </div>,
+        document.body
+      )}
     </>
   );
 }
