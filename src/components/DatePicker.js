@@ -686,7 +686,7 @@ const DatePicker = ({
             left: tooltip.position.x,
             top: tooltip.position.y,
             transform: tooltip.showBelow ? 'translateX(-50%)' : 'translateX(-50%) translateY(-100%)',
-            zIndex: 999999,
+            zIndex: 2147483648,
         maxWidth: '320px',
         backgroundColor: containerBg,
         color: containerText

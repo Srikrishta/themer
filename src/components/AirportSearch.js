@@ -418,6 +418,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
   const [isReversingToRoutes, setIsReversingToRoutes] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 200, left: 200 });
   const [datePickerPosition, setDatePickerPosition] = useState({ top: 0, left: 0, width: 400 });
+  const [airlineDropdownPosition, setAirlineDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const [isScrollingUp, setIsScrollingUp] = useState(false);
   const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0, width: 0, height: 0 });
   const [selectedFlightCard, setSelectedFlightCard] = useState(null); // { index, segment, position, html }
@@ -429,6 +430,14 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
   // Airport search dropdown state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Airline selection state
+  const [selectedAirline, setSelectedAirline] = useState('All Airlines');
+  const [isAirlineDropdownOpen, setIsAirlineDropdownOpen] = useState(false);
+  const airlineDropdownRef = useRef(null);
+  
+  // Airline options
+  const AIRLINE_OPTIONS = ['All Airlines', 'Lufthansa', 'Swiss', 'Austrian Airlines'];
 
   // Toggle state is now controlled by parent ThemeCreator via isMinimized prop
 
@@ -619,6 +628,19 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     return { top: 0, left: 0, width: 400 };
   };
 
+  // Calculate airline dropdown position relative to input field
+  const calculateAirlineDropdownPosition = () => {
+    if (airlineDropdownRef.current) {
+      const rect = airlineDropdownRef.current.getBoundingClientRect();
+      return {
+        top: rect.bottom + window.scrollY + 8,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      };
+    }
+    return { top: 0, left: 0, width: 0 };
+  };
+
   // Update date picker position when it opens or window resizes
   useEffect(() => {
     if (isDatePickerOpen) {
@@ -627,19 +649,31 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     }
   }, [isDatePickerOpen]);
 
+  // Update airline dropdown position when it opens
+  useEffect(() => {
+    if (isAirlineDropdownOpen) {
+      const position = calculateAirlineDropdownPosition();
+      setAirlineDropdownPosition(position);
+    }
+  }, [isAirlineDropdownOpen]);
+
   useEffect(() => {
     const handleResize = () => {
       if (isDatePickerOpen) {
         const position = calculateDatePickerPosition();
         setDatePickerPosition(position);
       }
+      if (isAirlineDropdownOpen) {
+        const position = calculateAirlineDropdownPosition();
+        setAirlineDropdownPosition(position);
+      }
     };
 
-    if (isDatePickerOpen) {
+    if (isDatePickerOpen || isAirlineDropdownOpen) {
       window.addEventListener('resize', handleResize);
       return () => window.removeEventListener('resize', handleResize);
     }
-  }, [isDatePickerOpen]);
+  }, [isDatePickerOpen, isAirlineDropdownOpen]);
 
   // Handle card reaching center position (T+200ms)
   useEffect(() => {
@@ -687,6 +721,31 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isDatePickerOpen]);
+
+  // Close airline dropdown when clicking outside
+  useEffect(() => {
+    if (!isAirlineDropdownOpen) return;
+
+    const handleClickOutside = (event) => {
+      // Check if click is outside both the input field and the portal dropdown
+      const isOutsideInput = airlineDropdownRef.current && !airlineDropdownRef.current.contains(event.target);
+      const isOutsideDropdown = !event.target.closest('[data-airline-dropdown-portal]');
+      
+      if (isOutsideInput && isOutsideDropdown) {
+        setIsAirlineDropdownOpen(false);
+      }
+    };
+
+    // Add event listener with a slight delay to avoid immediately closing
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isAirlineDropdownOpen]);
 
   // Notify parent component when generating state changes
   useEffect(() => {
@@ -1111,8 +1170,28 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
         {/* Flight route builder background container */}
         <div className="backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.1)] rounded-full" style={{ paddingTop: '4px', paddingBottom: '4px', paddingLeft: '8px', paddingRight: '8px' }}>
           <div className="flex items-center gap-3" style={{ overflow: 'visible' }}>
+          {/* Airline selection section */}
+          <div className="relative w-[10%]" ref={airlineDropdownRef}>
+            <div 
+              className="relative min-h-[3rem] px-4 py-3 rounded-lg focus-within:ring-0 w-full cursor-pointer"
+              onClick={() => setIsAirlineDropdownOpen(!isAirlineDropdownOpen)}
+            >
+              <div className="flex items-center w-full">
+                <span className="text-gray-500 text-sm font-semibold flex-1">
+                  {selectedAirline}
+                </span>
+                <ChevronDownIcon className="w-4 h-4 text-gray-400 ml-2" />
+              </div>
+            </div>
+          </div>
+          
+          {/* Divider between Airline and Airport sections */}
+          <div className="flex items-center justify-center self-stretch">
+            <div className="w-px h-full bg-white/10"></div>
+          </div>
+          
           {/* Input field and badges */}
-          <div className="relative w-[55%]" ref={dropdownRef}>
+          <div className="relative w-[50%]" ref={dropdownRef}>
 
           {/* Custom input container with badges - offset to avoid timeline overlap */}
           <div ref={inputFieldRef} className="relative min-h-[2rem] px-3 py-2 rounded-lg focus-within:ring-0 w-full">
@@ -1201,7 +1280,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
         </div>
         
         {/* Date picker input field - styled like add route input field */}
-        <div className="relative w-[50%] flex items-end gap-3" style={{ zIndex: 100000 }}>
+        <div className="relative w-[40%] flex items-end gap-3" style={{ zIndex: 100000 }}>
           {/* Date input + centered dropdown wrapper */}
           <div ref={datePickerRef} className="relative flex-1" style={{ overflow: 'visible' }}>
 
@@ -1446,6 +1525,38 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
             themeColor={themeColor}
             containerBgColor="#1E1E1E"
           />
+        </div>,
+        document.body
+      )}
+
+      {/* Airline Dropdown Portal - renders outside the component hierarchy to avoid z-index issues */}
+      {isAirlineDropdownOpen && createPortal(
+        <div 
+          data-airline-dropdown-portal
+          className="fixed rounded-lg shadow-lg" 
+          style={{ 
+            top: airlineDropdownPosition.top,
+            left: airlineDropdownPosition.left,
+            width: airlineDropdownPosition.width,
+            backgroundColor: '#1E1E1E', 
+            zIndex: 2147483647,
+            position: 'fixed'
+          }}>
+          {AIRLINE_OPTIONS.map((airline, index) => (
+            <div
+              key={airline}
+              className="px-4 py-3 text-sm text-white hover:bg-gray-700 cursor-pointer transition-colors"
+              style={{
+                borderRadius: index === 0 ? '8px 8px 0 0' : index === AIRLINE_OPTIONS.length - 1 ? '0 0 8px 8px' : '0'
+              }}
+              onClick={() => {
+                setSelectedAirline(airline);
+                setIsAirlineDropdownOpen(false);
+              }}
+            >
+              {airline}
+            </div>
+          ))}
         </div>,
         document.body
       )}

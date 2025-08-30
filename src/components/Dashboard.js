@@ -1130,7 +1130,7 @@ export default function Dashboard() {
             transition: 'opacity 0.4s ease-out, transform 0.4s ease-out'
           }}
         >
-          <h2 className="text-xl font-semibold text-gray-800">1. Select Airline {'>'}  2. Modify theme and animation {'>'}  3. Configure content with AI</h2>
+
         </div>
       )}
 
