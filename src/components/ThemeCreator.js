@@ -9,8 +9,32 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useNavigate } from 'react-router-dom';
 import { getReadableOnColor } from '../utils/color';
 
-export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips, onStartThemeBuild, themeColor = '#1E1E1E', onTriggerPromptBubble, selectedLogo, onThemeAnimationComplete, onGeneratingStateChange, onBuildThemes, onFlightSelect, showIFEFrame = false, flightsGenerated = false, onShowPreview, onBuildThemeClicked, onAirlineSelect }) {
+export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips, onStartThemeBuild, themeColor = '#1E1E1E', onTriggerPromptBubble, selectedLogo, onThemeAnimationComplete, onGeneratingStateChange, onBuildThemes, onFlightSelect, showIFEFrame = false, flightsGenerated = false, onShowPreview, onBuildThemeClicked, onAirlineSelect, onModifyClicked }) {
   const navigate = useNavigate();
+
+  // Add CSS animations for container scroll-up
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes containerScrollUp {
+        0% {
+          transform: translateY(0);
+        }
+        100% {
+          transform: translateY(-200px);
+        }
+      }
+      
+      .container-scroll-up {
+        animation: containerScrollUp 0.8s ease-in forwards;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   const DEFAULT_THEME_COLOR = '#1E1E1E';
   // Get current date in Berlin timezone for initial state
@@ -583,7 +607,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
     }
   }, [isCreatingThemes, flightSegments.length, selectedThemes, isMinimized]); // <-- add isMinimized
 
-  function FlightCard({ segment, index, activeFlightIndex, selectedThemeId, onSelect, collapsed, selectedLogo, themeColor }) {
+  function FlightCard({ segment, index, activeFlightIndex, selectedThemeId, onSelect, collapsed, selectedLogo, themeColor, flightsGenerated = false, onBuildThemeClicked }) {
     const ref = useRef(null);
     // Remove selected action state to eliminate selected UI
 
@@ -655,7 +679,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
         <div
           ref={ref}
           data-handler-id={handlerId}
-          className={`backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.1)] pl-5 pr-3 py-4 rounded-full shadow-sm transition-all cursor-move w-full hover:shadow-md hover:bg-blue-600/5 ${
+          className={`backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.1)] pl-5 pr-3 py-4 rounded-full shadow-sm transition-all cursor-move hover:shadow-md hover:bg-blue-600/5 ${
             index === 0 ? 'relative animated-gradient-border' : ''
           }`}
           style={{ 
@@ -689,143 +713,28 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
               )}
             </div>
           </div>
-          {false && (
+          {flightsGenerated && (
             <>
               <div className="hidden md:flex w-px mx-0" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
               <div className="hidden md:flex items-center gap-1" style={{ marginLeft: 5 }}>
                 {[
-                  { 
-                    id: 0, 
-                    label: selectedLogo ? 'Logo added' : 'Add logo', 
-                    title: selectedLogo ? 'Logo added' : 'Add logo', 
-                    icon: selectedLogo ? CheckIcon : PhotoIcon,
-                    isLogoAdded: !!selectedLogo
-                  },
-                  { id: 1, label: 'Change theme', title: 'Change theme', icon: null, variant: 'primary', isThemerDot: true, themeColor: themeColor },
-                  { id: 2, label: 'Modify flight phase', title: 'Modify flight phase', icon: null, isFlightIcon: true },
-                  { id: 3, label: 'Create theme', title: 'Create theme', icon: PaperAirplaneIcon }
-                ].map(({ id, label, title, icon: Icon, variant, isThemerDot, isFlightIcon, isLogoAdded, themeColor: buttonThemeColor }) => {
-                  // Remove all selected state logic for clean appearance
-                  const isAddThemeButton = id === 1;
-                  const isAddLogoButton = id === 0;
-                  const isModifyFlightPhaseButton = id === 2;
-                  const isCreateThemeButton = id === 3;
-                  
-                  // Simple styling without selected states
-                  const baseColor = isLogoAdded ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-white/10 text-white hover:bg-white/15';
-                  const layout = isLogoAdded ? 'h-9 px-3' : 'h-9 w-9 justify-center px-0';
+                  { id: 0, label: 'Build Theme', title: 'Build Theme', icon: null }
+                ].map(({ id, label, title, icon: Icon }) => {
                   return (
                     <button
                       key={id}
                       type="button"
-                      className={`inline-flex items-center rounded-[24px] transition-colors ${baseColor} ${layout} shrink-0`}
-                      style={{
-                        ...(id === 1 && buttonThemeColor ? { backgroundColor: buttonThemeColor } : {})
-                      }}
+                      className="inline-flex items-center rounded-[24px] transition-colors bg-blue-600 text-white hover:bg-blue-700 h-9 px-3 shrink-0"
                       title={title}
                       onClick={(e) => { 
                         e.stopPropagation(); 
-                        // Remove selected action state logic 
-                        
-                        // Delay onSelect for Add theme, Add logo, and Modify flight phase buttons to prevent state reset
-                        if (id !== 1 && id !== 0 && id !== 2) {
-                          // For other buttons (not Add logo, Add theme, or Modify flight phase), call onSelect immediately
-                          onSelect(index, segment);
-                        } 
-                        
-                        // If this is the "Add theme" button (id: 1), trigger the prompt bubble
-                        if (id === 1 && typeof onTriggerPromptBubble === 'function') {
-                          // Delay triggering the prompt bubble to allow the button to expand first
-                          setTimeout(() => {
-                            // Position the prompt bubble right below the clicked button
-                            const buttonRect = e.target.getBoundingClientRect();
-                            const position = {
-                              x: buttonRect.left + buttonRect.width / 2, // Center of the button horizontally
-                              y: buttonRect.bottom + 20 // Below the button with proper spacing
-                            };
-                            // Enter prompt mode first, then trigger prompt bubble
-                            if (typeof onEnterPromptMode === 'function') {
-                              onEnterPromptMode(segment?.id);
-                            }
-                            onTriggerPromptBubble('flight-journey-bar', { themeColor: themeColor }, position);
-                            // Call onSelect after the prompt bubble is triggered to avoid state reset
-                            onSelect(index, segment);
-                          }, 150); // Delay to allow button state update and expansion
-                        }
-                        
-                        // If this is the "Add logo" button (id: 0), trigger the logo prompt bubble
-                        if (id === 0 && typeof onTriggerPromptBubble === 'function') {
-                          // Delay triggering the prompt bubble to allow the button to expand first
-                          setTimeout(() => {
-                            // Position the prompt bubble right below the clicked button
-                            const buttonRect = e.target.getBoundingClientRect();
-                            const position = {
-                              x: buttonRect.left + buttonRect.width / 2, // Center of the button horizontally
-                              y: buttonRect.bottom + 20 // Below the button with proper spacing
-                            };
-                            // Enter prompt mode first, then trigger prompt bubble
-                            if (typeof onEnterPromptMode === 'function') {
-                              onEnterPromptMode(segment?.id);
-                            }
-
-                            // Call onSelect after the prompt bubble is triggered to avoid state reset
-                            onSelect(index, segment);
-                          }, 150); // Delay to allow button state update and expansion
-                        }
-                        
-                        // If this is the "Modify flight phase" button (id: 2), trigger the flight phase prompt bubble
-                        if (id === 2 && typeof onTriggerPromptBubble === 'function') {
-                          // Delay triggering the prompt bubble to allow the button to expand first
-                          setTimeout(() => {
-                            // Position the prompt bubble right below the clicked button
-                            const buttonRect = e.target.getBoundingClientRect();
-                            const position = {
-                              x: buttonRect.left + buttonRect.width / 2, // Center of the button horizontally
-                              y: buttonRect.bottom + 20 // Below the button with proper spacing
-                            };
-                            // Enter prompt mode first, then trigger prompt bubble
-                            if (typeof onEnterPromptMode === 'function') {
-                              onEnterPromptMode(segment?.id);
-                            }
-                            onTriggerPromptBubble('flight-phase-button', { progress: 0.5, minutesLeft: 2 }, position);
-                            // Call onSelect after the prompt bubble is triggered to avoid state reset
-                            onSelect(index, segment);
-                          }, 150); // Delay to allow button state update and expansion
-                        }
-                        
-                        // If this is the "Create theme" button (id: 3), handle theme creation
-                        if (id === 3) {
-                          // TODO: Add theme creation logic here
-                          console.log('Create theme clicked for segment:', segment);
+                        // Call onBuildThemeClicked when Build Theme is clicked
+                        if (typeof onBuildThemeClicked === 'function') {
+                          onBuildThemeClicked(index, segment);
                         }
                       }}
                     >
-                      {/* Show color circle for Change theme button when theme color is available */}
-                      {id === 1 && buttonThemeColor && (
-                        <div 
-                          className="w-3 h-3 rounded-full border border-white/30 flex-shrink-0 mr-2"
-                          style={{ backgroundColor: buttonThemeColor }}
-                        />
-                      )}
-                      {isLogoAdded && <span className="text-sm font-medium whitespace-nowrap">{label}</span>}
-                      {isThemerDot ? (
-                        <div 
-                          className="w-4 h-4 rounded-full"
-                          style={{
-                            background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, #10b981 100%)',
-                            backgroundSize: '200% 200%',
-                            animation: 'gradientSweep 3s ease-in-out infinite'
-                          }}
-                        />
-                      ) : isFlightIcon ? (
-                        <img 
-                          src={process.env.PUBLIC_URL + '/flight icon.svg'} 
-                          alt="Flight icon" 
-                          className="w-4 h-4"
-                        />
-                      ) : (
-                        <Icon className="w-4 h-4" />
-                      )}
+                      <span className="text-sm font-medium whitespace-nowrap">{label}</span>
                     </button>
                   );
                 })}
@@ -1127,10 +1036,11 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
   return (
     <div 
       ref={containerRef}
-      className={`px-10 py-3 border border-gray-200 ${isCreatingThemes && isChipsSticky ? 'sticky top-0 z-40' : ''}`}
+      className={`px-10 py-3 border border-gray-200 ${isCreatingThemes && isChipsSticky ? 'sticky top-0 z-40' : ''} ${isScrollingUp ? 'container-scroll-up' : ''}`}
       data-component="ThemeCreator"
       data-is-creating-themes={isCreatingThemes}
       style={{
+        position: 'relative',
         width: '100%',
         minWidth: '100%',
         maxWidth: '100%',
@@ -1197,6 +1107,8 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                         collapsed={isChipsCollapsed}
                         selectedLogo={selectedLogo}
                         themeColor={themeColor}
+                        flightsGenerated={flightsGenerated}
+                        onBuildThemeClicked={onBuildThemeClicked}
                         onSelect={(idx, seg) => {
                           setActiveFlightIndex(idx);
                           if (typeof onColorCardSelect === 'function') onColorCardSelect(seg);
@@ -1286,6 +1198,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                 onScrollingStateChange={setIsScrollingUp}
                 onBuildThemeClicked={onBuildThemeClicked}
                 onAirlineSelect={onAirlineSelect}
+                onModifyClicked={onModifyClicked}
                 onToggleMinimized={() => {
                   setIsMinimized(!isMinimized);
                   if (!isMinimized) {

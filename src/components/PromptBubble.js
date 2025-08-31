@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { XMarkIcon, PaperAirplaneIcon, PlusIcon, PhotoIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { createPortal } from 'react-dom';
+import { XMarkIcon, PaperAirplaneIcon, PlusIcon, PhotoIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon, BookmarkIcon } from '@heroicons/react/24/outline';
 import { HexColorPicker } from 'react-colorful';
 import { getReadableOnColor } from '../utils/color';
 import { argbFromHex } from '@material/material-color-utilities';
@@ -203,7 +204,8 @@ export default function PromptBubble({
   onLogoSelect,
   flightsGenerated = false,
   selectedFlightPhase = null,
-  onFlightPhaseSelect
+  onFlightPhaseSelect,
+  onCloseWithoutSave
 }) {
   console.log('=== PROMPT BUBBLE RENDER ===', {
     isVisible,
@@ -289,6 +291,7 @@ export default function PromptBubble({
     }
     return themeColor;
   });
+  const [pendingColor, setPendingColor] = useState(null); // Track color selection before save
   const bubbleRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -893,6 +896,10 @@ export default function PromptBubble({
 
     const handleClickOutside = (event) => {
       if (bubbleRef.current && !bubbleRef.current.contains(event.target)) {
+        // If this is a color changing prompt, call onCloseWithoutSave (regardless of pending changes)
+        if (elementType === 'flight-journey-bar' && onCloseWithoutSave) {
+          onCloseWithoutSave();
+        }
         onClose();
       }
     };
@@ -955,6 +962,10 @@ export default function PromptBubble({
 
   const handleKeyDown = (e) => {
     if (e.key === 'Escape') {
+      // If this is a color changing prompt, call onCloseWithoutSave (regardless of pending changes)
+      if (elementType === 'flight-journey-bar' && onCloseWithoutSave) {
+        onCloseWithoutSave();
+      }
       onClose();
     } else if (e.key === 'Enter') {
       if (e.shiftKey) {
@@ -1019,10 +1030,8 @@ export default function PromptBubble({
   };
 
   const handleColorChange = (color, chipData) => {
-    setSelectedColor(color);
-    if (onThemeColorChange) {
-      onThemeColorChange(color, chipData);
-    }
+    // Only update visual selection, don't apply theme change immediately
+    setPendingColor({ color, chipData });
   };
 
   // Helper function to normalize colors for comparison
@@ -1052,13 +1061,28 @@ export default function PromptBubble({
 
   if (!isVisible || !stickyPosition) return null;
 
-
-
-  return (
+  // Simple modal-style overlay approach - guaranteed to work
+  return createPortal(
     <div
-      ref={bubbleRef}
-      className="fixed z-50 shadow-xl border p-3 backdrop-blur-[10px] backdrop-filter"
       style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: 999999999,
+        pointerEvents: 'none',
+        background: 'transparent'
+      }}
+    >
+      <div
+      ref={bubbleRef}
+      className="shadow-xl border p-3 backdrop-blur-[10px] backdrop-filter"
+      style={{
+        position: 'absolute',
+        left: `${stickyPosition.x}px`,
+        top: `${stickyPosition.y}px`,
+        pointerEvents: 'auto',
         backgroundColor: actualBackgroundColor,
         borderColor: elementType === 'promo-card' && positionKey === 'middle-card-demo'
           ? 'rgba(0,0,0,0.2)'
@@ -1068,7 +1092,8 @@ export default function PromptBubble({
         borderBottomLeftRadius: '24px',
         borderBottomRightRadius: '24px',
         width: `${bubbleWidth}px`,
-        maxWidth: `${bubbleWidth}px`
+        maxWidth: `${bubbleWidth}px`,
+        zIndex: 999999999 // DEBUG: Extra high z-index
       }}
     >
       {/* Header */}
@@ -1095,7 +1120,13 @@ export default function PromptBubble({
 
         </div>
         <button
-          onClick={onClose}
+          onClick={() => {
+            // If this is a color changing prompt, call onCloseWithoutSave (regardless of pending changes)
+            if (elementType === 'flight-journey-bar' && onCloseWithoutSave) {
+              onCloseWithoutSave();
+            }
+            onClose();
+          }}
           className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors p-1`}
         >
           <XMarkIcon className="w-4 h-4" />
@@ -1394,7 +1425,9 @@ export default function PromptBubble({
                   ? chip.label
                   : (String(originalChipColor).includes('gradient') ? 'Gradient' : String(originalChipColor));
                 const isGrad = String(originalChipColor).includes('gradient');
-                const isSelected = normalizeColor(selectedColor) === normalizeColor(originalChipColor);
+                const isSelected = pendingColor 
+                  ? normalizeColor(pendingColor.color) === normalizeColor(originalChipColor)
+                  : normalizeColor(selectedColor) === normalizeColor(originalChipColor);
                 return (
                   <button
                     key={idx}
@@ -1456,7 +1489,9 @@ export default function PromptBubble({
                 >
                   <div className="flex items-center gap-2 px-2 py-1 border rounded-full" style={{ 
                     borderColor: finalBorderColor,
-                    backgroundColor: normalizeColor(selectedColor) === normalizeColor(gradientChip.gradient) ? `${gradientChip.gradient}15` : 'transparent'
+                    backgroundColor: (pendingColor 
+                      ? normalizeColor(pendingColor.color) === normalizeColor(gradientChip.gradient)
+                      : normalizeColor(selectedColor) === normalizeColor(gradientChip.gradient)) ? `${gradientChip.gradient}15` : 'transparent'
                   }}>
                     <div
                       className="w-4 h-4 rounded-full border"
@@ -1552,16 +1587,28 @@ export default function PromptBubble({
                 );
               })()}
               
-              {/* Send Button - right side */}
+              {/* Save Button - right side */}
               <button
-                type="submit"
-                disabled={!promptText.trim() || isLoading}
-                className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0`}
+                type="button"
+                disabled={!pendingColor || isLoading}
+                onClick={() => {
+                  if (pendingColor && onThemeColorChange) {
+                    setSelectedColor(pendingColor.color);
+                    onThemeColorChange(pendingColor.color, pendingColor.chipData);
+                    setPendingColor(null);
+                    // Clear the closed without save state since this is a save action
+                    // This will be handled by Dashboard when onThemeColorChange is called
+                  }
+                }}
+                className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border`}
                 style={{
-                  color: useLightText ? '#FFFFFF' : 'rgba(0, 0, 0, 0.7)'
+                  color: useLightText ? '#FFFFFF' : 'rgba(0, 0, 0, 0.7)',
+                  borderColor: useLightText ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
+                  backgroundColor: useLightText ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'
                 }}
               >
-                <PaperAirplaneIcon className="w-4 h-4" />
+                <BookmarkIcon className="w-4 h-4" />
+                <span className="text-xs font-medium">Save</span>
               </button>
             </div>
           </div>
@@ -1642,7 +1689,7 @@ export default function PromptBubble({
         {elementType === 'flight-journey-bar' && showColorPicker && (
           <div className="absolute top-full left-0 mt-2 z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-lg p-3">
             <HexColorPicker
-              color={selectedColor}
+              color={pendingColor ? pendingColor.color : selectedColor}
               onChange={(color) => handleColorChange(color, { label: 'Custom Color', color: color })}
               className="rounded-lg"
             />
@@ -1733,5 +1780,7 @@ export default function PromptBubble({
         )}
       </form>
     </div>
+    </div>,
+    document.body
   );
 } 

@@ -59,45 +59,8 @@ export default function FlightCardInline({ segment, index, activeIndex, onSelect
 
   const isActive = activeIndex === index;
   const [isInEditMode, setIsInEditMode] = useState(false);
-  const [isThemeBuilding, setIsThemeBuilding] = useState(false);
-  const [buildProgress, setBuildProgress] = useState(0);
 
-  // Circular progress bar component
-  const CircularProgressBar = ({ progress, size = 24 }) => {
-    const radius = (size - 4) / 2;
-    const circumference = 2 * Math.PI * radius;
-    const strokeDasharray = circumference;
-    const strokeDashoffset = circumference - (progress / 100) * circumference;
 
-    return (
-      <div className="flex items-center justify-center" style={{ width: size, height: size }}>
-        <svg width={size} height={size} className="transform -rotate-90">
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke="rgba(255, 255, 255, 0.3)"
-            strokeWidth="2"
-            fill="transparent"
-          />
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke="white"
-            strokeWidth="2"
-            fill="transparent"
-            strokeDasharray={strokeDasharray}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            style={{
-              transition: 'stroke-dashoffset 0.3s ease-in-out'
-            }}
-          />
-        </svg>
-      </div>
-    );
-  };
 
   // Helper function to create animated border overlay for active state
   const getAnimatedBorderOverlay = () => {
@@ -133,7 +96,7 @@ export default function FlightCardInline({ segment, index, activeIndex, onSelect
       className="fixed inset-0 z-50 flex items-center justify-center"
       style={{
         background: 'rgba(0, 0, 0, 0.8)',
-        animation: isThemeBuilding ? 'none' : 'themedCardSlideIn 0.8s ease-out forwards'
+        animation: 'themedCardSlideIn 0.8s ease-out forwards'
       }}
     >
       <div 
@@ -171,13 +134,7 @@ export default function FlightCardInline({ segment, index, activeIndex, onSelect
           />
         )}
         
-        <div 
-          className="flex justify-between items-stretch"
-          style={{
-            opacity: isThemeBuilding ? 0 : 1,
-            animation: isThemeBuilding ? 'contentFadeOut 0.5s ease-out forwards' : 'none'
-          }}
-        >
+        <div className="flex justify-between items-stretch">
           <div className="flex items-start gap-1 flex-none pr-0" style={{ paddingRight: 6 }}>
             <div className="flex-none">
               <div className="flex items-center gap-2">
@@ -227,8 +184,6 @@ export default function FlightCardInline({ segment, index, activeIndex, onSelect
               onClick={(e) => {
                 e.stopPropagation();
                 setIsInEditMode(false);
-                setIsThemeBuilding(false);
-                setBuildProgress(0);
                 console.log('Done clicked - exiting edit mode');
               }}
             >
@@ -236,16 +191,7 @@ export default function FlightCardInline({ segment, index, activeIndex, onSelect
             </button>
           </div>
         </div>
-        
-        {/* Circular progress bar when theme building */}
-        {isThemeBuilding && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-2">
-              <CircularProgressBar progress={buildProgress} size={32} />
-              <span className="text-white text-xs font-medium">Building theme...</span>
-            </div>
-          </div>
-        )}
+
       </div>
     </div>
   );
@@ -282,7 +228,7 @@ export default function FlightCardInline({ segment, index, activeIndex, onSelect
             </div>
           </div>
           
-          {/* Edit button */}
+          {/* Modify button */}
           <div className="flex items-center">
             <button
               className={`px-3 py-1 text-xs font-medium text-white transition-colors ${
@@ -297,42 +243,17 @@ export default function FlightCardInline({ segment, index, activeIndex, onSelect
                 borderBottomRightRadius: '9999px' 
               }}
               onClick={(e) => {
-                e.stopPropagation(); // Prevent card selection when clicking edit
-                console.log('Edit flight card', index, segment);
+                e.stopPropagation(); // Prevent card selection when clicking build theme
+                console.log('Build Theme clicked', index, segment);
                 
                 // Trigger animation sequence
                 if (typeof onEditTheme === 'function') {
                   onEditTheme(index, segment);
                 }
                 setIsInEditMode(true);
-                
-                // Start theme building after a short delay
-                setTimeout(() => {
-                  setIsThemeBuilding(true);
-                  
-                  // Simulate progress updates
-                  let progress = 0;
-                  const progressInterval = setInterval(() => {
-                    progress += Math.random() * 20 + 5; // Random progress increment
-                    if (progress >= 100) {
-                      progress = 100;
-                      setBuildProgress(progress);
-                      clearInterval(progressInterval);
-                      
-                      // Complete the theme building after progress reaches 100%
-                      setTimeout(() => {
-                        setIsThemeBuilding(false);
-                        setIsInEditMode(false);
-                        setBuildProgress(0);
-                      }, 500);
-                    } else {
-                      setBuildProgress(progress);
-                    }
-                  }, 300);
-                }, 1000);
               }}
             >
-              Build theme
+              Build Theme
             </button>
           </div>
 

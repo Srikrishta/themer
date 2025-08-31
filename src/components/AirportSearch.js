@@ -10,6 +10,18 @@ import FlightCardInline from './FlightCardInline';
 import DatePicker from './DatePicker';
 import festivalsData from '../data/festivals.json';
 
+// CSS for static circular progress bar (no animation)
+const progressBarCSS = `
+  .static-progress-stroke {
+    stroke: #3b82f6; /* blue-500 - static color */
+    stroke-width: 2;
+    stroke-linecap: round;
+    fill: none;
+    transform-origin: center;
+    transform: rotate(-90deg);
+  }
+`;
+
 // Airport data
 const AIRPORTS = [
   // European Airports
@@ -398,12 +410,13 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
   );
 }
 
-function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized, onSelectedDatesChange, themeColor = '#1E1E1E', onEnterPromptMode, onTriggerPromptBubble, onGeneratingStateChange, onBuildThemes, onFlightSelect, flightsGenerated = false, onScrollingStateChange, onBuildThemeClicked, onAirlineSelect }) {
+function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized, onSelectedDatesChange, themeColor = '#1E1E1E', onEnterPromptMode, onTriggerPromptBubble, onGeneratingStateChange, onBuildThemes, onFlightSelect, flightsGenerated = false, onScrollingStateChange, onBuildThemeClicked, onAirlineSelect, onModifyClicked }) {
   // Date picker state and logic (moved from ThemeCreator)
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [dates, setDates] = useState(selectedDates || []);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [inputValue, setInputValue] = useState('');
+  const [isModifyInProgress, setIsModifyInProgress] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const datePickerRef = useRef(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -418,26 +431,28 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
   const [isReversingToRoutes, setIsReversingToRoutes] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 200, left: 200 });
   const [datePickerPosition, setDatePickerPosition] = useState({ top: 0, left: 0, width: 400 });
-  const [airlineDropdownPosition, setAirlineDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const [isScrollingUp, setIsScrollingUp] = useState(false);
+  const [airlineDropdownPosition, setAirlineDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0, width: 0, height: 0 });
   const [selectedFlightCard, setSelectedFlightCard] = useState(null); // { index, segment, position, html }
   const [totalFlightCards, setTotalFlightCards] = useState(0);
   const [cardAtCenter, setCardAtCenter] = useState(false); // Track when card reaches center
   const originalButtonRef = useRef(null);
   const containerRef = useRef(null);
+  
+
 
   // Airport search dropdown state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
   // Airline selection state
-  const [selectedAirline, setSelectedAirline] = useState('All Airlines');
+  const [selectedAirline, setSelectedAirline] = useState('Lufthansa');
   const [isAirlineDropdownOpen, setIsAirlineDropdownOpen] = useState(false);
   const airlineDropdownRef = useRef(null);
   
   // Airline options
-  const AIRLINE_OPTIONS = ['All Airlines', 'Lufthansa', 'Swiss', 'Austrian Airlines', 'Discover'];
+  const AIRLINE_OPTIONS = ['Lufthansa', 'Swiss', 'Discover'];
 
   // Airline logo and theme mappings
   const AIRLINE_MAPPINGS = {
@@ -457,14 +472,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
       },
       themeColor: '#FF0000' // Swiss red
     },
-    'Austrian Airlines': {
-      logo: {
-        id: 'austrian',
-        src: process.env.PUBLIC_URL + '/lufthansa.png', // Using Lufthansa as placeholder for now
-        animationType: 'lights'
-      },
-      themeColor: '#C8102E' // Austrian red
-    },
+
     'Discover': {
       logo: {
         id: 'discover',
@@ -474,6 +482,69 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
       themeColor: '#1E73AF' // Discover blue
     }
   };
+
+  // Initialize with default airline selection (Lufthansa)
+  useEffect(() => {
+    if (onAirlineSelect && AIRLINE_MAPPINGS[selectedAirline]) {
+      const airlineData = AIRLINE_MAPPINGS[selectedAirline];
+      onAirlineSelect(airlineData.logo, airlineData.themeColor);
+    }
+  }, []); // Only run on mount
+
+  // Handle scroll to keep flight card within container bounds
+  useEffect(() => {
+    if (!selectedFlightCard) return;
+
+    const handleScroll = () => {
+      const containerElement = document.querySelector('[data-component="ThemeCreator"]');
+      if (!containerElement) return;
+
+      const containerRect = containerElement.getBoundingClientRect();
+      
+      // Calculate how much the container has moved from its original position
+      // Center within the content area (accounting for 170px padding on each side)
+      const contentAreaLeft = containerRect.left + 170;
+      const contentAreaWidth = containerRect.width - 340; // 170px padding on each side
+      const containerCenterX = contentAreaLeft + (contentAreaWidth / 2);
+      const newTargetX = containerCenterX - selectedFlightCard.initialLeft - (selectedFlightCard.width / 2);
+
+      // Also track vertical movement - the container might move up/down due to scroll
+      // We need to adjust the flight card's top position to follow the container
+      const containerTop = containerRect.top;
+      const containerVerticalOffset = containerTop - selectedFlightCard.containerInitialTop;
+      
+      // Update position to track both horizontal and vertical container movement
+      setSelectedFlightCard(prev => ({
+        ...prev,
+        targetX: newTargetX,
+        finalTargetX: newTargetX, // Also update the final target if we have one
+        // Adjust the initial position to account for container movement
+        adjustedTop: prev.initialTop + containerVerticalOffset,
+        // Also adjust the alignment Y for navigation buttons
+        adjustedAlignmentY: prev.alignmentY + containerVerticalOffset
+      }));
+    };
+
+    // Listen for scroll events to keep card positioned correctly
+    window.addEventListener('scroll', handleScroll);
+    
+    // Listen for resize events
+    window.addEventListener('resize', handleScroll);
+
+    // Listen for specific layout change events (like IFE preview appearing)
+    const handleLayoutChanged = (event) => {
+      console.log('🎯 AirportSearch: Layout changed event received:', event.detail);
+      setTimeout(handleScroll, 100); // Small delay to let layout settle
+    };
+    
+    window.addEventListener('layoutChanged', handleLayoutChanged);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+      window.removeEventListener('layoutChanged', handleLayoutChanged);
+    };
+  }, [selectedFlightCard]);
 
   // Toggle state is now controlled by parent ThemeCreator via isMinimized prop
 
@@ -945,8 +1016,19 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
 
   // Function to navigate to a different flight card
   const navigateToFlightCard = (targetIndex) => {
+    if (!selectedFlightCard) return;
+    
     const flightCards = document.querySelectorAll('[data-flight-card-index]');
     let targetCard = null;
+    
+    // Determine slide direction based on current vs target index
+    const isNext = targetIndex > selectedFlightCard.index;
+    const slideDirection = isNext ? 1 : -1; // 1 for right, -1 for left
+    
+    // Calculate the slide distance (distance from card edge to chevron center)
+    // Left chevron is 42px to the left, right chevron is 18px to the right
+    // Adding button radius (12px) to get distance from card edge to chevron center
+    const slideDistance = isNext ? 30 : 30; // 30px gap from card edge to chevron center
     
     // Calculate alignment Y based on the 156px container height
     const containerElement = document.querySelector('[data-component="ThemeCreator"]');
@@ -967,34 +1049,75 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
         // Calculate the center aligned with ThemeCreator container
         const containerElement = document.querySelector('[data-component="ThemeCreator"]');
         let containerCenterX = window.innerWidth / 2; // Fallback to viewport center
+        let containerInitialTop = 0;
         
         if (containerElement) {
           const containerRect = containerElement.getBoundingClientRect();
-          containerCenterX = containerRect.left + containerRect.width / 2;
+          // Center within the content area (accounting for 170px padding on each side)
+          const contentAreaLeft = containerRect.left + 170;
+          const contentAreaWidth = containerRect.width - 340; // 170px padding on each side
+          containerCenterX = contentAreaLeft + (contentAreaWidth / 2);
+          containerInitialTop = containerRect.top; // Store initial container position
         }
         
-        const cardCenterX = cardRect.left + cardRect.width / 2;
-        const targetX = containerCenterX - cardCenterX;
+        // Calculate targetX so that the card center aligns with content area center after transform
+        const targetX = containerCenterX - cardRect.left - (cardRect.width / 2);
+        
+        // Debug logging for alignment
+        console.log('🎯 CENTERING DEBUG (with padding):', {
+          containerCenterX,
+          cardLeft: cardRect.left,
+          cardWidth: cardRect.width,
+          targetX,
+          finalCardCenter: cardRect.left + targetX + (cardRect.width / 2)
+        });
         
         // Align vertically with Themer logo
         const targetY = alignmentY - (cardRect.top + cardRect.height / 2);
         
+        // Create the segment information for this flight card (same logic as generateFlightSegments)
+        let segment = null;
+        if (routes.length >= 2 && targetIndex < routes.length - 1) {
+          segment = {
+            id: `flight-${targetIndex + 1}`,
+            flightNumber: targetIndex + 1,
+            origin: routes[targetIndex],
+            destination: routes[targetIndex + 1],
+            selectedTheme: null
+          };
+        }
+        
         targetCard = {
           index: targetIndex,
+          segment: segment, // Add the segment information
           initialTop: cardRect.top,
           initialLeft: cardRect.left,
           width: cardRect.width,
           height: cardRect.height,
-          targetX,
+          targetX: targetX + (slideDirection * slideDistance), // Start positioned at chevron distance
           targetY,
+          finalTargetX: targetX, // Store the final center position
           alignmentY,
-          html: cardHTML
+          containerInitialTop, // Store container's initial position for scroll tracking
+          adjustedTop: cardRect.top, // Initialize adjusted top to original position
+          adjustedAlignmentY: alignmentY, // Initialize adjusted alignment Y
+          html: cardHTML,
+          isSliding: true // Flag to indicate we're in slide animation
         };
       }
     });
     
     if (targetCard) {
       setSelectedFlightCard(targetCard);
+      
+      // After a brief delay, animate to center position
+      setTimeout(() => {
+        setSelectedFlightCard(prev => ({
+          ...prev,
+          targetX: prev.finalTargetX, // Move to final center position
+          isSliding: false // Animation complete
+        }));
+      }, 50); // Small delay to ensure the initial position is rendered
     }
   };
 
@@ -1007,6 +1130,8 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
   return (
     <>
       <style>{`
+        ${progressBarCSS}
+        
         @keyframes containerFadeOut {
           0% {
             opacity: 1;
@@ -1038,8 +1163,21 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
            }
          }
          
+         @keyframes containerScrollUp {
+           0% {
+             transform: translateY(0);
+           }
+           100% {
+             transform: translateY(-200px);
+           }
+         }
+         
          .container-height-shrink {
            animation: containerHeightShrink 0.8s ease-in forwards;
+         }
+         
+         .container-scroll-up {
+           animation: containerScrollUp 0.8s ease-in forwards;
          }
           
           /* Prevent selected flight card from being affected by parent animation */
@@ -1049,43 +1187,54 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
         }
       `}</style>
       
-      {/* Flight card overlay - completely outside animated container */}
-      {selectedFlightCard && (
-        <div 
-          className="fixed inset-0 z-50 pointer-events-none"
-          style={{
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh'
-          }}
-        >
-          {/* Left Chevron - aligned with Themer logo row */}
+      {/* Flight card overlay - portaled to Dashboard's flight-card-container */}
+      {selectedFlightCard && (() => {
+        const container = document.getElementById('flight-card-container');
+        if (!container) return null;
+        
+        // Check if the container is in sticky mode by checking its computed position
+        const containerStyle = window.getComputedStyle(container);
+        const isContainerSticky = containerStyle.position === 'fixed';
+        
+        return createPortal(
+          <div 
+            className="w-full h-full flex items-center justify-center relative"
+            style={{
+              position: 'relative',
+              pointerEvents: 'none'
+            }}
+          >
+          {/* Left Chevron */}
           {selectedFlightCard.index > 0 && (
             <button
-              className="absolute transform -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center transition-all duration-200 shadow-lg"
+              className="absolute transform -translate-y-1/2 w-6 h-6 backdrop-blur-[10px] backdrop-filter rounded-full flex items-center justify-center transition-all duration-200 shadow-lg"
               style={{ 
                 pointerEvents: 'auto',
                 zIndex: 1000,
-                left: `${selectedFlightCard.initialLeft + selectedFlightCard.targetX - 60}px`,
-                top: `${selectedFlightCard.alignmentY}px`
+                left: isContainerSticky ? 'calc(50vw - 270px)' : 'calc(50% - 270px)',
+                top: '50%',
+                backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                border: '1px solid rgba(0, 0, 0, 0.2)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
               }}
               onClick={() => navigateToFlightCard(selectedFlightCard.index - 1)}
               title="Previous flight"
             >
-                              <ChevronLeftIcon className="w-5 h-5" style={{ color: '#000000' }} />
+              <ChevronLeftIcon className="w-4 h-4" style={{ color: '#000000' }} />
             </button>
           )}
           
           {/* Flight Card */}
           <div
-            className="absolute transition-transform duration-200 ease-in-out"
+            className="transition-transform duration-200 ease-in-out"
             style={{
-              top: `${selectedFlightCard.initialTop}px`,
-              left: `${selectedFlightCard.initialLeft}px`,
-              width: `${selectedFlightCard.width}px`,
+              width: '500px',
               height: `${selectedFlightCard.height}px`,
-              transform: `translateX(${selectedFlightCard.targetX}px) translateY(${selectedFlightCard.targetY}px)`,
               pointerEvents: 'auto'
             }}
             onTransitionEnd={(e) => {
@@ -1098,9 +1247,10 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
           >
             {/* Custom card content with progress indicator instead of cloned HTML */}
             <div 
-              className="backdrop-blur-[10px] backdrop-filter pl-5 pr-3 py-6 rounded-full shadow-sm w-full h-full flex items-center justify-between"
+              className="backdrop-blur-[10px] backdrop-filter pl-5 pr-3 py-6 rounded-full shadow-lg w-full h-full flex items-center justify-between"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.1)',
+                backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                border: '1px solid rgba(0, 0, 0, 0.2)',
                 minHeight: '80px'
               }}
             >
@@ -1108,67 +1258,130 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
               <div className="flex items-start gap-1 flex-none">
                 <div className="flex-none">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-base font-semibold text-white break-words">
+                    <h3 className="text-base font-semibold text-black break-words">
                       {selectedFlightCard.segment?.origin?.airport?.city} → {selectedFlightCard.segment?.destination?.airport?.city}
                     </h3>
                   </div>
-                  <div className="text-xs text-white mt-1 flex items-center gap-3 flex-wrap break-words">
+                  <div className="text-xs text-black mt-1 flex items-center gap-3 flex-wrap break-words">
                     <span className="flex items-center gap-1 font-semibold">Flight {selectedFlightCard.index + 1}</span>
                   </div>
                 </div>
               </div>
               
-              {/* Static circular progress indicator with 0% text */}
+              {/* Modify button or Progress bar */}
               <div className="flex items-center">
-                <div className="relative w-16 h-16">
-                  <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 64 64">
-                    <circle
-                      cx="32"
-                      cy="32"
-                      r="28"
-                      stroke="rgba(255, 255, 255, 0.3)"
-                      strokeWidth="4"
-                      fill="transparent"
-                    />
-                    <circle
-                      cx="32"
-                      cy="32"
-                      r="28"
-                      stroke="white"
-                      strokeWidth="4"
-                      fill="transparent"
-                      strokeDasharray={`${2 * Math.PI * 28}`}
-                      strokeDashoffset={`${2 * Math.PI * 28 * (1 - 0 / 100)}`}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  {/* 0% text centered inside the circle */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">0%</span>
+                {!isModifyInProgress ? (
+                  <button
+                    className="px-4 py-2 text-sm font-medium text-white backdrop-blur-[10px] backdrop-filter transition-colors"
+                    style={{ 
+                      borderTopLeftRadius: '0px', 
+                      borderTopRightRadius: '9999px', 
+                      borderBottomLeftRadius: '9999px', 
+                      borderBottomRightRadius: '9999px',
+                      backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                      border: '1px solid rgba(59, 130, 246, 0.4)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.9)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.8)';
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log('Modify flight card clicked - enabling hover tips and triggering change theme prompt');
+                      
+                      // Show progress bar
+                      setIsModifyInProgress(true);
+                      
+                      // Enable hover tip buttons for change theme and edit promo card
+                      if (typeof onModifyClicked === 'function') {
+                        onModifyClicked();
+                      }
+                      
+                      // Trigger the change theme prompt bubble automatically
+                      if (typeof onTriggerPromptBubble === 'function') {
+                        const position = { x: window.innerWidth / 2, y: 400 };
+                        onTriggerPromptBubble('flight-journey-bar', { themeColor }, position);
+                      }
+                    }}
+                  >
+                    Modify
+                  </button>
+                ) : (
+                  // Circular Progress Bar
+                  <div className="relative flex items-center justify-center">
+                    <svg 
+                      width="48" 
+                      height="48" 
+                      viewBox="0 0 48 48"
+                      className="backdrop-blur-[10px] backdrop-filter"
+                      style={{
+                        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                        border: '1px solid rgba(0, 0, 0, 0.2)',
+                        borderRadius: '50%'
+                      }}
+                    >
+                      {/* Background circle */}
+                      <circle
+                        cx="24"
+                        cy="24"
+                        r="20"
+                        fill="none"
+                        stroke="rgba(255, 255, 255, 0.2)"
+                        strokeWidth="2"
+                      />
+                      {/* Progress circle - static at 0% */}
+                      <circle
+                        cx="24"
+                        cy="24"
+                        r="20"
+                        className="static-progress-stroke"
+                        strokeDasharray="125.6"
+                        strokeDashoffset="125.6"
+                      />
+                    </svg>
+                    {/* Percentage text */}
+                    <div 
+                      className="absolute inset-0 flex items-center justify-center text-sm font-bold text-black"
+                      style={{ pointerEvents: 'none' }}
+                    >
+                      0%
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
           
-          {/* Right Chevron - aligned with Themer logo row */}
+          {/* Right Chevron */}
           {selectedFlightCard.index < totalFlightCards - 1 && (
             <button
-              className="absolute transform -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center transition-all duration-200 shadow-lg"
+              className="absolute transform -translate-y-1/2 w-6 h-6 backdrop-blur-[10px] backdrop-filter rounded-full flex items-center justify-center transition-all duration-200 shadow-lg"
               style={{ 
                 pointerEvents: 'auto',
                 zIndex: 1000,
-                left: `${selectedFlightCard.initialLeft + selectedFlightCard.targetX + selectedFlightCard.width + 12}px`,
-                top: `${selectedFlightCard.alignmentY}px`
+                left: isContainerSticky ? 'calc(50vw + 280px)' : 'calc(50% + 280px)',
+                top: '50%',
+                backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                border: '1px solid rgba(0, 0, 0, 0.2)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
               }}
               onClick={() => navigateToFlightCard(selectedFlightCard.index + 1)}
               title="Next flight"
             >
-                              <ChevronRightIcon className="w-5 h-5" style={{ color: '#000000' }} />
+              <ChevronRightIcon className="w-4 h-4" style={{ color: '#000000' }} />
             </button>
           )}
-        </div>
-      )}
+          </div>,
+          container
+        );
+      })()}
       
       <div className={`relative ${isScrollingUp ? 'container-height-shrink' : ''}`} ref={containerRef}>
         {/* Deploy to Aircraft button - positioned at exact captured coordinates */}
@@ -1425,6 +1638,23 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
           onEditTheme={(flightIndex, flightSegment) => {
             console.log('Edit theme triggered for flight:', flightIndex, flightSegment);
             
+            // Trigger container scroll-up animation
+            setIsScrollingUp(true);
+            
+            // Close date picker when scrolling up to prevent it from staying visible
+            setIsDatePickerOpen(false);
+            
+            // Notify parent component about scrolling state
+            if (onScrollingStateChange) {
+              onScrollingStateChange(true);
+            }
+            
+            // Trigger preview mode
+            if (onBuildThemeClicked) {
+              console.log('🎯 AirportSearch: Calling onBuildThemeClicked');
+              onBuildThemeClicked(flightIndex, flightSegment);
+            }
+            
             // Calculate alignment Y based on the new 156px container height
             // Position elements at the vertical center of the shrunken container
             const containerElement = document.querySelector('[data-component="ThemeCreator"]');
@@ -1465,14 +1695,19 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                 // Calculate the center aligned with ThemeCreator container
                 const containerElement = document.querySelector('[data-component="ThemeCreator"]');
                 let containerCenterX = window.innerWidth / 2; // Fallback to viewport center
+                let containerInitialTop = 0;
                 
                 if (containerElement) {
                   const containerRect = containerElement.getBoundingClientRect();
-                  containerCenterX = containerRect.left + containerRect.width / 2;
+                  // Center within the content area (accounting for 170px padding on each side)
+                  const contentAreaLeft = containerRect.left + 170;
+                  const contentAreaWidth = containerRect.width - 340; // 170px padding on each side
+                  containerCenterX = contentAreaLeft + (contentAreaWidth / 2);
+                  containerInitialTop = containerRect.top; // Store initial container position
                 }
                 
-                const cardCenterX = cardRect.left + cardRect.width / 2;
-                const targetX = containerCenterX - cardCenterX;
+                // Calculate targetX so that the card center aligns with content area center after transform
+                const targetX = containerCenterX - cardRect.left - (cardRect.width / 2);
                 
                 // Align vertically with Themer logo
                 const targetY = alignmentY - (cardRect.top + cardRect.height / 2);
@@ -1493,6 +1728,14 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
               const cardRect = clickedCard.element.getBoundingClientRect();
               const cardHTML = clickedCard.element.innerHTML;
               
+              // Get container position for scroll tracking
+              const containerElement = document.querySelector('[data-component="ThemeCreator"]');
+              let containerInitialTop = 0;
+              if (containerElement) {
+                const containerRect = containerElement.getBoundingClientRect();
+                containerInitialTop = containerRect.top;
+              }
+              
               // Hide the original card
               clickedCard.element.style.opacity = '0';
               
@@ -1507,6 +1750,9 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                 targetX: clickedCard.targetX,
                 targetY: clickedCard.targetY,
                 alignmentY: clickedCard.alignmentY,
+                containerInitialTop: containerInitialTop, // Store container's initial position
+                adjustedTop: cardRect.top, // Initialize adjusted top to original position
+                adjustedAlignmentY: clickedCard.alignmentY, // Initialize adjusted alignment Y
                 html: cardHTML
               });
             }
@@ -1589,13 +1835,10 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                 setSelectedAirline(airline);
                 setIsAirlineDropdownOpen(false);
                 
-                // Handle airline selection for all airlines
-                if (airline !== 'All Airlines' && AIRLINE_MAPPINGS[airline] && onAirlineSelect) {
+                // Handle airline selection
+                if (AIRLINE_MAPPINGS[airline] && onAirlineSelect) {
                   const airlineData = AIRLINE_MAPPINGS[airline];
                   onAirlineSelect(airlineData.logo, airlineData.themeColor);
-                } else if (airline === 'All Airlines' && onAirlineSelect) {
-                  // Reset to default when "All Airlines" is selected
-                  onAirlineSelect(null, '#1E1E1E'); // Default theme color
                 }
               }}
             >

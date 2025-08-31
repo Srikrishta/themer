@@ -30,13 +30,15 @@ const gradientAnimationCSS = `
   }
 `;
 
+
+
 function formatTime(minutes) {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, cardOrder, onCardReorder, contentCardOrder, onContentCardReorder }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, cardOrder, onCardReorder, contentCardOrder, onContentCardReorder, onContentCardHover }) {
   
   // Drag and drop state for content cards
   const [draggedContentCardIndex, setDraggedContentCardIndex] = useState(null);
@@ -172,6 +174,21 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         onDragEnter={(e) => handleContentCardDragEnter(e, displayPosition)}
         onDragLeave={handleContentCardDragLeave}
         onDrop={(e) => handleContentCardDrop(e, displayPosition)}
+        onMouseEnter={(e) => {
+          if (onContentCardHover) {
+            onContentCardHover(true, e.clientX, e.clientY);
+          }
+        }}
+        onMouseMove={(e) => {
+          if (onContentCardHover) {
+            onContentCardHover(true, e.clientX, e.clientY);
+          }
+        }}
+        onMouseLeave={() => {
+          if (onContentCardHover) {
+            onContentCardHover(false, 0, 0);
+          }
+        }}
       >
         {getAnimatedBorderOverlay()}
         <span className="font-semibold" style={{ 
@@ -198,10 +215,10 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
   return (
     <>
       <style>{gradientAnimationCSS}</style>
-      <div style={{ position: 'relative', zIndex: 2, width: 1302, margin: '92px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
+      <div style={{ position: 'relative', zIndex: 10001, width: 1302, margin: '92px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
       <div
         className="fjb-fps-container"
-        style={{ width: 1336, maxWidth: 1336, marginLeft: -2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, background: themeColor, borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 16, paddingTop: 80, paddingBottom: 40, marginTop: 4, position: 'relative' }}
+        style={{ width: 1336, maxWidth: 1336, marginLeft: -2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, background: themeColor, borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 16, paddingTop: 80, paddingBottom: 40, marginTop: 4, position: 'relative', zIndex: 1 }}
         onMouseEnter={(e) => {
           if (!isPromptMode) return;
           const isOverProgress = e.target.closest('.flight-progress-bar-container') || e.target.closest('.flight-progress-icon');
@@ -411,10 +428,14 @@ export default function Dashboard() {
   
   // NEW: Prompt mode state
   const [isPromptMode, setIsPromptMode] = useState(false);
+  const [isModifyClicked, setIsModifyClicked] = useState(false);
   const [activeSegmentId, setActiveSegmentId] = useState(null); // Track which segment is in prompt mode
   const [promptBubble, setPromptBubble] = useState(null); // { x, y, elementType, elementData }
+  const [colorPromptClosedWithoutSave, setColorPromptClosedWithoutSave] = useState(false); // Track if color PB was closed without saving
   const [selectedLogo, setSelectedLogo] = useState(null); // { id, src }
   const [showPlusIcon, setShowPlusIcon] = useState(false);
+  const [ifeFrameHover, setIfeFrameHover] = useState({ isHovering: false, x: 0, y: 0 }); // Track IFE frame hover state
+  const [contentCardHover, setContentCardHover] = useState({ isHovering: false, x: 0, y: 0 }); // Track content card hover state
   
   // Store submitted prompts by FPS position
   const [fpsPrompts, setFpsPrompts] = useState({}); // { [position]: text }
@@ -486,6 +507,9 @@ export default function Dashboard() {
   const [showIFEFrame, setShowIFEFrame] = useState(false);
   const [showInFlightPreview, setShowInFlightPreview] = useState(false);
   const [showSweepAnimation, setShowSweepAnimation] = useState(false);
+  const [isScrollingUp, setIsScrollingUp] = useState(false);
+  const [isFlightContentSticky, setIsFlightContentSticky] = useState(false);
+  const [darkContainerHeight, setDarkContainerHeight] = useState(0);
 
   // DEBUG: Track height changes
   const dashboardRef = useRef(null);
@@ -581,6 +605,7 @@ export default function Dashboard() {
     // elementType: 'flight-icon' or 'promo-card'
     // elementData: contains specific data about the element
     // position: { x, y } cursor position
+    console.log('=== HANDLE PROMPT HOVER ===', { isHovering, elementType, isPromptMode, colorPromptClosedWithoutSave });
     if (!isPromptMode) return;
     // For FJB: do NOT show the icon-only plus; show hover bubble with "+ add theme"
     if (elementType === 'flight-journey-bar') {
@@ -649,6 +674,12 @@ export default function Dashboard() {
       isPromptMode,
       currentPromoCardContents: promoCardContents
     });
+    
+    // Clear the closed without save state when opening a new color prompt
+    if (elementType === 'flight-journey-bar') {
+      setColorPromptClosedWithoutSave(false);
+    }
+    
     if (isPromptMode) {
       // Generate unique key for different element types
       let positionKey;
@@ -937,6 +968,63 @@ export default function Dashboard() {
     };
   }, []);
 
+  // Handle sticky positioning for flight content when dark container scrolls up
+  useEffect(() => {
+    if (!showInFlightPreview) return;
+
+    const handleScroll = () => {
+      // Find the ThemeCreator dark container
+      const themeCreatorContainer = document.querySelector('[data-component="ThemeCreator"]');
+      if (!themeCreatorContainer) return;
+
+      const containerRect = themeCreatorContainer.getBoundingClientRect();
+      const containerBottom = containerRect.bottom;
+      const containerTop = containerRect.top;
+
+      // Bidirectional sticky behavior:
+      // - Stick when container bottom goes above viewport (scrolling down)
+      // - Unstick when container top comes back into view (scrolling up)
+      let shouldBeSticky;
+      
+      if (containerTop >= 0) {
+        // Dark container is visible at top - unstick flight content
+        shouldBeSticky = false;
+      } else if (containerBottom <= 100) {
+        // Dark container mostly out of view - stick flight content
+        shouldBeSticky = true;
+      } else {
+        // In transition zone - maintain current state
+        shouldBeSticky = isFlightContentSticky;
+      }
+      
+      setIsFlightContentSticky(shouldBeSticky);
+      
+      // Store the dark container height for positioning calculations
+      if (containerRect.height !== darkContainerHeight) {
+        setDarkContainerHeight(containerRect.height);
+      }
+
+      // Debug logging
+      console.log('🔍 Scroll Debug:', {
+        containerTop,
+        containerBottom,
+        shouldBeSticky,
+        isFlightContentSticky,
+        canUserScroll: true // User can always scroll
+      });
+    };
+
+    // Add scroll listener
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // Initial check
+    handleScroll();
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [showInFlightPreview, darkContainerHeight, isFlightContentSticky]);
+
   // Keep all elements visible - no auto-scroll to hide themer logo or input fields
   // Removed auto-scroll to maintain visibility of input fields and generate flights button
 
@@ -1002,6 +1090,8 @@ export default function Dashboard() {
   };
 
   console.log('🎯 Dashboard RENDER: showInFlightPreview =', showInFlightPreview, 'showIFEFrame =', showIFEFrame, 'isPromptMode =', isPromptMode);
+  
+
   
   return (
     <div 
@@ -1083,12 +1173,41 @@ export default function Dashboard() {
             setSelectedLogo(logoInfo); // logoInfo can be null for "All Airlines" reset
             setCurrentThemeColor(themeColor);
           }}
+          onModifyClicked={() => setIsModifyClicked(true)}
           onShowPreview={(show) => {
             console.log('🎯 Dashboard: onShowPreview called with:', show);
             setShowInFlightPreview(show);
             setShowIFEFrame(show);
             setIsPromptMode(show);
-            console.log('🎯 Dashboard: States IMMEDIATELY after set - showInFlightPreview:', show, 'showIFEFrame:', show, 'isPromptMode:', show);
+            setIsScrollingUp(show);
+            
+            if (show) {
+              // Scroll the page to bring the content to the top after animation
+              setTimeout(() => {
+                console.log('🎯 Attempting to scroll to top');
+                
+                // Try multiple approaches to scroll to top
+                const flightCardContainer = document.getElementById('flight-card-container');
+                console.log('🎯 Flight card container found:', !!flightCardContainer);
+                
+                if (flightCardContainer) {
+                  const rect = flightCardContainer.getBoundingClientRect();
+                  console.log('🎯 Container position:', rect.top, rect.left);
+                  
+                  // Calculate scroll position to bring container to top
+                  const scrollTop = window.pageYOffset + rect.top - 20; // 20px from top
+                  console.log('🎯 Scrolling to position:', scrollTop);
+                  
+                  // Force scroll to top
+                  window.scrollTo({
+                    top: scrollTop,
+                    behavior: 'smooth'
+                  });
+                }
+              }, 800); // Wait for animations to complete
+            }
+            
+            console.log('🎯 Dashboard: States IMMEDIATELY after set - showInFlightPreview:', show, 'showIFEFrame:', show, 'isPromptMode:', show, 'isScrollingUp:', show);
             
             // Force a re-render check
             setTimeout(() => {
@@ -1101,6 +1220,10 @@ export default function Dashboard() {
               setShowInFlightPreview(true);
               setShowIFEFrame(true);
               setIsPromptMode(true);
+              // Notify components that layout has changed
+              setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('layoutChanged', { detail: { type: 'ifePreviewShown' } }));
+              }, 300);
             }, 250);
           }}
         />
@@ -1121,19 +1244,57 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Flight card and chevrons in place of Select Theme text */}
+      {showInFlightPreview && (
+        <div 
+          id="flight-card-container"
+          className="w-full flex justify-center"
+          style={{
+            marginTop: isFlightContentSticky ? 0 : 20,
+            opacity: showInFlightPreview ? 1 : 0,
+            transform: showInFlightPreview ? 'translateY(0)' : 'translateY(20px)',
+            transition: 'opacity 0.4s ease-out, transform 0.4s ease-out, position 0.3s ease-out, top 0.3s ease-out',
+            position: isFlightContentSticky ? 'fixed' : 'relative',
+            top: isFlightContentSticky ? '20px' : 'auto',
+            left: isFlightContentSticky ? '0' : 'auto',
+            right: isFlightContentSticky ? '0' : 'auto',
+            zIndex: isFlightContentSticky ? 1000 : 'auto',
+            minHeight: '120px'
+          }}
+        >
+          {/* Flight card will be positioned here via AirportSearch */}
+        </div>
+      )}
+
       {/* IFE frame - Shows when preview mode is active */}
       {showInFlightPreview && (
         <div 
           className="w-full flex justify-center" 
           style={{ 
-            marginTop: 8, 
+            marginTop: isFlightContentSticky ? 0 : 8, 
             height: '880px',
             opacity: showInFlightPreview ? 1 : 0,
             transform: showInFlightPreview ? 'translateY(0)' : 'translateY(40px)',
-            transition: 'opacity 0.6s ease-out, transform 0.6s ease-out'
+            transition: 'opacity 0.6s ease-out, transform 0.6s ease-out, position 0.3s ease-out, top 0.3s ease-out',
+            position: isFlightContentSticky ? 'fixed' : 'relative',
+            top: isFlightContentSticky ? '140px' : 'auto',
+            left: isFlightContentSticky ? '0' : 'auto',
+            right: isFlightContentSticky ? '0' : 'auto',
+            zIndex: isFlightContentSticky ? 999 : 'auto'
           }}
         >
-          <div style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', contain: 'layout paint', transform: 'scale(0.8)', transformOrigin: 'top center' }}>
+          <div 
+            style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', transform: 'scale(0.8)', transformOrigin: 'top center' }}
+                          onMouseEnter={(e) => {
+                setIfeFrameHover({ isHovering: true, x: e.clientX, y: e.clientY });
+              }}
+              onMouseMove={(e) => {
+                setIfeFrameHover({ isHovering: true, x: e.clientX, y: e.clientY });
+              }}
+            onMouseLeave={() => {
+              setIfeFrameHover({ isHovering: false, x: 0, y: 0 });
+            }}
+          >
             {/* IFE Frame SVG */}
             <img
               src={process.env.PUBLIC_URL + '/ife-frame.svg'}
@@ -1170,6 +1331,10 @@ export default function Dashboard() {
               onCardReorder={handleCardReorder}
               contentCardOrder={contentCardOrder}
               onContentCardReorder={handleContentCardReorder}
+              onContentCardHover={(isHovering, x, y) => {
+                console.log('=== CONTENT CARD HOVER ===', { isHovering, x, y });
+                setContentCardHover({ isHovering, x, y });
+              }}
             />
           </div>
         </div>
@@ -1204,6 +1369,10 @@ export default function Dashboard() {
         elementData={promptBubble?.elementData}
         onClose={handlePromptBubbleClose}
         onSubmit={handlePromptBubbleSubmit}
+        onCloseWithoutSave={() => {
+          console.log('=== COLOR PROMPT CLOSED WITHOUT SAVE ===');
+          setColorPromptClosedWithoutSave(true);
+        }}
         themeColor={currentThemeColor}
         isThemeBuildStarted={isThemeBuildStarted}
         existingText={promptBubble?.existingText || ''}
@@ -1212,6 +1381,8 @@ export default function Dashboard() {
         onThemeColorChange={(color, chipData) => {
           if (typeof color === 'string' && color.length > 0) {
             setCurrentThemeColor(color);
+            // Clear the closed without save state since the user saved
+            setColorPromptClosedWithoutSave(false);
             // Update selected theme chip and apply logo animation
             if (chipData && chipData.label) {
               setSelectedThemeChip(chipData);
@@ -1245,11 +1416,72 @@ export default function Dashboard() {
         onFlightPhaseSelect={handleFlightPhaseSelect}
       />
 
-      {/* FJB hover tip bubble: shows label and plus; click opens color PB */}
-      {isPromptMode && fjbHoverTip.visible && !promptBubble && (
+      {/* DEBUG: Button to toggle colorPromptClosedWithoutSave for testing */}
+      <button
+        onClick={() => setColorPromptClosedWithoutSave(!colorPromptClosedWithoutSave)}
+        style={{
+          position: 'fixed',
+          top: 10,
+          right: 10,
+          zIndex: 999999999,
+          padding: '10px',
+          backgroundColor: colorPromptClosedWithoutSave ? 'green' : 'red',
+          color: 'white',
+          border: 'none',
+          borderRadius: '5px'
+        }}
+      >
+        Test Change Theme: {colorPromptClosedWithoutSave ? 'ON' : 'OFF'}
+      </button>
+
+      {/* Change Theme Button - Shows when hovering IFE frame after color prompt was closed without save */}
+      {(() => {
+        const shouldShow = colorPromptClosedWithoutSave && (ifeFrameHover.isHovering || fjbHoverTip.visible || fpsHoverTip.visible || pcHoverTip.visible || contentCardHover.isHovering);
+        if (colorPromptClosedWithoutSave || shouldShow) {
+          console.log('=== CHANGE THEME BUTTON DEBUG ===', {
+            colorPromptClosedWithoutSave,
+            ifeFrameHover: ifeFrameHover.isHovering,
+            fjbHoverTip: fjbHoverTip.visible,
+            fpsHoverTip: fpsHoverTip.visible,
+            pcHoverTip: pcHoverTip.visible,
+            contentCardHover: contentCardHover.isHovering,
+            promptBubble: !!promptBubble,
+            shouldShow
+          });
+        }
+        return shouldShow;
+      })() && (
         <div
-          className="fixed z-40"
-          style={{ left: fjbHoverTip.x, top: fjbHoverTip.y, pointerEvents: 'none' }}
+          className="fixed"
+          style={{ 
+            left: (fjbHoverTip.visible ? fjbHoverTip.x : fpsHoverTip.visible ? fpsHoverTip.x : pcHoverTip.visible ? pcHoverTip.x : contentCardHover.isHovering ? contentCardHover.x : ifeFrameHover.x) + 10, 
+            top: (fjbHoverTip.visible ? fjbHoverTip.y : fpsHoverTip.visible ? fpsHoverTip.y : pcHoverTip.visible ? pcHoverTip.y : contentCardHover.isHovering ? contentCardHover.y : ifeFrameHover.y) - 40, 
+            pointerEvents: 'auto', 
+            zIndex: 999999999 
+          }}
+        >
+          <button
+            className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md transition-colors bg-blue-600 text-white hover:bg-blue-700"
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent any event bubbling
+              console.log('=== CHANGE THEME BUTTON CLICKED ===');
+              // Reset the closed without save state and trigger color prompt
+              setColorPromptClosedWithoutSave(false);
+              const position = { x: window.innerWidth / 2, y: 400 };
+              console.log('=== CALLING handlePromptClick WITH flight-journey-bar ===', { position });
+              handlePromptClick('flight-journey-bar', { themeColor: currentThemeColor }, position);
+            }}
+          >
+            <span className="text-sm font-medium">Change Theme</span>
+          </button>
+        </div>
+      )}
+
+      {/* FJB hover tip bubble: shows label and plus; click opens color PB */}
+      {isModifyClicked && isPromptMode && fjbHoverTip.visible && !promptBubble && !colorPromptClosedWithoutSave && (
+        <div
+          className="fixed"
+          style={{ left: fjbHoverTip.x, top: fjbHoverTip.y, pointerEvents: 'none', zIndex: 999999999 }}
         >
           <div
             className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
@@ -1279,10 +1511,10 @@ export default function Dashboard() {
       )}
 
       {/* FPS hover tip bubble: shows label and plus; click opens FPS PB */}
-      {isPromptMode && fpsHoverTip.visible && !promptBubble && (
+      {isModifyClicked && isPromptMode && fpsHoverTip.visible && !promptBubble && !colorPromptClosedWithoutSave && (
         <div
-          className="fixed z-40"
-          style={{ left: fpsHoverTip.x, top: fpsHoverTip.y, pointerEvents: 'none' }}
+          className="fixed"
+          style={{ left: fpsHoverTip.x, top: fpsHoverTip.y, pointerEvents: 'none', zIndex: 999999999 }}
         >
           <div
             className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
@@ -1323,10 +1555,10 @@ export default function Dashboard() {
       )}
 
       {/* Promo Card hover tip bubble: shows label and plus; click opens PC PB */}
-      {isPromptMode && pcHoverTip.visible && !promptBubble && (
+      {isModifyClicked && isPromptMode && pcHoverTip.visible && !promptBubble && !colorPromptClosedWithoutSave && (
         <div
-          className="fixed z-40"
-          style={{ left: pcHoverTip.x, top: pcHoverTip.y, pointerEvents: 'none' }}
+          className="fixed"
+          style={{ left: pcHoverTip.x, top: pcHoverTip.y, pointerEvents: 'none', zIndex: 999999999 }}
         >
           <div
             className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
