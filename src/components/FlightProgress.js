@@ -85,12 +85,12 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
   const barRef = useRef();
   const iconRef = useRef();
 
-  // Show flight phases when flights are generated
+  // Show flight phases when flights are generated or when in prompt mode
   useEffect(() => {
-    if (flightsGenerated) {
+    if (flightsGenerated || isPromptMode) {
       setShowFlightPhases(true);
     }
-  }, [flightsGenerated]);
+  }, [flightsGenerated, isPromptMode]);
 
   // NEW: Handle flight phase click and notify parent
   const handleFlightPhaseClick = (phase) => {

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { XMarkIcon, PaperAirplaneIcon, PlusIcon, PhotoIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon, BookmarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PaperAirplaneIcon, PlusIcon, PhotoIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon, BookmarkIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { HexColorPicker } from 'react-colorful';
 import { getReadableOnColor } from '../utils/color';
 import { argbFromHex } from '@material/material-color-utilities';
@@ -203,9 +203,10 @@ export default function PromptBubble({
   selectedLogo = null,
   onLogoSelect,
   flightsGenerated = false,
-  selectedFlightPhase = null,
-  onFlightPhaseSelect,
-  onCloseWithoutSave
+      selectedFlightPhase = null,
+    onFlightPhaseSelect,
+    onCloseWithoutSave,
+    selectedFlightSegment = null
 }) {
   console.log('=== PROMPT BUBBLE RENDER ===', {
     isVisible,
@@ -1086,7 +1087,8 @@ export default function PromptBubble({
         left: `${stickyPosition.x}px`,
         top: `${stickyPosition.y}px`,
         pointerEvents: 'auto',
-        backgroundColor: actualBackgroundColor,
+        backgroundColor: isGradient ? 'transparent' : actualBackgroundColor,
+        backgroundImage: isGradient ? actualBackgroundColor : 'none',
         borderColor: elementType === 'promo-card' && positionKey === 'middle-card-demo'
           ? 'rgba(0,0,0,0.2)'
           : contrastingBorderColor,
@@ -1392,6 +1394,14 @@ export default function PromptBubble({
                 // Create custom chips based on flight data (origin, destination, airline)
                 const customChips = [];
                 
+                // Debug: Log the selectedFlightSegment data
+                console.log('=== CREATING CUSTOM CHIPS ===', {
+                  selectedFlightSegment,
+                  elementData,
+                  originCity: selectedFlightSegment?.origin?.airport?.city || elementData?.origin?.airport?.city,
+                  destCity: selectedFlightSegment?.destination?.airport?.city || elementData?.destination?.airport?.city
+                });
+                
                 // 1. Brand chip (based on selected airline)
                 if (selectedLogo && selectedLogo.id) {
                   const logoColorMap = {
@@ -1409,8 +1419,8 @@ export default function PromptBubble({
                   customChips.push({ label: 'Brand', color: '#1E1E1E' });
                 }
                 
-                // 2. Origin city chip
-                const originCity = elementData?.origin?.airport?.city || 'Paris';
+                // 2. Origin city chip - use selectedFlightSegment if available, otherwise fallback to elementData
+                const originCity = selectedFlightSegment?.origin?.airport?.city || elementData?.origin?.airport?.city || 'Paris';
                 const originColorMap = {
                   'Paris': '#FF6B6B',
                   'London': '#4ECDC4', 
@@ -1421,15 +1431,16 @@ export default function PromptBubble({
                   'Barcelona': '#BB8FCE',
                   'Vienna': '#85C1E9',
                   'Munich': '#82E0AA',
-                  'Copenhagen': '#F8C471'
+                  'Copenhagen': '#F8C471',
+                  'Milan': '#9B59B6'
                 };
                 customChips.push({ 
                   label: originCity, 
                   color: originColorMap[originCity] || '#FF6B6B' 
                 });
                 
-                // 3. Destination city chip  
-                const destCity = elementData?.destination?.airport?.city || 'Milan';
+                // 3. Destination city chip - use selectedFlightSegment if available, otherwise fallback to elementData
+                const destCity = selectedFlightSegment?.destination?.airport?.city || elementData?.destination?.airport?.city || 'Milan';
                 const destColorMap = {
                   'Milan': '#9B59B6',
                   'Paris': '#FF6B6B',
@@ -1580,7 +1591,8 @@ export default function PromptBubble({
                 style={{
                   color: useLightText ? '#FFFFFF' : 'rgba(0, 0, 0, 0.7)',
                   borderColor: useLightText ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
-                  backgroundColor: useLightText ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'
+                  backgroundColor: useLightText ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                  borderTopLeftRadius: 0
                 }}
               >
                 <BookmarkIcon className="w-4 h-4" />
@@ -1606,16 +1618,38 @@ export default function PromptBubble({
             {/* Spacer when counter is not shown */}
             {!isPromoTextFocused && <div></div>}
             
-            <button
-              type="submit"
-              disabled={!(promoTextValue.trim() || promoImageValue.trim()) || isLoading}
-              className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0`}
-              style={{
-                color: useLightText ? '#FFFFFF' : 'rgba(0, 0, 0, 0.7)'
-              }}
-            >
-              <PaperAirplaneIcon className="w-4 h-4" />
-            </button>
+            {/* Right side: Remix Button + Send Button */}
+            <div className="flex items-center gap-2">
+              {/* Remix Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  // Trigger remix functionality by calling onSubmit with remix flag
+                  const submitText = `remix:${promoTextValue || promoImageValue}`;
+                  onSubmit(submitText, elementType, elementData, positionKey, { isRemix: true });
+                }}
+                disabled={!(promoTextValue.trim() || promoImageValue.trim()) || isLoading}
+                className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 p-1`}
+                style={{
+                  color: useLightText ? '#FFFFFF' : 'rgba(0, 0, 0, 0.7)'
+                }}
+                title="Remix image"
+              >
+                <ArrowPathIcon className="w-4 h-4" />
+              </button>
+              
+              {/* Send Button */}
+              <button
+                type="submit"
+                disabled={!(promoTextValue.trim() || promoImageValue.trim()) || isLoading}
+                className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0`}
+                style={{
+                  color: useLightText ? '#FFFFFF' : 'rgba(0, 0, 0, 0.7)'
+                }}
+              >
+                <PaperAirplaneIcon className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
 

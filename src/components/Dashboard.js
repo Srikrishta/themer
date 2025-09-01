@@ -1,6 +1,4 @@
-
-
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { getReadableOnColor } from '../utils/color';
 import ThemeCreator from './ThemeCreator';
 import FlightJourneyBar from './FlightJourneyBar';
@@ -11,7 +9,7 @@ import PromptBubble from './PromptBubble';
 import MousePointer from './MousePointer';
 import { useLocation } from 'react-router-dom';
 import { mapThemeChipToAnimation } from '../utils/themeAnimationMapper';
-import { PhotoIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { PhotoIcon, ChevronRightIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 
 
@@ -30,6 +28,108 @@ const gradientAnimationCSS = `
   }
 `;
 
+// Helper function to generate AI images for content cards
+const generateAIImageSync = (description) => {
+  console.log('=== GENERATING AI IMAGE FOR CONTENT CARD ===', { description });
+  
+  // Detect different categories and enhance accordingly
+  const isMovie = /\b(movie|film|cinema|theater|dvd|streaming|entertainment|crocodile|dundee)\b/i.test(description);
+  const isGuide = /\b(guide|travel|tour|destination|city|country|vacation|trip)\b/i.test(description);
+  const isGame = /\b(game|gaming|play|console|video|poster|arcade)\b/i.test(description);
+  const isPodcast = /\b(podcast|audio|radio|broadcast|talk|show)\b/i.test(description);
+  
+  let enhancedPrompt;
+  
+  if (isMovie) {
+    enhancedPrompt = `high quality movie poster or cinema photography of ${description}, cinematic lighting, professional movie poster style, 4k, photorealistic`;
+  } else if (isGuide) {
+    enhancedPrompt = `beautiful travel photography of ${description}, scenic view, tourist destination, professional travel photography, 4k, high quality`;
+  } else if (isGame) {
+    enhancedPrompt = `modern gaming photography of ${description}, video game poster style, digital art, gaming aesthetic, 4k, professional quality`;
+  } else if (isPodcast) {
+    enhancedPrompt = `professional podcast studio photography of ${description}, audio equipment, modern podcast setup, clean background, 4k, photorealistic`;
+  } else {
+    // Generic enhancement for any other content
+    enhancedPrompt = `high quality professional photography of ${description}, beautiful composition, excellent lighting, vibrant colors, 4k, photorealistic, detailed`;
+  }
+  
+  // Use Pollinations AI API with deterministic seed for consistent generation
+  const seed = description.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const aiImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=416&height=200&seed=${seed}&model=flux&enhance=true&nologo=true`;
+  
+  console.log('=== GENERATING AI IMAGE FOR CONTENT CARD ===', {
+    originalDescription: description,
+    category: isMovie ? 'movie' : isGuide ? 'guide' : isGame ? 'game' : isPodcast ? 'podcast' : 'generic',
+    enhancedPrompt,
+    aiImageUrl,
+    seed
+  });
+  
+  return aiImageUrl;
+};
+
+// Helper function to get Unsplash fallback for content cards
+const getUnsplashFallback = (description) => {
+  console.log('=== GETTING UNSPLASH FALLBACK FOR CONTENT CARD ===', { description });
+  
+  // Keyword-based mappings for content cards
+  const keywordMappings = {
+    // Movies
+    'movie': 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=416&h=200&fit=crop&crop=center&auto=format',
+    'crocodile': 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=416&h=200&fit=crop&crop=center&auto=format',
+    'dundee': 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=416&h=200&fit=crop&crop=center&auto=format',
+    // Travel guides
+    'guide': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=416&h=200&fit=crop&crop=center&auto=format',
+    'travel': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=416&h=200&fit=crop&crop=center&auto=format',
+    // Games
+    'game': 'https://images.unsplash.com/photo-1518709414923-e5cf8b0ac4fe?w=416&h=200&fit=crop&crop=center&auto=format',
+    'gaming': 'https://images.unsplash.com/photo-1518709414923-e5cf8b0ac4fe?w=416&h=200&fit=crop&crop=center&auto=format',
+    // Podcasts
+    'podcast': 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=416&h=200&fit=crop&crop=center&auto=format',
+    'audio': 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=416&h=200&fit=crop&crop=center&auto=format'
+  };
+  
+  // Check for direct keyword matches first
+  const lowerDesc = description.toLowerCase();
+  for (const [keyword, url] of Object.entries(keywordMappings)) {
+    if (lowerDesc.includes(keyword)) {
+      console.log('=== USING KEYWORD-BASED UNSPLASH IMAGE ===', { keyword, url });
+      return url;
+    }
+  }
+  
+  // If no keyword match, use hash-based selection for consistency
+  console.log('=== USING HASH-BASED UNSPLASH FALLBACK ===', { description });
+  
+  const fallbackImages = [
+    'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=416&h=200&fit=crop&crop=center&auto=format', // movie
+    'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=416&h=200&fit=crop&crop=center&auto=format', // guide
+    'https://images.unsplash.com/photo-1518709414923-e5cf8b0ac4fe?w=416&h=200&fit=crop&crop=center&auto=format', // game
+    'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=416&h=200&fit=crop&crop=center&auto=format'  // podcast
+  ];
+  
+  // Create hash from description for consistent selection
+  let hash = 0;
+  for (let i = 0; i < description.length; i++) {
+    const char = description.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  
+  const index = Math.abs(hash) % fallbackImages.length;
+  const selectedUrl = fallbackImages[index];
+  
+  console.log('=== HASH-BASED SELECTION ===', { 
+    description, 
+    hash, 
+    index, 
+    selectedUrl,
+    totalImages: fallbackImages.length 
+  });
+  
+  return selectedUrl;
+};
+
 
 
 function formatTime(minutes) {
@@ -38,11 +138,25 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, cardOrder, onCardReorder, contentCardOrder, onContentCardReorder, onContentCardHover }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, cardOrder, onCardReorder, contentCardOrder, onContentCardReorder, onContentCardHover, colorPromptClosedWithoutSave, colorPromptSaved, recommendedContentCards, contentCardImages, getCurrentRouteKey }) {
   
   // Drag and drop state for content cards
   const [draggedContentCardIndex, setDraggedContentCardIndex] = useState(null);
   const [dragOverContentIndex, setDragOverContentIndex] = useState(null);
+
+  // Helper function to get route-specific content cards
+  const getRouteContentCards = () => {
+    // Since we're inside FrameContent, we need to access the recommendedContentCards prop
+    if (!recommendedContentCards || typeof recommendedContentCards === 'string') {
+      return [
+        { id: 1, title: 'Add content', type: 'default' },
+        { id: 2, title: 'Add content', type: 'default' },
+        { id: 3, title: 'Add content', type: 'default' },
+        { id: 4, title: 'Add content', type: 'default' }
+      ];
+    }
+    return recommendedContentCards;
+  };
 
   // Helper function to get border style when flight phase is selected
   const getBorderStyle = () => {
@@ -84,10 +198,28 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
   };
 
   // Helper function to get content text based on flight phase
-  const getContentText = () => {
-    return selectedFlightPhase 
+  const getContentText = (cardIndex) => {
+    const routeContentCards = getRouteContentCards();
+    console.log('🎯 getContentText called with:', { 
+      cardIndex, 
+      routeContentCards, 
+      selectedFlightPhase,
+      contentCard: routeContentCards && routeContentCards[cardIndex]
+    });
+    
+    // If we have recommended content cards, use their titles
+    const contentCard = routeContentCards && routeContentCards[cardIndex];
+    if (contentCard && contentCard.title) {
+      console.log('🎯 Using content card title:', contentCard.title);
+      return contentCard.title;
+    }
+    
+    // Fallback to flight phase based text
+    const fallbackText = selectedFlightPhase 
       ? `Add content for ${selectedFlightPhase.charAt(0).toUpperCase() + selectedFlightPhase.slice(1)}`
       : "Add content";
+    console.log('🎯 Using fallback text:', fallbackText);
+    return fallbackText;
   };
 
   // Drag and drop handlers for content cards
@@ -137,10 +269,14 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
     const isDragging = draggedContentCardIndex === displayPosition;
     const isDragOver = dragOverContentIndex === displayPosition;
     
+    // Get content card image for this route and card index
+    const routeKey = getCurrentRouteKey();
+    const cardImage = contentCardImages[routeKey]?.[originalCardIndex];
+    
     const cardStyle = {
       width: '100%',
       height: '184px',
-      background: (() => {
+      background: cardImage ? `url(${cardImage})` : (() => {
         if (themeColor.startsWith('#')) {
           const hex = themeColor.slice(1);
           const r = parseInt(hex.substr(0, 2), 16);
@@ -150,6 +286,9 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         }
         return 'rgba(255,255,255,0.1)';
       })(),
+      backgroundSize: cardImage ? 'cover' : 'auto',
+      backgroundPosition: cardImage ? 'center' : 'auto',
+      backgroundRepeat: cardImage ? 'no-repeat' : 'auto',
       borderTopLeftRadius: '8px',
       borderTopRightRadius: '8px',
       borderBottomLeftRadius: '0px',
@@ -166,7 +305,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
       <div
         key={`content-card-${originalCardIndex}-${displayPosition}`}
         draggable
-        className="overflow-clip relative shrink-0 flex items-center justify-center backdrop-blur-[10px] backdrop-filter"
+        className="overflow-clip relative shrink-0 flex items-center justify-center backdrop-blur-[10px] backdrop-filter group"
         style={cardStyle}
         onDragStart={(e) => handleContentCardDragStart(e, displayPosition)}
         onDragEnd={handleContentCardDragEnd}
@@ -191,8 +330,18 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         }}
       >
         {getAnimatedBorderOverlay()}
-        <span className="font-semibold" style={{ 
-          color: getReadableOnColor((() => {
+        {/* Dark overlay for background images */}
+        {cardImage && (
+          <div 
+            className="absolute inset-0 bg-black bg-opacity-30 rounded-t-lg"
+            style={{
+              borderTopLeftRadius: '8px',
+              borderTopRightRadius: '8px'
+            }}
+          />
+        )}
+        <span className="font-semibold relative z-10" style={{ 
+          color: cardImage ? 'white' : getReadableOnColor((() => {
             if (themeColor.startsWith('#')) {
               const hex = themeColor.slice(1);
               const r = parseInt(hex.substr(0, 2), 16);
@@ -206,8 +355,45 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
           lineHeight: '32px', 
           opacity: 0.7 
         }}>
-          {getContentText()}
+          {getContentText(originalCardIndex)}
         </span>
+        
+        {/* Edit button for content cards */}
+        {isPromptMode && (
+          <button
+            className="absolute top-2 right-2 px-3 py-1 text-sm font-medium text-white transition-colors opacity-0 group-hover:opacity-100"
+            style={{ 
+              backgroundColor: themeColor,
+              borderTopLeftRadius: '0px', 
+              borderTopRightRadius: '9999px', 
+              borderBottomLeftRadius: '9999px', 
+              borderBottomRightRadius: '9999px' 
+            }}
+            onMouseEnter={(e) => {
+              // Create a slightly darker version of the theme color for hover
+              if (themeColor.startsWith('#')) {
+                const hex = themeColor.slice(1);
+                const r = parseInt(hex.substr(0, 2), 16);
+                const g = parseInt(hex.substr(2, 2), 16);
+                const b = parseInt(hex.substr(4, 2), 16);
+                const darkerColor = `rgb(${Math.max(0, r - 40)}, ${Math.max(0, g - 40)}, ${Math.max(0, b - 40)})`;
+                e.target.style.backgroundColor = darkerColor;
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = themeColor;
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              console.log('Edit content card clicked', originalCardIndex);
+              if (isPromptMode && onPromptClick) {
+                onPromptClick('content-card', { cardIndex: originalCardIndex }, { x: e.clientX, y: e.clientY });
+              }
+            }}
+          >
+            Edit content card
+          </button>
+        )}
       </div>
     );
   };
@@ -293,6 +479,8 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         promoCardContents={promoCardContents}
         cardOrder={cardOrder}
         onCardReorder={onCardReorder}
+        colorPromptClosedWithoutSave={colorPromptClosedWithoutSave}
+        colorPromptSaved={colorPromptSaved}
       />
       
       {/* Recommended for you section */}
@@ -305,9 +493,9 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         </p>
         
         {/* 4 Recommended Tiles */}
-        <div className="grid grid-cols-4 gap-6" style={{ width: '100%' }}>
-          {!isThemeBuildStarted || routes.length < 2 ? (
-            // Show white placeholders when no theme is built or insufficient routes
+        <div className="grid grid-cols-4 gap-6" style={{ width: '100%' }} key={`content-cards-${JSON.stringify(getRouteContentCards())}`}>
+          {!isThemeBuildStarted ? (
+            // Show white placeholders when no theme is built
             <>
               <div
                 className="overflow-clip relative shrink-0 flex items-center justify-center"
@@ -330,6 +518,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   })()
                 }}
               >
+                <span style={{ color: 'black', fontSize: '14px' }}>Placeholder 1 (isThemeBuildStarted: {isThemeBuildStarted.toString()})</span>
               </div>
               <div
                 className="overflow-clip relative shrink-0 flex items-center justify-center"
@@ -352,6 +541,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   })()
                 }}
               >
+                <span style={{ color: 'black', fontSize: '14px' }}>Placeholder 2</span>
               </div>
               <div
                 className="overflow-clip relative shrink-0 flex items-center justify-center"
@@ -374,6 +564,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   })()
                 }}
               >
+                <span style={{ color: 'black', fontSize: '14px' }}>Placeholder 3</span>
               </div>
               <div
                 className="overflow-clip relative shrink-0 flex items-center justify-center"
@@ -396,13 +587,15 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   })()
                 }}
               >
+                <span style={{ color: 'black', fontSize: '14px' }}>Placeholder 4</span>
               </div>
             </>
           ) : (
             // Show themed content when theme is built and routes are available - now with drag-and-drop
-            contentCardOrder.map((originalCardIndex, displayPosition) => 
-              renderContentCard(originalCardIndex, displayPosition)
-            )
+            contentCardOrder.map((originalCardIndex, displayPosition) => {
+              console.log('🎯 Rendering content card:', { originalCardIndex, displayPosition, routeContentCards: getRouteContentCards() });
+              return renderContentCard(originalCardIndex, displayPosition);
+            })
           )}
         </div>
       </div>
@@ -424,6 +617,12 @@ export default function Dashboard() {
   // NEW: State for current theme color
   const [currentThemeColor, setCurrentThemeColor] = useState('#1E72AE'); // Always Discover blue for flights view
 
+  // NEW: Per-flight-route theme tracking
+  const [flightThemes, setFlightThemes] = useState({}); // { [flightKey]: themeColor }
+  const [currentFlightKey, setCurrentFlightKey] = useState(null); // Current flight route key
+  
+  // NEW: Per-flight-route progress tracking
+  const [flightRouteProgress, setFlightRouteProgress] = useState({}); // { [flightKey]: progressPercentage }
 
   
   // NEW: Prompt mode state
@@ -432,7 +631,9 @@ export default function Dashboard() {
   const [activeSegmentId, setActiveSegmentId] = useState(null); // Track which segment is in prompt mode
   const [promptBubble, setPromptBubble] = useState(null); // { x, y, elementType, elementData }
   const [colorPromptClosedWithoutSave, setColorPromptClosedWithoutSave] = useState(false); // Track if color PB was closed without saving
+  const [colorPromptSaved, setColorPromptSaved] = useState(false); // Track if color PB was saved
   const [selectedLogo, setSelectedLogo] = useState(null); // { id, src }
+  const [ifeFrameThemeColor, setIfeFrameThemeColor] = useState('#1E1E1E'); // Preserve airline theme for IFE frame
   const [showPlusIcon, setShowPlusIcon] = useState(false);
   const [ifeFrameHover, setIfeFrameHover] = useState({ isHovering: false, x: 0, y: 0 }); // Track IFE frame hover state
   const [contentCardHover, setContentCardHover] = useState({ isHovering: false, x: 0, y: 0 }); // Track content card hover state
@@ -453,6 +654,7 @@ export default function Dashboard() {
   const [selectedThemeChip, setSelectedThemeChip] = useState(null);
   // NEW: Track the currently selected flight phase
   const [selectedFlightPhase, setSelectedFlightPhase] = useState(null);
+  // Route-specific promo card contents: { [routeKey]: { [cardIndex]: content } }
   const [promoCardContents, setPromoCardContents] = useState({});
   // NEW: Track the order of promo cards for drag-drop functionality
   const [cardOrder, setCardOrder] = useState([0, 1, 2]); // Default order: left, middle, right
@@ -460,14 +662,139 @@ export default function Dashboard() {
   const [contentCardOrder, setContentCardOrder] = useState([0, 1, 2, 3]); // Default order: 1, 2, 3, 4
   // NEW: Track the currently selected flight segment for FJB
   const [selectedFlightSegment, setSelectedFlightSegment] = useState(null);
+  // NEW: Track flight card progress percentages (flight card index -> progress percentage)
+  const [flightCardProgress, setFlightCardProgress] = useState({});
+  // Route-specific recommended content cards: { [routeKey]: contentCards }
+  const [recommendedContentCards, setRecommendedContentCards] = useState({});
+  // Route-specific content card images: { [routeKey]: { [cardIndex]: imageUrl } }
+  const [contentCardImages, setContentCardImages] = useState({});
   // Hover hint bubble for FPS ("Select flight phase")
   const [fpsHoverTip, setFpsHoverTip] = useState({ visible: false, x: 0, y: 0, progress: 0 });
   // Hover hint bubble for Promo Cards ("Edit promo card")
   const [pcHoverTip, setPcHoverTip] = useState({ visible: false, x: 0, y: 0, elementData: null });
 
+  // Callback for remix image loading
+  const handleRemixImageLoaded = (cardIndex) => {
+    console.log('=== DASHBOARD REMIX CALLBACK CALLED ===', { cardIndex });
+    // Clear loading state for the specific card in the current route
+    const routeKey = getCurrentRouteKey();
+    if (routeKey) {
+      setPromoCardContents(prev => ({
+        ...prev,
+        [routeKey]: {
+          ...prev[routeKey],
+          [cardIndex]: {
+            ...prev[routeKey]?.[cardIndex],
+            isLoading: false
+          }
+        }
+      }));
+    }
+  };
+
+  // Removed scroll-collapsed header behavior
+
+  // Use selected flight segment if available, then selected segment, else default to full route
+  const origin = selectedFlightSegment?.origin || selectedSegment?.origin || (routes.length > 0 ? routes[0] : null);
+  const destination = selectedFlightSegment?.destination || selectedSegment?.destination || (routes.length > 1 ? routes[routes.length - 1] : null);
+
+  // Helper function to generate flight key
+  const getFlightKey = (origin, destination) => {
+    if (!origin || !destination) return null;
+    return `${origin.airport?.code || origin.airport?.city || 'unknown'}-${destination.airport?.code || destination.airport?.city || 'unknown'}`;
+  };
+  
+  // Helper function to get current route key
+  const getCurrentRouteKey = () => {
+    return getFlightKey(origin, destination);
+  };
+  
+  // Helper function to get route-specific promo card contents
+  const getRoutePromoCardContents = () => {
+    const routeKey = getCurrentRouteKey();
+    if (!routeKey) return {};
+    return promoCardContents[routeKey] || {};
+  };
+  
+  // Helper function to set route-specific promo card contents
+  const setRoutePromoCardContents = (cardIndex, content) => {
+    const routeKey = getCurrentRouteKey();
+    if (!routeKey) return;
+    
+    setPromoCardContents(prev => ({
+      ...prev,
+      [routeKey]: {
+        ...prev[routeKey],
+        [cardIndex]: content
+      }
+    }));
+  };
+  
+  // Helper function to get route-specific content cards
+  const getRouteContentCards = () => {
+    const routeKey = getCurrentRouteKey();
+    if (!routeKey) return [
+      { id: 1, title: 'Add content', type: 'default' },
+      { id: 2, title: 'Add content', type: 'default' },
+      { id: 3, title: 'Add content', type: 'default' },
+      { id: 4, title: 'Add content', type: 'default' }
+    ];
+    return recommendedContentCards[routeKey] || [
+      { id: 1, title: 'Add content', type: 'default' },
+      { id: 2, title: 'Add content', type: 'default' },
+      { id: 3, title: 'Add content', type: 'default' },
+      { id: 4, title: 'Add content', type: 'default' }
+    ];
+  };
+  
+  // Helper function to set route-specific content cards
+  const setRouteContentCards = (contentCards) => {
+    const routeKey = getCurrentRouteKey();
+    if (!routeKey) return;
+    
+    setRecommendedContentCards(prev => ({
+      ...prev,
+      [routeKey]: contentCards
+    }));
+  };
+  
+  // Helper function to get current flight theme
+  const getCurrentFlightTheme = () => {
+    const flightKey = getFlightKey(origin, destination);
+    if (!flightKey) return '#1E72AE'; // Default Discover blue
+    
+    // Return the theme for this specific flight, or default if none set
+    return flightThemes[flightKey] || '#1E72AE';
+  };
+  
+  // Helper function to get current flight progress
+  const getCurrentFlightProgress = () => {
+    const flightKey = getFlightKey(origin, destination);
+    if (!flightKey) return 0; // Default 0% progress
+    
+    // Return the progress for this specific flight, or 0 if none set
+    return flightRouteProgress[flightKey] || 0;
+  };
+  
+  // Update current flight key when origin/destination changes
+  useEffect(() => {
+    const newFlightKey = getFlightKey(origin, destination);
+    if (newFlightKey !== currentFlightKey) {
+      setCurrentFlightKey(newFlightKey);
+      console.log('🎯 Flight route changed:', { 
+        from: currentFlightKey, 
+        to: newFlightKey,
+        availableThemes: Object.keys(flightThemes),
+        availableProgress: Object.keys(flightRouteProgress)
+      });
+    }
+  }, [origin, destination, currentFlightKey, flightThemes, flightRouteProgress]);
+  
+  // Use the current flight's theme instead of global theme
+  const activeThemeColor = getCurrentFlightTheme();
 
   // Compute contrasting border color for hover tip PBs (same logic as main PB)
-  const isGradientTheme = typeof currentThemeColor === 'string' && currentThemeColor.includes('gradient');
+  const isGradientTheme = typeof activeThemeColor === 'string' && activeThemeColor.includes('gradient');
   const parseHex = (hex) => {
     if (!hex || typeof hex !== 'string') return { r: 0, g: 0, b: 0 };
     const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
@@ -483,18 +810,12 @@ export default function Dashboard() {
   };
   const hoverUseLightText = isGradientTheme
     ? true
-    : (typeof currentThemeColor === 'string' && currentThemeColor.startsWith('#') && currentThemeColor.length === 7
-        ? getLuminance(parseHex(currentThemeColor)) < 0.5
+    : (typeof activeThemeColor === 'string' && activeThemeColor.startsWith('#') && activeThemeColor.length === 7
+        ? getLuminance(parseHex(activeThemeColor)) < 0.5
         : true);
   const hoverBorderColor = hoverUseLightText ? 'rgba(255, 255, 255, 0.35)' : 'rgba(0, 0, 0, 0.35)';
-  // Material-based readable on-color for text/icons over currentThemeColor
-  const hoverOnColor = getReadableOnColor(currentThemeColor);
-  
-  // Removed scroll-collapsed header behavior
-
-  // Use selected flight segment if available, then selected segment, else default to full route
-  const origin = selectedFlightSegment?.origin || selectedSegment?.origin || (routes.length > 0 ? routes[0] : null);
-  const destination = selectedFlightSegment?.destination || selectedSegment?.destination || (routes.length > 1 ? routes[routes.length - 1] : null);
+  // Material-based readable on-color for text/icons over activeThemeColor
+  const hoverOnColor = getReadableOnColor(activeThemeColor);
 
   // Countdown state
   const maxFlightMinutes = 370; // 6h10m
@@ -510,6 +831,11 @@ export default function Dashboard() {
   const [isScrollingUp, setIsScrollingUp] = useState(false);
   const [isFlightContentSticky, setIsFlightContentSticky] = useState(false);
   const [darkContainerHeight, setDarkContainerHeight] = useState(0);
+
+  // DEBUG: Track recommendedContentCards changes
+  useEffect(() => {
+    console.log('🎯 recommendedContentCards state changed:', recommendedContentCards);
+  }, [recommendedContentCards]);
 
   // DEBUG: Track height changes
   const dashboardRef = useRef(null);
@@ -607,6 +933,13 @@ export default function Dashboard() {
     // position: { x, y } cursor position
     console.log('=== HANDLE PROMPT HOVER ===', { isHovering, elementType, isPromptMode, colorPromptClosedWithoutSave });
     if (!isPromptMode) return;
+    
+    // Prevent promo card hover from showing until color has been saved
+    if (elementType === 'promo-card' && colorPromptClosedWithoutSave) {
+      console.log('=== BLOCKING PROMO CARD HOVER - COLOR NOT SAVED ===');
+      return;
+    }
+    
     // For FJB: do NOT show the icon-only plus; show hover bubble with "+ add theme"
     if (elementType === 'flight-journey-bar') {
       if (!promptBubble) {
@@ -672,12 +1005,20 @@ export default function Dashboard() {
       elementData, 
       position, 
       isPromptMode,
-      currentPromoCardContents: promoCardContents
+      currentPromoCardContents: promoCardContents,
+      colorPromptClosedWithoutSave
     });
     
     // Clear the closed without save state when opening a new color prompt
     if (elementType === 'flight-journey-bar') {
       setColorPromptClosedWithoutSave(false);
+      setColorPromptSaved(false);
+    }
+    
+    // Prevent promo card prompt bubble from showing until color has been saved
+    if (elementType === 'promo-card' && colorPromptClosedWithoutSave) {
+      console.log('=== BLOCKING PROMO CARD PROMPT - COLOR NOT SAVED ===');
+      return;
     }
     
     if (isPromptMode) {
@@ -697,14 +1038,17 @@ export default function Dashboard() {
       // Get existing text for this position
       let existingText = '';
       if (elementType === 'promo-card' && elementData?.cardIndex !== undefined) {
-        // For promo cards, get existing content from promoCardContents
-        const cardContent = promoCardContents[elementData.cardIndex];
-        console.log('=== DEBUG PROMO CARD RETRIEVAL ===', {
+        // For promo cards, get existing content from route-specific promoCardContents
+        const routeContents = getRoutePromoCardContents();
+        const cardContent = routeContents[elementData.cardIndex];
+        console.log('=== DEBUG ROUTE-SPECIFIC PROMO CARD RETRIEVAL ===', {
           elementType,
           cardIndex: elementData.cardIndex,
-          promoCardContents,
+          routeKey: getCurrentRouteKey(),
+          routeContents,
           cardContent,
-          hasUpdated: cardContent?.updated
+          hasUpdated: cardContent?.updated,
+          allRoutes: Object.keys(promoCardContents)
         });
         if (cardContent && cardContent.updated) {
           existingText = `text:${cardContent.text || ''},image:${cardContent.image || ''}`;
@@ -713,9 +1057,9 @@ export default function Dashboard() {
           console.log('=== NO EXISTING CONTENT FOUND ===', { 
             hasCardContent: !!cardContent,
             hasUpdated: cardContent?.updated,
-            fullPromoCardContents: promoCardContents,
+            routeContents,
             cardIndex: elementData.cardIndex,
-            allKeys: Object.keys(promoCardContents)
+            routeKey: getCurrentRouteKey()
           });
         }
       } else {
@@ -829,22 +1173,24 @@ export default function Dashboard() {
 
   };
 
-  const handlePromptBubbleSubmit = (promptText, elementType, elementData, positionKey) => {
+  const handlePromptBubbleSubmit = (promptText, elementType, elementData, positionKey, options = {}) => {
     console.log('=== PROMPT BUBBLE SUBMIT CALLED ===', {
       promptText, 
       elementType, 
       elementData, 
       positionKey,
+      options,
       currentPromoCardContents: promoCardContents
     });
     
-    // Handle promo card submissions
+        // Handle promo card submissions
     if (elementType === 'promo-card' && elementData && elementData.cardIndex !== undefined) {
       console.log('=== DASHBOARD RECEIVED PROMO SUBMISSION ===', { 
         promptText, 
         elementType, 
         elementData, 
-        positionKey 
+        positionKey,
+        isRemix: options.isRemix
       });
       
       // Parse the submitted text (format: "text:value,image:value")
@@ -866,27 +1212,45 @@ export default function Dashboard() {
         imageContent 
       });
       
-      // Update the promo card content
-      setPromoCardContents(prev => {
-        const existingContent = prev[elementData.cardIndex] || {};
-        const newContent = {
-          ...prev,
-          [elementData.cardIndex]: {
-            text: textContent,
-            // Only update image if a new one is provided, otherwise keep existing
-            image: imageContent.trim() ? imageContent : existingContent.image,
-            updated: true
-          }
-        };
-        console.log('=== UPDATING PROMO CARD CONTENTS ===', {
-          cardIndex: elementData.cardIndex,
-          textContent,
-          imageContent,
-          previousContent: prev,
-          newContent
+      // Update the promo card content for the current route
+      const routeKey = getCurrentRouteKey();
+      if (routeKey) {
+        setPromoCardContents(prev => {
+          const routeContents = prev[routeKey] || {};
+          const existingContent = routeContents[elementData.cardIndex] || {};
+          const newRouteContents = {
+            ...routeContents,
+            [elementData.cardIndex]: {
+              text: textContent,
+              // Only update image if a new one is provided, otherwise keep existing
+              image: imageContent.trim() ? imageContent : existingContent.image,
+              updated: true,
+              // Add remix counter for remix operations to trigger re-render
+              remixCount: options.isRemix ? (existingContent.remixCount || 0) + 1 : existingContent.remixCount || 0,
+              // Add loading state for remix operations
+              isLoading: options.isRemix ? true : false
+            }
+          };
+          
+          const newContent = {
+            ...prev,
+            [routeKey]: newRouteContents
+          };
+          
+          console.log('=== UPDATING ROUTE-SPECIFIC PROMO CARD CONTENTS ===', {
+            routeKey,
+            cardIndex: elementData.cardIndex,
+            textContent,
+            imageContent,
+            isRemix: options.isRemix,
+            remixCount: newRouteContents[elementData.cardIndex].remixCount,
+            previousRouteContents: routeContents,
+            newRouteContents,
+            allRoutes: Object.keys(prev)
+          });
+          return newContent;
         });
-        return newContent;
-      });
+      }
       
       console.log('=== PROMO CARD CONTENT UPDATED ===', { 
         cardIndex: elementData.cardIndex, 
@@ -905,7 +1269,8 @@ export default function Dashboard() {
     
     // TODO: Handle the actual prompt submission logic here
     // Don't close the bubble for logo placeholder submissions (keep bubble open for editing)
-    if (elementType !== 'logo-placeholder') {
+    // Don't close the bubble for remix operations (keep bubble open for continued editing)
+    if (elementType !== 'logo-placeholder' && !options.isRemix) {
       setPromptBubble(null);
     }
     // Heuristic: if this is logo placeholder, parse prompt to choose or clear an animation
@@ -1031,6 +1396,38 @@ export default function Dashboard() {
   // NEW: Handle flight phase selection from FlightProgress
   const handleFlightPhaseSelect = (phase) => {
     setSelectedFlightPhase(phase);
+    
+    // Store the original takeoff content when switching away from takeoff
+    // This preserves the hardcoded content for when user returns to takeoff
+    if (phase !== 'takeoff') {
+      const routeKey = getCurrentRouteKey();
+      if (routeKey) {
+        setPromoCardContents(prev => {
+          const newState = { ...prev };
+          // Store the original takeoff content in a special key
+          if (newState[routeKey]) {
+            newState[`${routeKey}-takeoff-original`] = newState[routeKey];
+          }
+          // Clear the current promo card contents to show phase-specific content
+          delete newState[routeKey];
+          return newState;
+        });
+      }
+    } else {
+      // When switching back to takeoff, restore the original content if it exists
+      const routeKey = getCurrentRouteKey();
+      if (routeKey) {
+        setPromoCardContents(prev => {
+          const newState = { ...prev };
+          // Restore original takeoff content if it was stored
+          if (newState[`${routeKey}-takeoff-original`]) {
+            newState[routeKey] = newState[`${routeKey}-takeoff-original`];
+            delete newState[`${routeKey}-takeoff-original`];
+          }
+          return newState;
+        });
+      }
+    }
   };
 
   // NEW: Handle card reordering for drag-drop functionality
@@ -1048,28 +1445,42 @@ export default function Dashboard() {
     console.log('=== NEW CARD ORDER ===', { oldOrder: cardOrder, newOrder });
     setCardOrder(newOrder);
     
-    // Also need to update the promoCardContents to maintain the correct association
-    const updatedContents = {};
-    newOrder.forEach((originalCardId, newPosition) => {
-      if (promoCardContents[originalCardId]) {
-        updatedContents[newPosition] = {
-          ...promoCardContents[originalCardId],
-          // Keep the original content but update any position-dependent logic if needed
-        };
+    // Update route-specific promoCardContents to maintain the correct association
+    const routeKey = getCurrentRouteKey();
+    if (routeKey) {
+      const routeContents = getRoutePromoCardContents();
+      const updatedContents = {};
+      newOrder.forEach((originalCardId, newPosition) => {
+        if (routeContents[originalCardId]) {
+          updatedContents[newPosition] = {
+            ...routeContents[originalCardId],
+            // Keep the original content but update any position-dependent logic if needed
+          };
+        }
+      });
+      
+      // Update promoCardContents with the new positions while preserving content
+      const finalContents = {};
+      newOrder.forEach((originalCardId, newPosition) => {
+        if (routeContents[originalCardId]) {
+          finalContents[newPosition] = routeContents[originalCardId];
+        }
+      });
+      
+      if (Object.keys(finalContents).length > 0) {
+        setPromoCardContents(prev => {
+          const newState = {
+            ...prev,
+            [routeKey]: finalContents
+          };
+          console.log('=== UPDATED ROUTE-SPECIFIC PROMO CARD CONTENTS AFTER REORDER ===', {
+            routeKey,
+            finalContents,
+            allRoutes: Object.keys(newState)
+          });
+          return newState;
+        });
       }
-    });
-    
-    // Update promoCardContents with the new positions while preserving content
-    const finalContents = {};
-    newOrder.forEach((originalCardId, newPosition) => {
-      if (promoCardContents[originalCardId]) {
-        finalContents[newPosition] = promoCardContents[originalCardId];
-      }
-    });
-    
-    if (Object.keys(finalContents).length > 0) {
-      setPromoCardContents(finalContents);
-      console.log('=== UPDATED PROMO CARD CONTENTS AFTER REORDER ===', finalContents);
     }
   };
 
@@ -1126,7 +1537,15 @@ export default function Dashboard() {
           initialFlightCreationMode={false}
           onColorCardSelect={segment => setSelectedSegment(segment)}
           onThemeColorChange={color => {
-            setCurrentThemeColor(color);
+            // Store theme for the current flight route
+            const flightKey = getFlightKey(origin, destination);
+            if (flightKey) {
+              setFlightThemes(prev => ({
+                ...prev,
+                [flightKey]: color
+              }));
+              console.log('🎯 ThemeCreator: Stored theme for flight route:', { flightKey, color });
+            }
             // When theme color changes from ThemeCreator, clear any logo animation
             // as this is not from a theme chip selection
             setSelectedLogo(prev => ({ 
@@ -1144,7 +1563,7 @@ export default function Dashboard() {
           activeSegmentId={activeSegmentId}
           onExposeThemeChips={(chips) => setFjbThemeChips(chips || [])}
           onStartThemeBuild={() => setIsThemeBuildStarted(true)}
-          themeColor={currentThemeColor}
+          themeColor={activeThemeColor}
           onTriggerPromptBubble={handlePromptClick}
           selectedLogo={selectedLogo}
           isInHeader={false}
@@ -1167,11 +1586,21 @@ export default function Dashboard() {
                       onFlightSelect={(segment) => {
             setSelectedFlightSegment(segment);
           }}
+          flightCardProgress={flightRouteProgress}
           showIFEFrame={showIFEFrame}
           onAirlineSelect={(logoInfo, themeColor) => {
             console.log('🎯 Dashboard: Airline selected:', logoInfo, themeColor);
             setSelectedLogo(logoInfo); // logoInfo can be null for "All Airlines" reset
-            setCurrentThemeColor(themeColor);
+            
+            // Store theme for the current flight route
+            const flightKey = getFlightKey(origin, destination);
+            if (flightKey && themeColor) {
+              setFlightThemes(prev => ({
+                ...prev,
+                [flightKey]: themeColor
+              }));
+              console.log('🎯 Dashboard: Stored airline theme for flight route:', { flightKey, themeColor });
+            }
           }}
           onModifyClicked={() => setIsModifyClicked(true)}
           onShowPreview={(show) => {
@@ -1307,7 +1736,14 @@ export default function Dashboard() {
               if (isChangeThemeButton && isPromptMode) {
                 console.log('🎯 Global IFE frame click delegation caught Change Theme button');
                 e.stopPropagation();
-                handlePromptClick('flight-journey-bar', { themeColor: currentThemeColor }, { x: e.clientX, y: e.clientY });
+                handlePromptClick('flight-journey-bar', { themeColor: ifeFrameThemeColor }, { x: e.clientX, y: e.clientY });
+              }
+              
+              // If color prompt was closed without save, clicking anywhere in IFE frame should open color prompt
+              if (colorPromptClosedWithoutSave && isPromptMode) {
+                console.log('🎯 IFE frame click - opening color prompt because color was not saved');
+                e.stopPropagation();
+                handlePromptClick('flight-journey-bar', { themeColor: ifeFrameThemeColor }, { x: e.clientX, y: e.clientY });
               }
             }}
           >
@@ -1326,7 +1762,7 @@ export default function Dashboard() {
               landingIn={landingIn}
               maxFlightMinutes={maxFlightMinutes}
               handleProgressChange={handleProgressChange}
-              themeColor={currentThemeColor}
+              themeColor={activeThemeColor}
               routes={routes}
               isPromptMode={isPromptMode}
               onPromptHover={handlePromptHover}
@@ -1342,15 +1778,20 @@ export default function Dashboard() {
               }}
               onFlightPhaseSelect={handleFlightPhaseSelect}
               selectedFlightPhase={selectedFlightPhase}
-              promoCardContents={promoCardContents}
+              promoCardContents={getRoutePromoCardContents()}
               cardOrder={cardOrder}
               onCardReorder={handleCardReorder}
               contentCardOrder={contentCardOrder}
               onContentCardReorder={handleContentCardReorder}
+              recommendedContentCards={getRouteContentCards()}
               onContentCardHover={(isHovering, x, y) => {
                 console.log('=== CONTENT CARD HOVER ===', { isHovering, x, y });
                 setContentCardHover({ isHovering, x, y });
               }}
+              colorPromptClosedWithoutSave={colorPromptClosedWithoutSave}
+              colorPromptSaved={colorPromptSaved}
+              contentCardImages={contentCardImages}
+              getCurrentRouteKey={getCurrentRouteKey}
             />
           </div>
         </div>
@@ -1364,13 +1805,13 @@ export default function Dashboard() {
       {/* Plus Icon Cursor for Prompt Mode */}
       <PlusIconCursor 
         isVisible={isPromptMode && showPlusIcon} 
-        themeColor={currentThemeColor} 
+        themeColor={activeThemeColor} 
       />
 
       {/* Mouse Pointer Cursor */}
       <MousePointer 
         isVisible={showMousePointer}
-        themeColor={currentThemeColor}
+        themeColor={activeThemeColor}
         size="normal"
         showShadow={true}
         animated={true}
@@ -1389,16 +1830,35 @@ export default function Dashboard() {
           console.log('=== COLOR PROMPT CLOSED WITHOUT SAVE ===');
           setColorPromptClosedWithoutSave(true);
         }}
-        themeColor={currentThemeColor}
+        themeColor={activeThemeColor}
         isThemeBuildStarted={isThemeBuildStarted}
         existingText={promptBubble?.existingText || ''}
         positionKey={promptBubble?.positionKey}
         fpsPrompts={fpsPrompts}
         onThemeColorChange={(color, chipData) => {
           if (typeof color === 'string' && color.length > 0) {
-            setCurrentThemeColor(color);
+            console.log('🎯 onThemeColorChange called with:', { color, chipData, isThemeBuildStarted });
+            
+            // Store theme for the current flight route
+            const flightKey = getFlightKey(origin, destination);
+            if (flightKey) {
+              setFlightThemes(prev => ({
+                ...prev,
+                [flightKey]: color
+              }));
+              console.log('🎯 Stored theme for flight route:', { flightKey, color, allThemes: { ...flightThemes, [flightKey]: color } });
+              
+              // Store progress for the current flight route (50% when theme is saved)
+              setFlightRouteProgress(prev => ({
+                ...prev,
+                [flightKey]: 50
+              }));
+              console.log('🎯 Stored progress for flight route:', { flightKey, progress: 50, allProgress: { ...flightRouteProgress, [flightKey]: 50 } });
+            }
+            
             // Clear the closed without save state since the user saved
             setColorPromptClosedWithoutSave(false);
+            setColorPromptSaved(true);
             // Update selected theme chip and apply logo animation
             if (chipData && chipData.label) {
               setSelectedThemeChip(chipData);
@@ -1408,6 +1868,74 @@ export default function Dashboard() {
                 animationType: animationType 
               }));
             }
+            
+            // Auto-select takeoff flight phase
+            setSelectedFlightPhase('takeoff');
+            console.log('🎯 Auto-selected takeoff flight phase');
+            
+            // Update route-specific promo card contents
+            const routeKey = getCurrentRouteKey();
+            if (routeKey) {
+              setPromoCardContents(prev => {
+                const newState = {
+                  ...prev,
+                  [routeKey]: {
+                    0: { text: 'Enjoy your welcome drink', image: 'welcome drink', updated: true },
+                    1: { text: 'Feel at home', image: 'Settle in', updated: true },
+                    2: { text: 'Connect your device', image: 'phone in an aircraft', updated: true }
+                  }
+                };
+                console.log('🎯 Updated route-specific promo card contents for takeoff phase:', {
+                  routeKey,
+                  allRoutes: Object.keys(newState)
+                });
+                return newState;
+              });
+            }
+            
+            // Update route-specific recommended content cards
+            const newRecommendedContentCards = [
+              { id: 1, title: 'Crocodile Dundee Movie', type: 'movie' },
+              { id: 2, title: 'Get Your Guide', type: 'guide' },
+              { id: 3, title: 'Game Poster', type: 'game' },
+              { id: 4, title: 'A Podcast', type: 'podcast' }
+            ];
+            setRouteContentCards(newRecommendedContentCards);
+            
+            // Generate AI images for content cards
+            const currentRouteKey = getCurrentRouteKey();
+            if (currentRouteKey) {
+              const newContentCardImages = {};
+              newRecommendedContentCards.forEach((card, index) => {
+                try {
+                  const aiImageUrl = generateAIImageSync(card.title);
+                  newContentCardImages[index] = aiImageUrl;
+                } catch (error) {
+                  console.error('=== AI IMAGE GENERATION FAILED FOR CONTENT CARD ===', { error, cardTitle: card.title });
+                  // Fallback to Unsplash image
+                  const fallbackUrl = getUnsplashFallback(card.title);
+                  newContentCardImages[index] = fallbackUrl;
+                }
+              });
+              
+              setContentCardImages(prev => ({
+                ...prev,
+                [currentRouteKey]: newContentCardImages
+              }));
+              
+              console.log('🎯 Generated AI images for content cards:', {
+                routeKey: currentRouteKey,
+                contentCardImages: newContentCardImages
+              });
+            }
+            
+            console.log('🎯 Setting route-specific recommended content cards:', {
+              routeKey: getCurrentRouteKey(),
+              contentCards: newRecommendedContentCards
+            });
+            
+            // Close the prompt bubble after saving the color
+            setPromptBubble(null);
           }
         }}
         themeChips={promptBubble?.elementType === 'flight-journey-bar' ? fjbThemeChips : []}
@@ -1423,32 +1951,23 @@ export default function Dashboard() {
             };
             const newColor = logoColorMap[info.id];
             if (newColor) {
-              setCurrentThemeColor(newColor);
+              // Store theme for the current flight route
+              const flightKey = getFlightKey(origin, destination);
+              if (flightKey) {
+                setFlightThemes(prev => ({
+                  ...prev,
+                  [flightKey]: newColor
+                }));
+                console.log('🎯 Dashboard: Stored logo theme for flight route:', { flightKey, newColor });
+              }
             }
           }
         }}
         flightsGenerated={flightsGenerated}
         selectedFlightPhase={selectedFlightPhase}
         onFlightPhaseSelect={handleFlightPhaseSelect}
+        selectedFlightSegment={selectedFlightSegment}
       />
-
-      {/* DEBUG: Button to toggle colorPromptClosedWithoutSave for testing */}
-      <button
-        onClick={() => setColorPromptClosedWithoutSave(!colorPromptClosedWithoutSave)}
-        style={{
-          position: 'fixed',
-          top: 10,
-          right: 10,
-          zIndex: 999999999,
-          padding: '10px',
-          backgroundColor: colorPromptClosedWithoutSave ? 'green' : 'red',
-          color: 'white',
-          border: 'none',
-          borderRadius: '5px'
-        }}
-      >
-        Test Change Theme: {colorPromptClosedWithoutSave ? 'ON' : 'OFF'}
-      </button>
 
       {/* Change Theme Button - Shows when hovering IFE frame after color prompt was closed without save */}
       {(() => {
@@ -1468,6 +1987,7 @@ export default function Dashboard() {
         return shouldShow;
       })() && (
         <div
+          key={`change-theme-${activeThemeColor}`}
           className="fixed"
           style={{ 
             left: (fjbHoverTip.visible ? fjbHoverTip.x : fpsHoverTip.visible ? fpsHoverTip.x : pcHoverTip.visible ? pcHoverTip.x : contentCardHover.isHovering ? contentCardHover.x : ifeFrameHover.x) + 10, 
@@ -1477,7 +1997,15 @@ export default function Dashboard() {
           }}
         >
           <button
-            className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md transition-colors bg-blue-600 text-white hover:bg-blue-700"
+            className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md transition-colors"
+            style={{
+              ...(typeof activeThemeColor === 'string' && activeThemeColor.includes('gradient')
+                ? { background: activeThemeColor }
+                : { backgroundColor: activeThemeColor }),
+              borderColor: hoverBorderColor,
+              color: hoverOnColor,
+              borderTopLeftRadius: 0
+            }}
             onClick={(e) => {
               e.stopPropagation(); // Prevent any event bubbling
               console.log('=== CHANGE THEME BUTTON CLICKED ===');
@@ -1485,10 +2013,11 @@ export default function Dashboard() {
               setColorPromptClosedWithoutSave(false);
               const position = { x: window.innerWidth / 2, y: 400 };
               console.log('=== CALLING handlePromptClick WITH flight-journey-bar ===', { position });
-              handlePromptClick('flight-journey-bar', { themeColor: currentThemeColor }, position);
+              handlePromptClick('flight-journey-bar', { themeColor: activeThemeColor }, position);
             }}
           >
             <span className="text-sm font-medium">Change Theme</span>
+            <PlusIcon className="w-4 h-4" />
           </button>
         </div>
       )}
@@ -1496,15 +2025,16 @@ export default function Dashboard() {
       {/* FJB hover tip bubble: shows label and plus; click opens color PB */}
       {isModifyClicked && isPromptMode && fjbHoverTip.visible && !promptBubble && !colorPromptClosedWithoutSave && (
         <div
+          key={`fjb-hover-${activeThemeColor}`}
           className="fixed"
           style={{ left: fjbHoverTip.x, top: fjbHoverTip.y, pointerEvents: 'none', zIndex: 999999999 }}
         >
           <div
             className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
             style={{
-              ...(typeof currentThemeColor === 'string' && currentThemeColor.includes('gradient')
-                ? { background: currentThemeColor }
-                : { backgroundColor: currentThemeColor }),
+              ...(typeof activeThemeColor === 'string' && activeThemeColor.includes('gradient')
+                ? { background: activeThemeColor }
+                : { backgroundColor: activeThemeColor }),
               borderColor: hoverBorderColor,
               opacity: 1,
               borderTopLeftRadius: 0
@@ -1514,7 +2044,7 @@ export default function Dashboard() {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handlePromptClick('flight-journey-bar', { themeColor: currentThemeColor }, { x: fjbHoverTip.x, y: fjbHoverTip.y });
+                handlePromptClick('flight-journey-bar', { themeColor: activeThemeColor }, { x: fjbHoverTip.x, y: fjbHoverTip.y });
               }}
               className="w-6 h-6 rounded-full border flex items-center justify-center"
               title="Change theme"
@@ -1529,15 +2059,16 @@ export default function Dashboard() {
       {/* FPS hover tip bubble: shows label and plus; click opens FPS PB */}
       {isModifyClicked && isPromptMode && fpsHoverTip.visible && !promptBubble && !colorPromptClosedWithoutSave && (
         <div
+          key={`fps-hover-${activeThemeColor}`}
           className="fixed"
           style={{ left: fpsHoverTip.x, top: fpsHoverTip.y, pointerEvents: 'none', zIndex: 999999999 }}
         >
           <div
             className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
             style={{
-              ...(typeof currentThemeColor === 'string' && currentThemeColor.includes('gradient')
-                ? { background: currentThemeColor }
-                : { backgroundColor: currentThemeColor }),
+              ...(typeof activeThemeColor === 'string' && activeThemeColor.includes('gradient')
+                ? { background: activeThemeColor }
+                : { backgroundColor: activeThemeColor }),
               borderColor: hoverBorderColor,
               opacity: 1,
               borderTopLeftRadius: 0
@@ -1573,15 +2104,50 @@ export default function Dashboard() {
       {/* Promo Card hover tip bubble: shows label and plus; click opens PC PB */}
       {isModifyClicked && isPromptMode && pcHoverTip.visible && !promptBubble && !colorPromptClosedWithoutSave && (
         <div
+          key={`pc-hover-edit-${activeThemeColor}`}
           className="fixed"
           style={{ left: pcHoverTip.x, top: pcHoverTip.y, pointerEvents: 'none', zIndex: 999999999 }}
         >
           <div
             className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
             style={{
-              ...(typeof currentThemeColor === 'string' && currentThemeColor.includes('gradient')
-                ? { background: currentThemeColor }
-                : { backgroundColor: currentThemeColor }),
+              ...(typeof activeThemeColor === 'string' && activeThemeColor.includes('gradient')
+                ? { background: activeThemeColor }
+                : { backgroundColor: activeThemeColor }),
+              borderColor: hoverBorderColor,
+              opacity: 1,
+              borderTopLeftRadius: 0
+            }}
+          >
+            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Edit promo card</span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePromptClick('promo-card', pcHoverTip.elementData, { x: pcHoverTip.x, y: pcHoverTip.y });
+              }}
+              className="w-6 h-6 rounded-full border flex items-center justify-center"
+              title="Edit promo card"
+              style={{ pointerEvents: 'auto', borderColor: hoverOnColor, color: hoverOnColor }}
+            >
+              +
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Promo Card hover tip bubble when color not saved: shows "Change theme" */}
+      {isModifyClicked && isPromptMode && pcHoverTip.visible && !promptBubble && colorPromptClosedWithoutSave && (
+        <div
+          key={`pc-hover-change-${activeThemeColor}`}
+          className="fixed"
+          style={{ left: pcHoverTip.x, top: pcHoverTip.y, pointerEvents: 'none', zIndex: 999999999 }}
+        >
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
+            style={{
+              ...(typeof activeThemeColor === 'string' && activeThemeColor.includes('gradient')
+                ? { background: activeThemeColor }
+                : { backgroundColor: activeThemeColor }),
               borderColor: hoverBorderColor,
               opacity: 1,
               borderTopLeftRadius: 0
@@ -1591,7 +2157,7 @@ export default function Dashboard() {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handlePromptClick('flight-journey-bar', { themeColor: currentThemeColor }, { x: pcHoverTip.x, y: pcHoverTip.y });
+                handlePromptClick('flight-journey-bar', { themeColor: activeThemeColor }, { x: pcHoverTip.x, y: pcHoverTip.y });
               }}
               className="w-6 h-6 rounded-full border flex items-center justify-center"
               title="Change theme"
@@ -1643,9 +2209,9 @@ export default function Dashboard() {
                 <div 
                   className="backdrop-blur-[10px] backdrop-filter pl-5 pr-3 py-4 rounded-full shadow-sm flex-1"
                   style={{
-                    ...(typeof currentThemeColor === 'string' && currentThemeColor.includes('gradient')
-                      ? { background: currentThemeColor }
-                      : { backgroundColor: currentThemeColor })
+                    ...(typeof activeThemeColor === 'string' && activeThemeColor.includes('gradient')
+                      ? { background: activeThemeColor }
+                      : { backgroundColor: activeThemeColor })
                   }}
                 >
                   <div className="flex justify-between items-stretch opacity-100">
@@ -1690,7 +2256,7 @@ export default function Dashboard() {
                           if (isPromptMode && typeof handlePromptClick === 'function') {
                             const rect = e.currentTarget.getBoundingClientRect();
                             const position = { x: rect.left, y: rect.top };
-                            handlePromptClick('flight-journey-bar', { themeColor: currentThemeColor }, position);
+                            handlePromptClick('flight-journey-bar', { themeColor: activeThemeColor }, position);
                           }
                         }}
                       >

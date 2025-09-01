@@ -410,7 +410,23 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
   );
 }
 
-function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized, onSelectedDatesChange, themeColor = '#1E1E1E', onEnterPromptMode, onTriggerPromptBubble, onGeneratingStateChange, onBuildThemes, onFlightSelect, flightsGenerated = false, onScrollingStateChange, onBuildThemeClicked, onAirlineSelect, onModifyClicked }) {
+function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized, onSelectedDatesChange, themeColor = '#1E1E1E', onEnterPromptMode, onTriggerPromptBubble, onGeneratingStateChange, onBuildThemes, onFlightSelect, flightsGenerated = false, onScrollingStateChange, onBuildThemeClicked, onAirlineSelect, onModifyClicked, flightCardProgress = {} }) {
+  // Helper function to generate flight key (same as Dashboard)
+  const getFlightKey = (origin, destination) => {
+    if (!origin || !destination) return null;
+    return `${origin.airport?.code || origin.airport?.city || 'unknown'}-${destination.airport?.code || destination.airport?.city || 'unknown'}`;
+  };
+  
+  // Helper function to get progress for a specific flight card
+  const getFlightCardProgress = (selectedFlightCard) => {
+    if (!selectedFlightCard?.segment) return 0;
+    const flightKey = getFlightKey(selectedFlightCard.segment.origin, selectedFlightCard.segment.destination);
+    return flightCardProgress[flightKey] || 0;
+  };
+  // Debug: Log flightCardProgress when it changes
+  useEffect(() => {
+    console.log('🎯 AirportSearch: flightCardProgress updated:', flightCardProgress);
+  }, [flightCardProgress]);
   // Date picker state and logic (moved from ThemeCreator)
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [dates, setDates] = useState(selectedDates || []);
@@ -1349,7 +1365,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                     >
                       Modify
                     </button>
-                  ) : (
+                                                    ) : (
                     // Circular Progress Bar
                     <div className="relative flex items-center justify-center">
                       <svg 
@@ -1372,14 +1388,14 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                           stroke="rgba(255, 255, 255, 0.2)"
                           strokeWidth="2"
                         />
-                        {/* Progress circle - static at 0% */}
+                        {/* Progress circle - dynamic progress */}
                         <circle
                           cx="24"
                           cy="24"
                           r="20"
                           className="static-progress-stroke"
                           strokeDasharray="125.6"
-                          strokeDashoffset="125.6"
+                          strokeDashoffset={125.6 - (125.6 * (getFlightCardProgress(selectedFlightCard) / 100))}
                         />
                       </svg>
                       {/* Percentage text */}
@@ -1387,7 +1403,17 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                         className="absolute inset-0 flex items-center justify-center text-sm font-bold text-black"
                         style={{ pointerEvents: 'none' }}
                       >
-                        0%
+                        {(() => {
+                          const progress = getFlightCardProgress(selectedFlightCard);
+                          console.log('🎯 Flight card progress display (per-route):', { 
+                            segmentId: selectedFlightCard.segment?.id, 
+                            index: selectedFlightCard.index,
+                            flightKey: getFlightKey(selectedFlightCard.segment?.origin, selectedFlightCard.segment?.destination),
+                            progress, 
+                            flightCardProgress 
+                          });
+                          return `${progress}%`;
+                        })()}
                       </div>
                     </div>
                   )}
@@ -1598,14 +1624,14 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                         stroke="rgba(255, 255, 255, 0.2)"
                         strokeWidth="2"
                       />
-                      {/* Progress circle - static at 0% */}
+                      {/* Progress circle - dynamic progress */}
                       <circle
                         cx="24"
                         cy="24"
                         r="20"
                         className="static-progress-stroke"
                         strokeDasharray="125.6"
-                        strokeDashoffset="125.6"
+                        strokeDashoffset={125.6 - (125.6 * (getFlightCardProgress(selectedFlightCard) / 100))}
                       />
                     </svg>
                     {/* Percentage text */}
@@ -1613,7 +1639,17 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                       className="absolute inset-0 flex items-center justify-center text-sm font-bold text-black"
                       style={{ pointerEvents: 'none' }}
                     >
-                      0%
+                      {(() => {
+                        const progress = getFlightCardProgress(selectedFlightCard);
+                        console.log('🎯 Flight card progress display (normal):', { 
+                          segmentId: selectedFlightCard.segment?.id, 
+                          index: selectedFlightCard.index,
+                          flightKey: getFlightKey(selectedFlightCard.segment?.origin, selectedFlightCard.segment?.destination),
+                          progress, 
+                          flightCardProgress 
+                        });
+                        return `${progress}%`;
+                      })()}
                     </div>
                   </div>
                 )}
@@ -1833,7 +1869,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
           {/* Generate flights button - changes to Deploy to Aircraft when flights are generated */}
           {/* Hide the button during scroll animation since it's shown in fixed position */}
           {!isScrollingUp && (
-            <button
+          <button
               ref={originalButtonRef}
               className={`h-10 px-4 rounded-tl-[0px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px] transition-colors flex items-center justify-center w-[240px] relative overflow-hidden self-center ${
                 flightsGenerated
@@ -1841,20 +1877,20 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                   : routes.length >= 2 && !isGenerating
                     ? 'bg-blue-600 text-white hover:bg-blue-700' 
                     : 'backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.2)] text-white/70 cursor-not-allowed'
-              }`}
+            }`}
               disabled={flightsGenerated || routes.length < 2 || isGenerating}
-              onClick={() => {
+            onClick={() => {
                 if (!isGenerating && !flightsGenerated) {
-                  console.log('🔥 GENERATE FLIGHTS BUTTON CLICKED - Setting isGenerating to true');
-                  setIsGenerating(true);
-                  const event = new CustomEvent('airport-search-generate-flights');
-                  window.dispatchEvent(event);
-                }
-              }}
+                console.log('🔥 GENERATE FLIGHTS BUTTON CLICKED - Setting isGenerating to true');
+                setIsGenerating(true);
+                const event = new CustomEvent('airport-search-generate-flights');
+                window.dispatchEvent(event);
+              }
+            }}
               title={flightsGenerated ? "Deploy to Aircraft" : "Generate flights"}
-            >
+          >
               <span>{flightsGenerated ? "Deploy to Aircraft" : "Generate flights"}</span>
-            </button>
+          </button>
           )}
 
         </div>
@@ -2044,7 +2080,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
         />
         </div>
       )}
-        </div>
+    </div>
       </div>
 
       {/* Date Picker Portal - renders outside the component hierarchy to avoid z-index issues */}

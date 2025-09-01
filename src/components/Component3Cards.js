@@ -1,5 +1,5 @@
 import { getReadableOnColor } from '../utils/color';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 // Helper function to map hash to Unsplash photo IDs for consistent fallbacks
 const getUnsplashFallback = (description) => {
@@ -112,7 +112,9 @@ export default function Component3Cards({
   selectedFlightPhase = null, 
   promoCardContents = {}, 
   cardOrder = [0, 1, 2], 
-  onCardReorder 
+  onCardReorder,
+  colorPromptClosedWithoutSave = false,
+  colorPromptSaved = false
 }) {
   console.log('=== COMPONENT3CARDS RENDER ===', {
     isPromptMode, 
@@ -126,16 +128,67 @@ export default function Component3Cards({
     cardOrder,
     hasOnCardReorder: !!onCardReorder,
     animationProgress,
-    promoCardContents
+    promoCardContents,
+    colorPromptClosedWithoutSave
   });
 
   // State for takeoff phase loading
   const [takeoffLoading, setTakeoffLoading] = useState(false);
   const [loadedCards, setLoadedCards] = useState(new Set());
   
+  // Enhanced remix state management
+  const [remixAttempts, setRemixAttempts] = useState({});
+  const [remixErrors, setRemixErrors] = useState({});
+  const [isRemixRateLimited, setIsRemixRateLimited] = useState(false);
+  
   // Drag and drop state
   const [draggedCardIndex, setDraggedCardIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
+
+  // Robust remix management functions
+  const MAX_REMIX_ATTEMPTS = 3;
+  const RATE_LIMIT_DELAY = 2000; // 2 seconds between remixes
+  
+  const canRemix = useCallback((cardIndex) => {
+    const attempts = remixAttempts[cardIndex] || 0;
+    const errors = remixErrors[cardIndex] || 0;
+    return attempts < MAX_REMIX_ATTEMPTS && errors < MAX_REMIX_ATTEMPTS && !isRemixRateLimited;
+  }, [remixAttempts, remixErrors, isRemixRateLimited]);
+  
+  const recordRemixAttempt = useCallback((cardIndex) => {
+    setRemixAttempts(prev => ({
+      ...prev,
+      [cardIndex]: (prev[cardIndex] || 0) + 1
+    }));
+  }, []);
+  
+  const recordRemixError = useCallback((cardIndex, error) => {
+    setRemixErrors(prev => ({
+      ...prev,
+      [cardIndex]: (prev[cardIndex] || 0) + 1
+    }));
+    console.error('=== REMIX ERROR ===', { cardIndex, error });
+  }, []);
+  
+  const resetRemixState = useCallback((cardIndex) => {
+    setRemixAttempts(prev => {
+      const newState = { ...prev };
+      delete newState[cardIndex];
+      return newState;
+    });
+    setRemixErrors(prev => {
+      const newState = { ...prev };
+      delete newState[cardIndex];
+      return newState;
+    });
+  }, []);
+  
+  const applyRateLimit = useCallback(() => {
+    setIsRemixRateLimited(true);
+    setTimeout(() => {
+      setIsRemixRateLimited(false);
+    }, RATE_LIMIT_DELAY);
+  }, []);
 
   // Handle takeoff phase selection
   useEffect(() => {
@@ -151,6 +204,8 @@ export default function Component3Cards({
       setLoadedCards(new Set());
     }
   }, [selectedFlightPhase]);
+
+
 
   // Drag and drop handlers
   const handleDragStart = (e, cardIndex) => {
@@ -265,12 +320,12 @@ export default function Component3Cards({
   // Show skeleton state based on routes length and theme build status
   const showAllSkeletons = ((!isThemeBuildStarted && !isPromptMode) || (routes.length < 2 && !isPromptMode));
 
-  // Function to generate AI image URLs with enhanced prompts
-  const generateAIImage = (description) => {
-    console.log('=== GENERATING AI IMAGE ===', { description });
+  // Synchronous version for initial image generation (without retry logic)
+  const generateAIImageSync = useCallback((description) => {
+    console.log('=== GENERATING AI IMAGE SYNC ===', { description });
     
     // Detect different categories and enhance accordingly
-    const isFood = /\b(food|eat|cook|dish|meal|cuisine|recipe|ingredient|snack|drink|beverage|restaurant|menu|kitchen|chef|delicious|tasty|fresh|organic)\b/i.test(description);
+    const isFood = /\b(food|eat|cook|dish|meal|cuisine|recipe|ingredient|snack|drink|beverage|welcome|restaurant|menu|kitchen|chef|delicious|tasty|fresh|organic)\b/i.test(description);
     const isNature = /\b(nature|landscape|forest|mountain|ocean|beach|sunset|sunrise|sky|clouds|trees|flowers|garden|park)\b/i.test(description);
     const isTravel = /\b(travel|vacation|trip|destination|city|architecture|building|landmark|hotel|airport|street|culture)\b/i.test(description);
     const isSports = /\b(sport|sports|fitness|gym|exercise|running|swimming|cycling|football|basketball|tennis|yoga|workout)\b/i.test(description);
@@ -280,7 +335,13 @@ export default function Component3Cards({
     let enhancedPrompt;
     
     if (isFood) {
+      // Check if it's specifically a drink/beverage
+      const isDrink = /\b(drink|beverage|welcome|cocktail|wine|beer|juice|coffee|tea|soda|water)\b/i.test(description);
+      if (isDrink) {
+        enhancedPrompt = `high quality professional beverage photography of ${description}, elegant glassware, beautiful presentation, restaurant style, soft lighting, 4k, photorealistic, appetizing drink`;
+      } else {
       enhancedPrompt = `high quality professional food photography of ${description}, appetizing, beautiful presentation, restaurant style, soft lighting, 4k, photorealistic`;
+      }
     } else if (isNature) {
       enhancedPrompt = `stunning landscape photography of ${description}, natural lighting, vibrant colors, high detail, scenic, breathtaking, 4k, professional photography`;
     } else if (isTravel) {
@@ -296,11 +357,11 @@ export default function Component3Cards({
       enhancedPrompt = `high quality professional photography of ${description}, beautiful composition, excellent lighting, vibrant colors, 4k, photorealistic, detailed`;
     }
     
-    // Use Pollinations AI API with consistent seed for same description
+    // Use Pollinations AI API with deterministic seed for initial generation
     const seed = description.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const aiImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=416&height=200&seed=${seed}&model=flux&enhance=true&nologo=true`;
     
-    console.log('=== GENERATING AI IMAGE (NO WATERMARK) ===', {
+    console.log('=== GENERATING AI IMAGE SYNC (NO WATERMARK) ===', {
       originalDescription: description,
       category: isFood ? 'food' : isNature ? 'nature' : isTravel ? 'travel' : isSports ? 'sports' : isTechnology ? 'technology' : isArt ? 'art' : 'generic',
       enhancedPrompt,
@@ -310,140 +371,233 @@ export default function Component3Cards({
     });
     
     return aiImageUrl;
+  }, []);
+  // Helper function to test image loading with 5-second timeout
+  const testImageLoad = useCallback((url) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const timeout = setTimeout(() => {
+        img.onload = null;
+        img.onerror = null;
+        resolve(false);
+      }, 5000); // 5 second timeout for faster fallback
+      
+      img.onload = () => {
+        clearTimeout(timeout);
+        resolve(true);
+      };
+      
+      img.onerror = () => {
+        clearTimeout(timeout);
+        resolve(false);
+      };
+      
+      img.src = url;
+    });
+  }, []);
+
+  // Simplified async image generation for remix operations (without complex retry logic)
+  const generateAIImage = useCallback(async (description, cardIndex = null) => {
+    console.log('=== GENERATING AI IMAGE ===', { description, cardIndex });
+    
+    // Rate limiting check
+    if (isRemixRateLimited) {
+      throw new Error('Rate limit active. Please wait before trying again.');
+    }
+    
+    // Record attempt if cardIndex provided
+    if (cardIndex !== null) {
+      recordRemixAttempt(cardIndex);
+    }
+    
+    // Detect different categories and enhance accordingly
+    const isFood = /\b(food|eat|cook|dish|meal|cuisine|recipe|ingredient|snack|drink|beverage|welcome|restaurant|menu|kitchen|chef|delicious|tasty|fresh|organic)\b/i.test(description);
+    const isNature = /\b(nature|landscape|forest|mountain|ocean|beach|sunset|sunrise|sky|clouds|trees|flowers|garden|park|waves|sea|river|lake)\b/i.test(description);
+    const isTravel = /\b(travel|vacation|trip|destination|city|architecture|building|landmark|hotel|airport|street|culture)\b/i.test(description);
+    const isSports = /\b(sport|sports|fitness|gym|exercise|running|swimming|cycling|football|basketball|tennis|yoga|workout)\b/i.test(description);
+    const isTechnology = /\b(technology|tech|computer|software|digital|app|website|AI|robot|innovation|device|gadget)\b/i.test(description);
+    const isArt = /\b(art|artist|painting|drawing|sculpture|gallery|museum|creative|design|illustration|artwork)\b/i.test(description);
+    
+    // Add specific category for home/comfort/lifestyle content
+    const isHomeLifestyle = /\b(settle|home|comfort|relax|cozy|warm|comfortable|rest|peaceful|calm|tranquil|domestic|household|living|room|bedroom|lounge|sofa|couch|chair|bed|pillow|blanket|cushion|homey|homely|domestic|family|lifestyle)\b/i.test(description);
+    
+    let enhancedPrompt;
+    
+    if (isFood) {
+      // Check if it's specifically a drink/beverage
+      const isDrink = /\b(drink|beverage|welcome|cocktail|wine|beer|juice|coffee|tea|soda|water)\b/i.test(description);
+      if (isDrink) {
+        enhancedPrompt = `high quality professional beverage photography of ${description}, elegant glassware, beautiful presentation, restaurant style, soft lighting, 4k, photorealistic, appetizing drink`;
+      } else {
+        enhancedPrompt = `high quality professional food photography of ${description}, appetizing, beautiful presentation, restaurant style, soft lighting, 4k, photorealistic`;
+      }
+    } else if (isHomeLifestyle) {
+      enhancedPrompt = `cozy home lifestyle photography of ${description}, warm lighting, comfortable atmosphere, domestic setting, inviting, peaceful, 4k, photorealistic, home comfort`;
+    } else if (isNature) {
+      enhancedPrompt = `stunning landscape photography of ${description}, natural lighting, vibrant colors, high detail, scenic, breathtaking, 4k, professional photography`;
+    } else if (isTravel) {
+      enhancedPrompt = `beautiful travel photography of ${description}, scenic view, vibrant colors, tourist destination, professional photography, 4k, high quality`;
+    } else if (isSports) {
+      enhancedPrompt = `dynamic sports photography of ${description}, action shot, energetic, professional lighting, high speed capture, 4k, crisp details`;
+    } else if (isTechnology) {
+      enhancedPrompt = `modern technology photography of ${description}, sleek design, professional lighting, futuristic, clean background, 4k, high quality`;
+    } else if (isArt) {
+      enhancedPrompt = `artistic photography of ${description}, creative composition, beautiful lighting, aesthetic, inspiring, 4k, professional quality`;
+    } else {
+      // Generic enhancement for any other content
+      enhancedPrompt = `high quality professional photography of ${description}, beautiful composition, excellent lighting, vibrant colors, 4k, photorealistic, detailed`;
+    }
+    
+    // Use Pollinations AI API with random seed for remix operations
+    const seed = Math.floor(Math.random() * 1000000); // Always random for remix
+    const aiImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=416&height=200&seed=${seed}&model=flux&enhance=true&nologo=true`;
+    
+    // Alternative AI services for faster fallback
+    const alternativeUrls = [
+      `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=416&height=200&seed=${Math.floor(Math.random() * 1000000)}&model=flux&enhance=false&nologo=true`,
+      `https://image.pollinations.ai/prompt/${encodeURIComponent(description)}?width=416&height=200&seed=${Math.floor(Math.random() * 1000000)}&model=flux&nologo=true`,
+      `https://image.pollinations.ai/prompt/${encodeURIComponent(description)}?width=416&height=200&seed=${Math.floor(Math.random() * 1000000)}&nologo=true`
+    ];
+    
+    console.log('=== GENERATING AI IMAGE (NO WATERMARK) ===', {
+      originalDescription: description,
+      category: isFood ? 'food' : isHomeLifestyle ? 'home_lifestyle' : isNature ? 'nature' : isTravel ? 'travel' : isSports ? 'sports' : isTechnology ? 'technology' : isArt ? 'art' : 'generic',
+      enhancedPrompt,
+      aiImageUrl,
+      seed,
+      noWatermark: true
+    });
+    
+    try {
+      // Try primary AI image with 5-second timeout
+      console.log('=== TRYING PRIMARY AI IMAGE ===', { aiImageUrl });
+      const imageLoaded = await testImageLoad(aiImageUrl);
+      if (imageLoaded) {
+        console.log('=== PRIMARY AI IMAGE SUCCESS ===');
+        if (cardIndex !== null) {
+          resetRemixState(cardIndex);
+        }
+        return aiImageUrl;
+      }
+      
+      // Try alternative AI URLs with faster timeouts
+      for (let i = 0; i < alternativeUrls.length; i++) {
+        const altUrl = alternativeUrls[i];
+        console.log(`=== TRYING ALTERNATIVE AI IMAGE ${i + 1} ===`, { altUrl });
+        
+        try {
+          const altImageLoaded = await testImageLoad(altUrl);
+          if (altImageLoaded) {
+            console.log(`=== ALTERNATIVE AI IMAGE ${i + 1} SUCCESS ===`);
+            if (cardIndex !== null) {
+              resetRemixState(cardIndex);
+            }
+            return altUrl;
+          }
+        } catch (altError) {
+          console.warn(`=== ALTERNATIVE AI IMAGE ${i + 1} FAILED ===`, { altError });
+          continue; // Try next alternative
+        }
+      }
+      
+      // All AI attempts failed, use Unsplash fallback
+      throw new Error('All AI image generation attempts failed');
+      
+    } catch (error) {
+      console.warn('=== ALL AI IMAGE GENERATION FAILED ===', { error });
+      
+      // Record error if cardIndex provided
+      if (cardIndex !== null) {
+        recordRemixError(cardIndex, error);
+      }
+      
+      // Fast Unsplash fallback
+      console.log('=== USING UNSPLASH FALLBACK ===');
+      return getUnsplashFallback(description);
+    }
+  }, [isRemixRateLimited, recordRemixAttempt, recordRemixError, resetRemixState, testImageLoad]);
+
+  // Helper function to get phase-specific content
+  const getPhaseSpecificContent = (cardIndex) => {
+    if (!selectedFlightPhase) return null;
+    
+    const phaseContent = {
+      'takeoff': [
+        { text: "croissants at 4€", bgColor: getLightThemeColor() },
+        { text: "autumn meal", bgColor: getLightThemeColor() },
+        { text: "add an autumn movie", bgColor: getLightThemeColor() }
+      ],
+      'climb': [
+        { text: "Order food", bgColor: getLightThemeColor() },
+        { text: "Offers onboard", bgColor: getLightThemeColor() },
+        { text: "Latest entertainment", bgColor: getLightThemeColor() }
+      ],
+      'cruise': [
+        { text: "Popcorn with movie", bgColor: getLightThemeColor() },
+        { text: "Buy gifts", bgColor: getLightThemeColor() },
+        { text: "Latest entertainment", bgColor: getLightThemeColor() }
+      ],
+      'descent': [
+        { text: "Buy guides at discont", bgColor: getLightThemeColor() },
+        { text: "Buy gifts", bgColor: getLightThemeColor() },
+        { text: "Save on your next flight", bgColor: getLightThemeColor() }
+      ],
+      'landing': [
+        { text: "Buy guides at discont", bgColor: getLightThemeColor() },
+        { text: "Buy gifts", bgColor: getLightThemeColor() },
+        { text: "Save on your next flight", bgColor: getLightThemeColor() }
+      ]
+    };
+    
+    const content = phaseContent[selectedFlightPhase];
+    return content && content[cardIndex] ? content[cardIndex] : null;
   };
 
-  // Determine card content based on animation progress, cruise label state, and user content
-  const getCardContent = (cardIndex) => {
-    console.log('=== GENERATING CARD CONTENT ===', { 
-      cardIndex, 
-      promoCardContents, 
-      hasContent: !!promoCardContents[cardIndex],
-      isUpdated: promoCardContents[cardIndex]?.updated,
-      middleCardPromptClosed,
-      cruiseLabelShown,
-      animationProgress,
-      selectedFlightPhase
-    });
-
-    // Priority 1: If a flight phase is selected, show flight phase content
-    if (selectedFlightPhase && !promoCardContents[cardIndex]?.updated) {
-      const phaseText = `add experiences for ${selectedFlightPhase.charAt(0).toUpperCase() + selectedFlightPhase.slice(1)}`;
-      console.log('=== USING FLIGHT PHASE CONTENT ===', { cardIndex, selectedFlightPhase, phaseText });
-      return { text: phaseText, bgColor: getLightThemeColor() };
-    }
-
-    // Priority 2: Check if this card has user-submitted content and it's marked as updated
-    if (promoCardContents[cardIndex] && promoCardContents[cardIndex].updated) {
-      const content = promoCardContents[cardIndex];
-      console.log('=== USING CUSTOM CONTENT ===', { cardIndex, content });
-      
-      // Generate AI image if we have an image description
-      let backgroundImage = null;
-      if (content.image && content.image.trim()) {
-        backgroundImage = generateAIImage(content.image);
-      }
-      
-      return {
-        text: content.text || getDefaultCardContent(cardIndex).text,
-        backgroundImage: backgroundImage,
-        bgColor: backgroundImage ? 'transparent' : getLightThemeColor()
-      };
-    }
-
-    // Handle takeoff phase content - only show takeoff content for loaded cards
-    if (selectedFlightPhase === 'takeoff' && loadedCards.has(cardIndex)) {
-      const takeoffContent = [
-        { 
-          text: "Settle in", 
-          backgroundImage: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=416&h=200&fit=crop&crop=center&auto=format", // Aircraft cabin
-          bgColor: getLightThemeColor()
-        },
-        { 
-          text: "Safe travels", 
-          backgroundImage: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=416&h=200&fit=crop&crop=center&auto=format", // Takeoff view
-          bgColor: getLightThemeColor()
-        },
-        { 
-          text: "Enjoy the flight", 
-          backgroundImage: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=416&h=200&fit=crop&crop=center&auto=format", // Sky view
-          bgColor: getLightThemeColor()
-        }
-      ];
-      return takeoffContent[cardIndex] || takeoffContent[0];
-    }
-
-    // Original state logic from the previous implementation
-    if (middleCardPromptClosed) {
-      // When middle card prompt is closed, update both middle and left cards
-      console.log('=== UPDATING CARD CONTENT ===', { cardIndex, middleCardPromptClosed });
-      if (cardIndex === 0) {
-        // Left card - French cuisine
-        return {
-          text: "Enjoy French cuisine",
-          backgroundImage: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=416&h=200&fit=crop&crop=center&auto=format",
-          bgColor: getLightThemeColor()
-        };
-      } else if (cardIndex === 1) {
-        // Middle card - Croissants
-        return {
-          text: "Croissants at 3€",
-          backgroundImage: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=416&h=200&fit=crop&crop=center&auto=format",
-          bgColor: getLightThemeColor()
-        };
-      } else {
-        // Right card - keep original content
-        return {
-          text: "Connect your device",
-          backgroundImage: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=416&h=200&fit=crop&crop=center&auto=format",
-          bgColor: getLightThemeColor()
-        };
-      }
-    } else if (cruiseLabelShown && !middleCardPromptClosed) {
-      // When Cruise label has appeared - show "add text" (but only if middle card prompt hasn't closed)
-      const cruiseContent = [
-        { text: "add text", bgColor: getLightThemeColor() },
-        { text: "add text", bgColor: getLightThemeColor() },
-        { text: "add text", bgColor: getLightThemeColor() }
-      ];
-      return cruiseContent[cardIndex];
-    } else if (animationProgress >= 0.20) {
-      // At 20% progress - themed state
-      const themedContent = [
-        { text: "Welcome drink", bgColor: getLightThemeColor() },
-        { text: "Settle in", bgColor: getLightThemeColor() },
-        { text: "Connect your device", bgColor: getLightThemeColor() }
-      ];
-      return themedContent[cardIndex];
-    } else if (animationProgress >= 0.05) {
-      // At 5% progress - specific content with images
-      const contentWithImages = [
-        { 
-          text: "Welcome drink", 
-          backgroundImage: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=416&h=200&fit=crop&crop=center&auto=format",
-          bgColor: getLightThemeColor()
-        },
-        { 
-          text: "Settle in", 
-          backgroundImage: "https://images.unsplash.com/photo-1556388158-158ea5ccacbd?w=416&h=200&fit=crop&crop=center&auto=format",
-          bgColor: getLightThemeColor()
-        },
-        { 
-          text: "Connect your device", 
-          backgroundImage: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=416&h=200&fit=crop&crop=center&auto=format",
-          bgColor: getLightThemeColor()
-        }
-      ];
-      return contentWithImages[cardIndex];
-    } else {
-      // Default state
-      return { text: "Add title", bgColor: getLightThemeColor() };
-    }
+  // Helper function to get phase-specific image keywords for AI generation
+  const getPhaseSpecificImageKeyword = (cardIndex) => {
+    if (!selectedFlightPhase) return null;
+    
+    const phaseImageKeywords = {
+      'takeoff': [
+        "croissants", // croissants
+        "meal", // meal
+        "movie" // movie
+      ],
+      'climb': [
+        "meal", // meal
+        "offers", // offers
+        "movie" // movie
+      ],
+      'cruise': [
+        "popcorn", // popcorn
+        "gifts", // gifts
+        "movie" // movie
+      ],
+      'descent': [
+        "get your guide", // get your guide
+        "gifts", // gifts
+        "flight ticket offer" // flight ticket offer
+      ],
+      'landing': [
+        "get your guide", // get your guide
+        "gifts", // gifts
+        "flight ticket offer" // flight ticket offer
+      ]
+    };
+    
+    const keywords = phaseImageKeywords[selectedFlightPhase];
+    return keywords && keywords[cardIndex] ? keywords[cardIndex] : null;
   };
 
   // Helper function for default card content
   const getDefaultCardContent = (cardIndex) => {
-    // If a flight phase is selected, show "add experiences for [phase]"
+    // If a flight phase is selected, show phase-specific content
     if (selectedFlightPhase) {
+      const phaseContent = getPhaseSpecificContent(cardIndex);
+      if (phaseContent) {
+        return phaseContent;
+      }
+      // Fallback to generic phase text if no specific content
       const phaseText = `add experiences for ${selectedFlightPhase.charAt(0).toUpperCase() + selectedFlightPhase.slice(1)}`;
       return { text: phaseText, bgColor: getLightThemeColor() };
     }
@@ -458,9 +612,142 @@ export default function Component3Cards({
     return defaultContent[cardIndex] || defaultContent[0];
   };
 
+  // Handle remix image generation with 5-second guarantee
+  useEffect(() => {
+    // Check for cards that need remix image generation
+    Object.entries(promoCardContents).forEach(([cardIndex, content]) => {
+      if (content?.remixCount > 0 && content?.image && !content?.backgroundImage) {
+        console.log('=== TRIGGERING REMIX IMAGE GENERATION ===', { cardIndex, content });
+        
+        // Set a 5-second timeout to clear loading state
+        const loadingTimeout = setTimeout(() => {
+          console.log('=== LOADING TIMEOUT REACHED ===', { cardIndex });
+          // Force clear loading state after 5 seconds
+          const element = document.getElementById(`node-82_3581${4 + parseInt(cardIndex)}`);
+          if (element) {
+            // Apply fallback image if no AI image loaded
+            const fallbackUrl = getUnsplashFallback(content.image);
+            element.style.backgroundImage = `url(${fallbackUrl})`;
+          }
+        }, 5000);
+        
+        // Generate AI image asynchronously
+        generateAIImage(content.image, parseInt(cardIndex)).then(newImageUrl => {
+          console.log('=== REMIX IMAGE GENERATED ===', { cardIndex, newImageUrl });
+          clearTimeout(loadingTimeout); // Clear timeout if image loads successfully
+          
+          // Update the DOM element directly
+          const element = document.getElementById(`node-82_3581${4 + parseInt(cardIndex)}`);
+          if (element && newImageUrl) {
+            element.style.backgroundImage = `url(${newImageUrl})`;
+          }
+        }).catch(error => {
+          console.error('=== REMIX IMAGE GENERATION FAILED ===', { cardIndex, error });
+          clearTimeout(loadingTimeout); // Clear timeout on error
+        });
+      }
+    });
+  }, [promoCardContents, generateAIImage]);
+
+
+
   // Helper function to render a single card with original styling
   const renderCard = (originalCardIndex, displayPosition) => {
-    const cardContent = getCardContent(originalCardIndex);
+    // Pre-calculate card content to avoid infinite loops
+    const cardContent = (() => {
+      console.log('=== GENERATING CARD CONTENT ===', { 
+        cardIndex: originalCardIndex, 
+        promoCardContents, 
+        hasContent: !!promoCardContents[originalCardIndex],
+        isUpdated: promoCardContents[originalCardIndex]?.updated,
+        isRemix: promoCardContents[originalCardIndex]?.remixCount > 0,
+        remixCount: promoCardContents[originalCardIndex]?.remixCount || 0
+      });
+      
+      // If user has submitted content for this card, use it (prioritize over phase-specific content)
+      if (promoCardContents[originalCardIndex]?.updated) {
+        const userContent = promoCardContents[originalCardIndex];
+        console.log('=== USING USER CONTENT ===', userContent);
+        
+        // For remix operations, return existing content and let useEffect handle image generation
+        if (userContent.remixCount > 0) {
+          console.log('=== REMIX OPERATION DETECTED ===', { remixCount: userContent.remixCount });
+          
+          return {
+            text: userContent.text,
+            backgroundImage: userContent.backgroundImage, // Keep existing image for now
+            bgColor: getLightThemeColor()
+          };
+        }
+        
+        // For regular content, use existing image or generate new one
+        let backgroundImage = userContent.backgroundImage;
+        if (!backgroundImage && userContent.image) {
+          try {
+            backgroundImage = generateAIImageSync(userContent.image);
+          } catch (error) {
+            console.error('=== SYNC IMAGE GENERATION FAILED ===', error);
+            backgroundImage = getUnsplashFallback(userContent.image);
+          }
+        }
+        
+        return {
+          text: userContent.text,
+          backgroundImage: backgroundImage,
+          bgColor: getLightThemeColor()
+        };
+      }
+      
+      // If middle card prompt is closed and cruise label is shown, show content with images
+      if (middleCardPromptClosed && cruiseLabelShown) {
+        const contentWithImages = [
+          { 
+            text: "Welcome drink", 
+            backgroundImage: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=416&h=200&fit=crop&crop=center&auto=format",
+            bgColor: getLightThemeColor()
+          },
+          { 
+            text: "Settle in", 
+            backgroundImage: "https://images.unsplash.com/photo-1556388158-158ea5ccacbd?w=416&h=200&fit=crop&crop=center&auto=format",
+            bgColor: getLightThemeColor()
+          },
+          { 
+            text: "Connect your device", 
+            backgroundImage: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=416&h=200&fit=crop&crop=center&auto=format",
+            bgColor: getLightThemeColor()
+          }
+        ];
+        return contentWithImages[originalCardIndex];
+      } else if (selectedFlightPhase) {
+        // Show phase-specific content with AI-generated images when flight phase is selected
+        const phaseContent = getPhaseSpecificContent(originalCardIndex);
+        const imageKeyword = getPhaseSpecificImageKeyword(originalCardIndex);
+        if (phaseContent && imageKeyword) {
+          // Generate AI image for the phase-specific content
+          try {
+            const aiImageUrl = generateAIImageSync(imageKeyword);
+            return {
+              ...phaseContent,
+              backgroundImage: aiImageUrl
+            };
+          } catch (error) {
+            console.error('=== AI IMAGE GENERATION FAILED FOR PHASE ===', { error, imageKeyword });
+            // Fallback to Unsplash image
+            const fallbackUrl = getUnsplashFallback(imageKeyword);
+            return {
+              ...phaseContent,
+              backgroundImage: fallbackUrl
+            };
+          }
+        }
+        // Fallback to generic phase text if no specific content
+        const phaseText = `add experiences for ${selectedFlightPhase.charAt(0).toUpperCase() + selectedFlightPhase.slice(1)}`;
+        return { text: phaseText, bgColor: getLightThemeColor() };
+      } else {
+        // Default state
+        return { text: "Add title", bgColor: getLightThemeColor() };
+      }
+    })();
     const imageDescription = promoCardContents[originalCardIndex]?.image || 'default';
     
     // Get card type mapping
@@ -489,7 +776,7 @@ export default function Component3Cards({
     };
 
     // Handle AI image loading with fallback
-    if (cardContent.backgroundImage && cardContent.backgroundImage.includes('pollinations.ai')) {
+    if (cardContent.backgroundImage && typeof cardContent.backgroundImage === 'string' && cardContent.backgroundImage.includes('pollinations.ai')) {
       const testImg = new Image();
       testImg.onload = () => {
         console.log('=== AI IMAGE LOADED SUCCESSFULLY ===', cardContent.backgroundImage);
@@ -525,31 +812,63 @@ export default function Component3Cards({
         onDragLeave={handleDragLeave}
         onDrop={(e) => handleDrop(e, displayPosition)}
         onMouseEnter={(e) => {
-          if (isPromptMode && onPromptHover) {
+          if (isPromptMode && onPromptHover && !colorPromptClosedWithoutSave) {
             onPromptHover(true, 'promo-card', { cardIndex: originalCardIndex, cardType: cardInfo.type }, { x: e.clientX, y: e.clientY });
           }
         }}
         onMouseLeave={(e) => {
-          if (isPromptMode && onPromptHover) {
+          if (isPromptMode && onPromptHover && !colorPromptClosedWithoutSave) {
             onPromptHover(false, 'promo-card', { cardIndex: originalCardIndex, cardType: cardInfo.type }, { x: e.clientX, y: e.clientY });
           }
         }}
         onMouseMove={(e) => {
-          if (isPromptMode && onPromptHover) {
+          if (isPromptMode && onPromptHover && !colorPromptClosedWithoutSave) {
             onPromptHover(true, 'promo-card', { cardIndex: originalCardIndex, cardType: cardInfo.type }, { x: e.clientX, y: e.clientY });
           }
         }}
         onClick={(e) => {
-          console.log('=== CARD CLICK ===', { originalCardIndex, displayPosition, cardInfo });
-          if (isPromptMode && onPromptClick) {
+          console.log('=== CARD CLICK ===', { originalCardIndex, displayPosition, cardInfo, colorPromptClosedWithoutSave });
+          if (isPromptMode && onPromptClick && !colorPromptClosedWithoutSave) {
             e.stopPropagation();
             onPromptClick('promo-card', { cardIndex: originalCardIndex, cardType: cardInfo.type }, { x: e.clientX, y: e.clientY });
+          } else if (isPromptMode && colorPromptClosedWithoutSave) {
+            console.log('=== BLOCKING PROMO CARD CLICK - COLOR NOT SAVED ===');
           }
         }}
       >
         {getAnimatedBorderOverlay(originalCardIndex)}
         
-        {/* Special handling for special prompt states */}
+          {/* Enhanced loading overlay for remix operations */}
+          {promoCardContents[originalCardIndex]?.isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg z-10">
+              <div className="flex flex-col items-center gap-2 text-white">
+                <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
+                {remixAttempts[originalCardIndex] > 1 && (
+                  <span className="text-xs opacity-75">Attempt {remixAttempts[originalCardIndex]}/3</span>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Error state overlay */}
+          {remixErrors[originalCardIndex] >= 3 && (
+            <div className="absolute inset-0 flex items-center justify-center bg-red-500 bg-opacity-50 rounded-lg z-10">
+              <div className="flex flex-col items-center gap-2 text-white">
+                <span className="text-sm font-medium">Generation failed</span>
+                <span className="text-xs opacity-75">Using fallback image</span>
+              </div>
+            </div>
+          )}
+          
+          {/* Rate limit overlay */}
+          {isRemixRateLimited && promoCardContents[originalCardIndex]?.isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-yellow-500 bg-opacity-50 rounded-lg z-10">
+              <div className="flex flex-col items-center gap-2 text-white">
+                <span className="text-sm font-medium">Rate limited</span>
+                <span className="text-xs opacity-75">Please wait...</span>
+              </div>
+            </div>
+          )}
         {promptStates[`promo-card-${originalCardIndex}`] && !middleCardPromptClosed ? (
           <div className="relative h-full w-full">
             {cardContent.backgroundImage && (
@@ -586,6 +905,43 @@ export default function Component3Cards({
                }}>
               {cardContent.text}
             </p>
+            
+            {/* Edit button for promo cards */}
+            {colorPromptSaved && (
+              <button
+                className="absolute top-2 right-2 px-3 py-1 text-sm font-medium text-white transition-colors"
+                style={{ 
+                  backgroundColor: themeColor,
+                  borderTopLeftRadius: '0px', 
+                  borderTopRightRadius: '9999px', 
+                  borderBottomLeftRadius: '9999px', 
+                  borderBottomRightRadius: '9999px' 
+                }}
+                onMouseEnter={(e) => {
+                  // Create a slightly darker version of the theme color for hover
+                  if (themeColor.startsWith('#')) {
+                    const hex = themeColor.slice(1);
+                    const r = parseInt(hex.substr(0, 2), 16);
+                    const g = parseInt(hex.substr(2, 2), 16);
+                    const b = parseInt(hex.substr(4, 2), 16);
+                    const darkerColor = `rgb(${Math.max(0, r - 40)}, ${Math.max(0, g - 40)}, ${Math.max(0, b - 40)})`;
+                    e.target.style.backgroundColor = darkerColor;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = themeColor;
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  console.log('Edit promo card clicked', originalCardIndex);
+                  if (isPromptMode && onPromptClick) {
+                    onPromptClick('promo-card', { cardIndex: originalCardIndex, cardType: cardInfo.type }, { x: e.clientX, y: e.clientY });
+                  }
+                }}
+              >
+                Edit
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -6,6 +6,108 @@ import FlightProgress from './FlightProgress';
 import Component3Cards from './Component3Cards';
 import PromptBubble from './PromptBubble';
 
+// Helper function to generate AI images for content cards
+const generateAIImageSync = (description) => {
+  console.log('=== GENERATING AI IMAGE FOR CONTENT CARD (LANDING) ===', { description });
+  
+  // Detect different categories and enhance accordingly
+  const isMovie = /\b(movie|film|cinema|theater|dvd|streaming|entertainment|crocodile|dundee)\b/i.test(description);
+  const isGuide = /\b(guide|travel|tour|destination|city|country|vacation|trip)\b/i.test(description);
+  const isGame = /\b(game|gaming|play|console|video|poster|arcade)\b/i.test(description);
+  const isPodcast = /\b(podcast|audio|radio|broadcast|talk|show)\b/i.test(description);
+  
+  let enhancedPrompt;
+  
+  if (isMovie) {
+    enhancedPrompt = `high quality movie poster or cinema photography of ${description}, cinematic lighting, professional movie poster style, 4k, photorealistic`;
+  } else if (isGuide) {
+    enhancedPrompt = `beautiful travel photography of ${description}, scenic view, tourist destination, professional travel photography, 4k, high quality`;
+  } else if (isGame) {
+    enhancedPrompt = `modern gaming photography of ${description}, video game poster style, digital art, gaming aesthetic, 4k, professional quality`;
+  } else if (isPodcast) {
+    enhancedPrompt = `professional podcast studio photography of ${description}, audio equipment, modern podcast setup, clean background, 4k, photorealistic`;
+  } else {
+    // Generic enhancement for any other content
+    enhancedPrompt = `high quality professional photography of ${description}, beautiful composition, excellent lighting, vibrant colors, 4k, photorealistic, detailed`;
+  }
+  
+  // Use Pollinations AI API with deterministic seed for consistent generation
+  const seed = description.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const aiImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=416&height=200&seed=${seed}&model=flux&enhance=true&nologo=true`;
+  
+  console.log('=== GENERATING AI IMAGE FOR CONTENT CARD (LANDING) ===', {
+    originalDescription: description,
+    category: isMovie ? 'movie' : isGuide ? 'guide' : isGame ? 'game' : isPodcast ? 'podcast' : 'generic',
+    enhancedPrompt,
+    aiImageUrl,
+    seed
+  });
+  
+  return aiImageUrl;
+};
+
+// Helper function to get Unsplash fallback for content cards
+const getUnsplashFallback = (description) => {
+  console.log('=== GETTING UNSPLASH FALLBACK FOR CONTENT CARD (LANDING) ===', { description });
+  
+  // Keyword-based mappings for content cards
+  const keywordMappings = {
+    // Movies
+    'movie': 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=416&h=200&fit=crop&crop=center&auto=format',
+    'crocodile': 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=416&h=200&fit=crop&crop=center&auto=format',
+    'dundee': 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=416&h=200&fit=crop&crop=center&auto=format',
+    // Travel guides
+    'guide': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=416&h=200&fit=crop&crop=center&auto=format',
+    'travel': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=416&h=200&fit=crop&crop=center&auto=format',
+    // Games
+    'game': 'https://images.unsplash.com/photo-1518709414923-e5cf8b0ac4fe?w=416&h=200&fit=crop&crop=center&auto=format',
+    'gaming': 'https://images.unsplash.com/photo-1518709414923-e5cf8b0ac4fe?w=416&h=200&fit=crop&crop=center&auto=format',
+    // Podcasts
+    'podcast': 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=416&h=200&fit=crop&crop=center&auto=format',
+    'audio': 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=416&h=200&fit=crop&crop=center&auto=format'
+  };
+  
+  // Check for direct keyword matches first
+  const lowerDesc = description.toLowerCase();
+  for (const [keyword, url] of Object.entries(keywordMappings)) {
+    if (lowerDesc.includes(keyword)) {
+      console.log('=== USING KEYWORD-BASED UNSPLASH IMAGE ===', { keyword, url });
+      return url;
+    }
+  }
+  
+  // If no keyword match, use hash-based selection for consistency
+  console.log('=== USING HASH-BASED UNSPLASH FALLBACK ===', { description });
+  
+  const fallbackImages = [
+    'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=416&h=200&fit=crop&crop=center&auto=format', // movie
+    'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=416&h=200&fit=crop&crop=center&auto=format', // guide
+    'https://images.unsplash.com/photo-1518709414923-e5cf8b0ac4fe?w=416&h=200&fit=crop&crop=center&auto=format', // game
+    'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=416&h=200&fit=crop&crop=center&auto=format'  // podcast
+  ];
+  
+  // Create hash from description for consistent selection
+  let hash = 0;
+  for (let i = 0; i < description.length; i++) {
+    const char = description.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  
+  const index = Math.abs(hash) % fallbackImages.length;
+  const selectedUrl = fallbackImages[index];
+  
+  console.log('=== HASH-BASED SELECTION ===', { 
+    description, 
+    hash, 
+    index, 
+    selectedUrl,
+    totalImages: fallbackImages.length 
+  });
+  
+  return selectedUrl;
+};
+
 export default function LandingPage() {
   const navigate = useNavigate();
   
@@ -42,6 +144,7 @@ export default function LandingPage() {
     { id: 3, color: themeColors[0] },
     { id: 4, color: themeColors[0] }
   ]);
+  const [contentCardImages, setContentCardImages] = useState({});
   const [draggedTile, setDraggedTile] = useState(null);
   
   const formatTime = (minutes) => {
@@ -121,6 +224,33 @@ export default function LandingPage() {
       const gradientColor = 'linear-gradient(120deg, #d4fc79 0%, #96e6a1 100%)';
       setCurrentThemeColor(gradientColor);
       setIsGradientMode(true);
+      
+      // Generate AI images for content cards when color is saved
+      const contentCardTitles = [
+        'Crocodile Dundee Movie',
+        'Get Your Guide', 
+        'Game Poster',
+        'A Podcast'
+      ];
+      
+      const newContentCardImages = {};
+      contentCardTitles.forEach((title, index) => {
+        try {
+          const aiImageUrl = generateAIImageSync(title);
+          newContentCardImages[index + 1] = aiImageUrl; // Use tile.id (1-4) as key
+        } catch (error) {
+          console.error('=== AI IMAGE GENERATION FAILED FOR CONTENT CARD (LANDING) ===', { error, cardTitle: title });
+          // Fallback to Unsplash image
+          const fallbackUrl = getUnsplashFallback(title);
+          newContentCardImages[index + 1] = fallbackUrl;
+        }
+      });
+      
+      setContentCardImages(newContentCardImages);
+      
+      console.log('🎯 Generated AI images for content cards (Landing):', {
+        contentCardImages: newContentCardImages
+      });
     } else {
     }
   };
@@ -420,33 +550,81 @@ export default function LandingPage() {
                   className="grid grid-cols-4 gap-6"
                   style={{ width: '100%' }}
                 >
-                  {recommendedTiles.map((tile) => (
-                    <div
-                      key={tile.id}
-                      draggable
-                      className="bg-black overflow-clip relative shrink-0 flex items-center justify-center cursor-move hover:opacity-80 transition-opacity"
-                      style={{ 
-                        width: '100%', 
-                        height: '184px',
-                        backgroundColor: getLightThemeColor(0.1),
-                        borderTopLeftRadius: '8px',
-                        borderTopRightRadius: '8px',
-                        borderBottomLeftRadius: '0px',
-                        borderBottomRightRadius: '0px',
-                        opacity: draggedTile === tile.id ? 0.5 : 1
-                      }}
-                      onDragStart={(e) => handleDragStart(e, tile.id)}
-                      onDragOver={handleDragOver}
-                      onDrop={(e) => handleDrop(e, tile.id)}
-                      onDragEnd={handleDragEnd}
-                    >
-                      <div className="text-center">
-                        <span className="font-semibold block" style={{ color: '#000000', fontSize: '24px', lineHeight: '32px', opacity: 0.7 }}>
-                          Add content
-                        </span>
-                      </div>
+                  {recommendedTiles.map((tile) => {
+                    const cardImage = contentCardImages[tile.id];
+                    return (
+                      <div
+                        key={tile.id}
+                        draggable
+                        className="bg-black overflow-clip relative shrink-0 flex items-center justify-center cursor-move hover:opacity-80 transition-opacity group"
+                        style={{ 
+                          width: '100%', 
+                          height: '184px',
+                          background: cardImage ? `url(${cardImage})` : getLightThemeColor(0.1),
+                          backgroundSize: cardImage ? 'cover' : 'auto',
+                          backgroundPosition: cardImage ? 'center' : 'auto',
+                          backgroundRepeat: cardImage ? 'no-repeat' : 'auto',
+                          borderTopLeftRadius: '8px',
+                          borderTopRightRadius: '8px',
+                          borderBottomLeftRadius: '0px',
+                          borderBottomRightRadius: '0px',
+                          opacity: draggedTile === tile.id ? 0.5 : 1
+                        }}
+                                              onDragStart={(e) => handleDragStart(e, tile.id)}
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, tile.id)}
+                        onDragEnd={handleDragEnd}
+                      >
+                        {/* Dark overlay for background images */}
+                        {cardImage && (
+                          <div 
+                            className="absolute inset-0 bg-black bg-opacity-30 rounded-t-lg"
+                            style={{
+                              borderTopLeftRadius: '8px',
+                              borderTopRightRadius: '8px'
+                            }}
+                          />
+                        )}
+                        <div className="text-center relative z-10">
+                          <span className="font-semibold block" style={{ color: cardImage ? 'white' : '#000000', fontSize: '24px', lineHeight: '32px', opacity: 0.7 }}>
+                            Add content
+                          </span>
+                        </div>
+                      
+                      {/* Edit button for content cards */}
+                      <button
+                        className="absolute top-2 right-2 px-3 py-1 text-sm font-medium text-white transition-colors opacity-0 group-hover:opacity-100"
+                        style={{ 
+                          backgroundColor: mockThemeColor,
+                          borderTopLeftRadius: '0px', 
+                          borderTopRightRadius: '9999px', 
+                          borderBottomLeftRadius: '9999px', 
+                          borderBottomRightRadius: '9999px' 
+                        }}
+                        onMouseEnter={(e) => {
+                          // Create a slightly darker version of the theme color for hover
+                          if (mockThemeColor.startsWith('#')) {
+                            const hex = mockThemeColor.slice(1);
+                            const r = parseInt(hex.substr(0, 2), 16);
+                            const g = parseInt(hex.substr(2, 2), 16);
+                            const b = parseInt(hex.substr(4, 2), 16);
+                            const darkerColor = `rgb(${Math.max(0, r - 40)}, ${Math.max(0, g - 40)}, ${Math.max(0, b - 40)})`;
+                            e.target.style.backgroundColor = darkerColor;
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.backgroundColor = mockThemeColor;
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log('Edit content card clicked', tile.id);
+                        }}
+                      >
+                        Edit content card
+                      </button>
                     </div>
-                  ))}
+                  );
+                })}
                 </div>
               </div>
             </div>

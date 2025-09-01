@@ -9,7 +9,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useNavigate } from 'react-router-dom';
 import { getReadableOnColor } from '../utils/color';
 
-export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips, onStartThemeBuild, themeColor = '#1E1E1E', onTriggerPromptBubble, selectedLogo, onThemeAnimationComplete, onGeneratingStateChange, onBuildThemes, onFlightSelect, showIFEFrame = false, flightsGenerated = false, onShowPreview, onBuildThemeClicked, onAirlineSelect, onModifyClicked }) {
+export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips, onStartThemeBuild, themeColor = '#1E1E1E', onTriggerPromptBubble, selectedLogo, onThemeAnimationComplete, onGeneratingStateChange, onBuildThemes, onFlightSelect, showIFEFrame = false, flightsGenerated = false, onShowPreview, onBuildThemeClicked, onAirlineSelect, onModifyClicked, flightCardProgress = {} }) {
   const navigate = useNavigate();
 
   // Add CSS animations for container scroll-up
@@ -1199,6 +1199,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                 onBuildThemeClicked={onBuildThemeClicked}
                 onAirlineSelect={onAirlineSelect}
                 onModifyClicked={onModifyClicked}
+                flightCardProgress={flightCardProgress}
                 onToggleMinimized={() => {
                   setIsMinimized(!isMinimized);
                   if (!isMinimized) {
