@@ -316,8 +316,9 @@ export default function PromptBubble({
     setSelectedColor(themeColor);
   }, [selectedLogo, themeColor]);
 
-  // Determine background color - use blue for flight card related prompts, theme color for IFE frame
-  const isFlightCardPrompt = (elementType === 'flight-journey-bar' || elementType === 'flight-phase-button') 
+  // Determine background color - use theme color for change theme prompts, blue for other flight card prompts
+  const isChangeThemePrompt = elementType === 'flight-journey-bar';
+  const isFlightCardPrompt = (elementType === 'flight-phase-button') 
     && (positionKey && (positionKey.includes('inline-flight') || positionKey === 'fjb-dashboard' || positionKey === 'flight-phase-button-dashboard'));
   
   // IFE frame prompts have these position keys
@@ -329,6 +330,8 @@ export default function PromptBubble({
   // Determine text/icon color for readability on promo-card bubbles (dashboard)
   const actualBackgroundColor = elementType === 'promo-card' && positionKey === 'middle-card-demo' 
     ? 'rgba(255,255,255,0.2)'
+    : isChangeThemePrompt
+    ? (selectedColor || themeColor) // Change theme prompt uses theme color
     : isFlightCardPrompt 
     ? darkContainerColor
     : (selectedColor || themeColor); // IFE frame and other prompts use theme/selected color
@@ -1386,16 +1389,10 @@ export default function PromptBubble({
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap gap-2">
               {(() => {
-                // Get base chips
-                const baseChips = themeChips && themeChips.length > 0
-                  ? themeChips
-                  : [
-                      { label: 'Default', color: '#000000' },
-                      { label: 'Milan Theme', color: '#EF4444' },
-                      { label: 'Time of the Day', color: '#F59E0B' }
-                    ];
+                // Create custom chips based on flight data (origin, destination, airline)
+                const customChips = [];
                 
-                // If a logo is selected, add/prioritize the logo color chip
+                // 1. Brand chip (based on selected airline)
                 if (selectedLogo && selectedLogo.id) {
                   const logoColorMap = {
                     'discover': { label: 'Discover', color: '#1E72AE' },
@@ -1405,16 +1402,62 @@ export default function PromptBubble({
                   
                   const logoChip = logoColorMap[selectedLogo.id];
                   if (logoChip) {
-                    // Remove any existing chip with the same color or label
-                    const filteredChips = baseChips.filter(chip => 
-                      chip.color !== logoChip.color && chip.label !== logoChip.label
-                    );
-                    // Add logo chip as first chip
-                    return [logoChip, ...filteredChips];
+                    customChips.push(logoChip);
                   }
+                } else {
+                  // Default brand chip if no airline selected
+                  customChips.push({ label: 'Brand', color: '#1E1E1E' });
                 }
                 
-                return baseChips;
+                // 2. Origin city chip
+                const originCity = elementData?.origin?.airport?.city || 'Paris';
+                const originColorMap = {
+                  'Paris': '#FF6B6B',
+                  'London': '#4ECDC4', 
+                  'Berlin': '#45B7D1',
+                  'Madrid': '#FFA07A',
+                  'Rome': '#98D8C8',
+                  'Amsterdam': '#F7DC6F',
+                  'Barcelona': '#BB8FCE',
+                  'Vienna': '#85C1E9',
+                  'Munich': '#82E0AA',
+                  'Copenhagen': '#F8C471'
+                };
+                customChips.push({ 
+                  label: originCity, 
+                  color: originColorMap[originCity] || '#FF6B6B' 
+                });
+                
+                // 3. Destination city chip  
+                const destCity = elementData?.destination?.airport?.city || 'Milan';
+                const destColorMap = {
+                  'Milan': '#9B59B6',
+                  'Paris': '#FF6B6B',
+                  'London': '#4ECDC4',
+                  'Berlin': '#45B7D1', 
+                  'Madrid': '#FFA07A',
+                  'Rome': '#98D8C8',
+                  'Amsterdam': '#F7DC6F',
+                  'Barcelona': '#BB8FCE',
+                  'Vienna': '#85C1E9',
+                  'Munich': '#82E0AA',
+                  'Copenhagen': '#F8C471'
+                };
+                customChips.push({ 
+                  label: destCity, 
+                  color: destColorMap[destCity] || '#9B59B6' 
+                });
+                
+                // 4. Origin-Destination gradient chip
+                const originColor = originColorMap[originCity] || '#FF6B6B';
+                const destColor = destColorMap[destCity] || '#9B59B6';
+                customChips.push({ 
+                  label: `${originCity}-${destCity}`, 
+                  color: `linear-gradient(135deg, ${originColor} 0%, ${destColor} 100%)`,
+                  isGradient: true
+                });
+                
+                return customChips;
               })().map((chip, idx) => {
                 // Get the original chip color for the color circle
                 const originalChipColor = typeof chip === 'object' ? chip.color : String(chip);
@@ -1424,7 +1467,7 @@ export default function PromptBubble({
                 const label = typeof chip === 'object'
                   ? chip.label
                   : (String(originalChipColor).includes('gradient') ? 'Gradient' : String(originalChipColor));
-                const isGrad = String(originalChipColor).includes('gradient');
+                const isGrad = chip.isGradient || String(originalChipColor).includes('gradient');
                 const isSelected = pendingColor 
                   ? normalizeColor(pendingColor.color) === normalizeColor(originalChipColor)
                   : normalizeColor(selectedColor) === normalizeColor(originalChipColor);
@@ -1456,76 +1499,9 @@ export default function PromptBubble({
                   </button>
                 );
               })}
-              
-              {/* Gradient Chips */}
-              {[
-                { 
-                  name: 'Spring Gradient', 
-                  gradient: 'linear-gradient(120deg, #d4fc79 0%, #96e6a1 100%)',
-                  label: 'Spring'
-                },
-                { 
-                  name: 'Ocean Gradient', 
-                  gradient: 'linear-gradient(120deg, #a8edea 0%, #fed6e3 100%)',
-                  label: 'Ocean'
-                },
-                { 
-                  name: 'Sunset Gradient', 
-                  gradient: 'linear-gradient(120deg, #ff9a9e 0%, #fecfef 100%)',
-                  label: 'Sunset'
-                },
-                { 
-                  name: 'Purple Gradient', 
-                  gradient: 'linear-gradient(120deg, #667eea 0%, #764ba2 100%)',
-                  label: 'Purple'
-                }
-              ].map((gradientChip, idx) => (
-                <button
-                  key={`gradient-${idx}`}
-                  type="button"
-                  onClick={() => handleColorChange(gradientChip.gradient, { label: gradientChip.label, color: gradientChip.gradient })}
-                  className={`transition-colors flex-shrink-0`}
-                  title={gradientChip.name}
-                >
-                  <div className="flex items-center gap-2 px-2 py-1 border rounded-full" style={{ 
-                    borderColor: finalBorderColor,
-                    backgroundColor: (pendingColor 
-                      ? normalizeColor(pendingColor.color) === normalizeColor(gradientChip.gradient)
-                      : normalizeColor(selectedColor) === normalizeColor(gradientChip.gradient)) ? `${gradientChip.gradient}15` : 'transparent'
-                  }}>
-                    <div
-                      className="w-4 h-4 rounded-full border"
-                      style={{
-                        background: gradientChip.gradient,
-                        borderColor: finalBorderColor
-                      }}
-                    />
-                    <span className="text-xs font-medium" style={{ color: adaptiveTextColor }}>{gradientChip.label}</span>
-                  </div>
-                </button>
-              ))}
 
-              {/* Custom Gradient Chip */}
-              <button
-                type="button"
-                onClick={() => {
-                  setShowGradientPicker(!showGradientPicker);
-                  setShowColorPicker(false);
-                }}
-                className={`transition-colors flex-shrink-0`}
-                title="Create Custom Gradient"
-              >
-                <div className="flex items-center gap-2 px-2 py-1 border rounded-full" style={{ borderColor: finalBorderColor }}>
-                  <div
-                    className="w-4 h-4 rounded-full border"
-                    style={{
-                      background: 'linear-gradient(45deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff)',
-                      borderColor: finalBorderColor
-                    }}
-                  />
-                  <span className="text-xs font-medium" style={{ color: adaptiveTextColor }}>Gradient+</span>
-                </div>
-              </button>
+
+
 
               {/* Color Picker Chip - moved inline with other chips */}
               <button

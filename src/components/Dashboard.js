@@ -250,7 +250,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
             return;
           }
           if (!isOverProgress) {
-            onPromptClick('flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+            onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
           }
         }}
       >
@@ -1294,6 +1294,22 @@ export default function Dashboard() {
             onMouseLeave={() => {
               setIfeFrameHover({ isHovering: false, x: 0, y: 0 });
             }}
+            onClick={(e) => {
+              // Global click delegation for "Change Theme" buttons in IFE frame
+              const target = e.target;
+              const isChangeThemeButton = (
+                target.textContent?.includes('Change theme') || 
+                target.textContent?.includes('Change Theme') ||
+                target.title?.includes('Change Theme') ||
+                target.title?.includes('Change theme')
+              );
+              
+              if (isChangeThemeButton && isPromptMode) {
+                console.log('🎯 Global IFE frame click delegation caught Change Theme button');
+                e.stopPropagation();
+                handlePromptClick('flight-journey-bar', { themeColor: currentThemeColor }, { x: e.clientX, y: e.clientY });
+              }
+            }}
           >
             {/* IFE Frame SVG */}
             <img
@@ -1571,21 +1587,14 @@ export default function Dashboard() {
               borderTopLeftRadius: 0
             }}
           >
-            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>
-              {pcHoverTip.elementData && typeof pcHoverTip.elementData.cardIndex === 'number' 
-                ? `Edit promo card ${pcHoverTip.elementData.cardIndex + 1}` 
-                : 'Edit promo card'}
-            </span>
+            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Change theme</span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                const ed = pcHoverTip.elementData || { cardIndex: 0, cardType: 'meal' };
-                handlePromptClick('promo-card', ed, { x: pcHoverTip.x, y: pcHoverTip.y });
+                handlePromptClick('flight-journey-bar', { themeColor: currentThemeColor }, { x: pcHoverTip.x, y: pcHoverTip.y });
               }}
               className="w-6 h-6 rounded-full border flex items-center justify-center"
-              title={pcHoverTip.elementData && typeof pcHoverTip.elementData.cardIndex === 'number' 
-                ? `Edit promo card ${pcHoverTip.elementData.cardIndex + 1}` 
-                : 'Edit promo card'}
+              title="Change theme"
               style={{ pointerEvents: 'auto', borderColor: hoverOnColor, color: hoverOnColor }}
             >
               +

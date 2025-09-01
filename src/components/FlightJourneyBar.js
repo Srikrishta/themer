@@ -63,7 +63,7 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               const withinBar = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
               if (withinBar) return;
             }
-            onPromptClick('flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+            onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
           }
         }}
       >
@@ -90,7 +90,7 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               }}
               onClick={(e) => {
                 if (onPromptClick) {
-                  onPromptClick('flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
                 }
               }}
             />
@@ -115,7 +115,7 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               }}
               onClick={(e) => {
                 if (onPromptClick) {
-                  onPromptClick('flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
                 }
               }}
             />
@@ -139,7 +139,7 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               }}
               onClick={(e) => {
                 if (onPromptClick) {
-                  onPromptClick('flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
                 }
               }}
             />
@@ -163,7 +163,7 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               }}
               onClick={(e) => {
                 if (onPromptClick) {
-                  onPromptClick('flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
                 }
               }}
             />
@@ -188,7 +188,7 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               }}
               onClick={(e) => {
                 if (onPromptClick) {
-                  onPromptClick('flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
                 }
               }}
             />
@@ -212,7 +212,7 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               }}
               onClick={(e) => {
                 if (onPromptClick) {
-                  onPromptClick('flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
                 }
               }}
             />

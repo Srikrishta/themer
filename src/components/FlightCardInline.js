@@ -166,6 +166,11 @@ export default function FlightCardInline({ segment, index, activeIndex, onSelect
               onClick={(e) => {
                 e.stopPropagation();
                 console.log('Change theme clicked', index, segment);
+                // Trigger the color change prompt bubble
+                if (typeof onTriggerPromptBubble === 'function') {
+                  const position = { x: window.innerWidth / 2, y: 400 };
+                  onTriggerPromptBubble('flight-journey-bar', { themeColor: themeColor }, position);
+                }
               }}
             >
               Change theme

@@ -876,6 +876,15 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
           origin: routes[currentIndex],
           destination: routes[currentIndex + 1]
         };
+        console.log('🎯 Auto-selecting flight segment:', {
+          selectedInlineFlightIndex,
+          currentIndex,
+          maxIndex,
+          segment,
+          origin: segment.origin?.airport?.city,
+          destination: segment.destination?.airport?.city,
+          replacementIndex
+        });
         onFlightSelect(segment);
       }
     }
@@ -1110,6 +1119,19 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     if (targetCard) {
       setSelectedFlightCard(targetCard);
       
+      // Notify parent component about the new flight selection
+      if (onFlightSelect && targetCard.segment) {
+        console.log('🎯 Chevron navigation: selecting flight', {
+          targetIndex,
+          segment: targetCard.segment,
+          origin: targetCard.segment.origin?.airport?.city,
+          destination: targetCard.segment.destination?.airport?.city
+        });
+        onFlightSelect(targetCard.segment);
+        // Update the selectedInlineFlightIndex to match the navigation
+        setSelectedInlineFlightIndex(targetIndex);
+      }
+      
       // After a brief delay, animate to center position
       setTimeout(() => {
         setSelectedFlightCard(prev => ({
@@ -1196,6 +1218,250 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
         const containerStyle = window.getComputedStyle(container);
         const isContainerSticky = containerStyle.position === 'fixed';
         
+        // Find the actual rendered flight card element to get its exact position and dimensions
+        const flightCardElement = container.querySelector('.transition-transform');
+        if (!flightCardElement) {
+          // If flight card element not found, fall back to calculated positioning
+          const containerRect = container.getBoundingClientRect();
+          const containerCenterX = containerRect.width / 2;
+          const flightCardWidth = 500;
+          const flightCardLeft = containerCenterX - (flightCardWidth / 2);
+          const flightCardRight = containerCenterX + (flightCardWidth / 2);
+          const leftChevronX = flightCardLeft - 40 - 12;
+          const rightChevronX = flightCardRight + 40 - 12;
+          const chevronY = containerRect.height / 2;
+          
+          console.log('🎯 Fallback positioning (flight card element not found):', {
+            containerRect: { width: containerRect.width, height: containerRect.height },
+            fallbackPositions: { leftChevronX, rightChevronX, chevronY }
+          });
+          
+          return createPortal(
+            <div 
+              className="w-full h-full flex items-center justify-center relative"
+              style={{
+                position: 'relative',
+                pointerEvents: 'none'
+              }}
+            >
+            
+            {/* Left Chevron */}
+            {selectedFlightCard.index > 0 && (
+              <button
+                className="absolute transform -translate-y-1/2 w-6 h-6 backdrop-blur-[10px] backdrop-filter rounded-full flex items-center justify-center transition-all duration-200 shadow-lg"
+                style={{ 
+                  pointerEvents: 'auto',
+                  zIndex: 1000,
+                  left: `${leftChevronX}px`,
+                  top: `${chevronY}px`,
+                  backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                  border: '1px solid rgba(0, 0, 0, 0.2)'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
+                }}
+                onClick={() => navigateToFlightCard(selectedFlightCard.index - 1)}
+                title="Previous flight"
+              >
+                <ChevronLeftIcon className="w-4 h-4" style={{ color: '#000000' }} />
+              </button>
+            )}
+            
+            {/* Flight Card */}
+            <div
+              className="transition-transform duration-200 ease-in-out"
+              style={{
+                width: '500px',
+                height: `${selectedFlightCard.height}px`,
+                pointerEvents: 'auto'
+              }}
+              onTransitionEnd={(e) => {
+                // Only trigger for transform transitions, not other properties
+                if (e.propertyName === 'transform') {
+                  console.log('🎯 Card reached center position at T+200ms');
+                  setCardAtCenter(true);
+                }
+              }}
+            >
+              {/* Custom card content with progress indicator instead of cloned HTML */}
+              <div 
+                className="backdrop-blur-[10px] backdrop-filter pl-5 pr-3 py-6 rounded-full shadow-lg w-full h-full flex items-center justify-between"
+                style={{
+                  backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                  border: '1px solid rgba(0, 0, 0, 0.2)',
+                  minHeight: '80px'
+                }}
+              >
+                {/* Flight info section */}
+                <div className="flex items-start gap-1 flex-none">
+                  <div className="flex-none">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-semibold text-black break-words">
+                        {selectedFlightCard.segment?.origin?.airport?.city} → {selectedFlightCard.segment?.destination?.airport?.city}
+                      </h3>
+                    </div>
+                    <div className="text-xs text-black mt-1 flex items-center gap-3 flex-wrap break-words">
+                      <span className="flex items-center gap-1 font-semibold">Flight {selectedFlightCard.index + 1}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Modify button or Progress bar */}
+                <div className="flex items-center">
+                  {!isModifyInProgress ? (
+                    <button
+                      className="px-4 py-2 text-sm font-medium text-white backdrop-blur-[10px] backdrop-filter transition-colors"
+                      style={{ 
+                        borderTopLeftRadius: '0px', 
+                        borderTopRightRadius: '9999px', 
+                        borderBottomLeftRadius: '9999px', 
+                        borderBottomRightRadius: '9999px',
+                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                        border: '1px solid rgba(59, 130, 246, 0.4)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.9)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.8)';
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log('Modify flight card clicked - enabling hover tips and triggering change theme prompt');
+                        
+                        // Show progress bar
+                        setIsModifyInProgress(true);
+                        
+                        // Enable hover tip buttons for change theme and edit promo card
+                        if (typeof onModifyClicked === 'function') {
+                          onModifyClicked();
+                        }
+                        
+                        // Trigger the change theme prompt bubble automatically
+                        if (typeof onTriggerPromptBubble === 'function') {
+                          const position = { x: window.innerWidth / 2, y: 400 };
+                          onTriggerPromptBubble('flight-journey-bar', { themeColor }, position);
+                        }
+                      }}
+                    >
+                      Modify
+                    </button>
+                  ) : (
+                    // Circular Progress Bar
+                    <div className="relative flex items-center justify-center">
+                      <svg 
+                        width="48" 
+                        height="48" 
+                        viewBox="0 0 48 48"
+                        className="backdrop-blur-[10px] backdrop-filter"
+                        style={{
+                          backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                          border: '1px solid rgba(0, 0, 0, 0.2)',
+                          borderRadius: '50%'
+                        }}
+                      >
+                        {/* Background circle */}
+                        <circle
+                          cx="24"
+                          cy="24"
+                          r="20"
+                          fill="none"
+                          stroke="rgba(255, 255, 255, 0.2)"
+                          strokeWidth="2"
+                        />
+                        {/* Progress circle - static at 0% */}
+                        <circle
+                          cx="24"
+                          cy="24"
+                          r="20"
+                          className="static-progress-stroke"
+                          strokeDasharray="125.6"
+                          strokeDashoffset="125.6"
+                        />
+                      </svg>
+                      {/* Percentage text */}
+                      <div 
+                        className="absolute inset-0 flex items-center justify-center text-sm font-bold text-black"
+                        style={{ pointerEvents: 'none' }}
+                      >
+                        0%
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* Right Chevron */}
+            {selectedFlightCard.index < totalFlightCards - 1 && (
+              <button
+                className="absolute transform -translate-y-1/2 w-6 h-6 backdrop-blur-[10px] backdrop-filter rounded-full flex items-center justify-center transition-all duration-200 shadow-lg"
+                style={{ 
+                  pointerEvents: 'auto',
+                  zIndex: 1000,
+                  left: `${rightChevronX}px`,
+                  top: `${chevronY}px`,
+                  backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                  border: '1px solid rgba(0, 0, 0, 0.2)'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
+                }}
+                onClick={() => navigateToFlightCard(selectedFlightCard.index + 1)}
+                title="Next flight"
+              >
+                <ChevronRightIcon className="w-4 h-4" style={{ color: '#000000' }} />
+              </button>
+            )}
+            </div>,
+            container
+          );
+        }
+        
+        const flightCardRect = flightCardElement.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        
+        // Calculate exact positions relative to the container
+        const flightCardLeft = flightCardRect.left - containerRect.left;
+        const flightCardRight = flightCardLeft + flightCardRect.width;
+        const flightCardTop = flightCardRect.top - containerRect.top;
+        const flightCardHeight = flightCardRect.height;
+        
+        // Position chevrons 40px away from flight card edges
+        const leftChevronX = flightCardLeft - 40 - 12; // 40px gap + 12px for chevron center (24px button / 2)
+        const rightChevronX = flightCardRight + 40 - 12; // 40px gap - 12px for chevron center
+        
+        // Position chevrons at exactly half the height of the flight card
+        const chevronY = flightCardTop + (flightCardHeight / 2);
+        
+        console.log('🎯 Direct chevron positioning from actual DOM elements:', {
+          containerRect: { width: containerRect.width, height: containerRect.height },
+          flightCardRect: { 
+            width: flightCardRect.width, 
+            height: flightCardRect.height,
+            left: flightCardRect.left,
+            top: flightCardRect.top 
+          },
+          relativeToContainer: {
+            flightCardLeft,
+            flightCardRight,
+            flightCardTop,
+            flightCardHeight
+          },
+          chevronPositions: {
+            leftChevronX,
+            rightChevronX,
+            chevronY
+          },
+          isContainerSticky
+        });
+        
         return createPortal(
           <div 
             className="w-full h-full flex items-center justify-center relative"
@@ -1204,6 +1470,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
               pointerEvents: 'none'
             }}
           >
+          
           {/* Left Chevron */}
           {selectedFlightCard.index > 0 && (
             <button
@@ -1211,8 +1478,8 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
               style={{ 
                 pointerEvents: 'auto',
                 zIndex: 1000,
-                left: isContainerSticky ? 'calc(50vw - 270px)' : 'calc(50% - 270px)',
-                top: '50%',
+                left: `${leftChevronX}px`,
+                top: `${chevronY}px`,
                 backgroundColor: 'rgba(0, 0, 0, 0.1)',
                 border: '1px solid rgba(0, 0, 0, 0.2)'
               }}
@@ -1361,8 +1628,8 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
               style={{ 
                 pointerEvents: 'auto',
                 zIndex: 1000,
-                left: isContainerSticky ? 'calc(50vw + 280px)' : 'calc(50% + 280px)',
-                top: '50%',
+                left: `${rightChevronX}px`,
+                top: `${chevronY}px`,
                 backgroundColor: 'rgba(0, 0, 0, 0.1)',
                 border: '1px solid rgba(0, 0, 0, 0.2)'
               }}
