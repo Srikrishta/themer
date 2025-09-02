@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { getReadableOnColor } from '../utils/color';
+import { getReadableOnColor, getTextColorForImage } from '../utils/color';
 import ThemeCreator from './ThemeCreator';
 import FlightJourneyBar from './FlightJourneyBar';
 import FlightProgress from './FlightProgress';
@@ -138,7 +138,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, cardOrder, onCardReorder, contentCardOrder, onContentCardReorder, onContentCardHover, colorPromptClosedWithoutSave, colorPromptSaved, recommendedContentCards, contentCardImages, getCurrentRouteKey }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, cardOrder, onCardReorder, contentCardOrder, onContentCardReorder, onContentCardHover, colorPromptClosedWithoutSave, colorPromptSaved, recommendedContentCards, contentCardImages, contentCardTextColors, setContentCardTextColors, getCurrentRouteKey }) {
   
   // Drag and drop state for content cards
   const [draggedContentCardIndex, setDraggedContentCardIndex] = useState(null);
@@ -157,7 +157,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
     }
     return recommendedContentCards;
   };
-
+  
   // Helper function to get border style when flight phase is selected
   const getBorderStyle = () => {
     if (selectedFlightPhase) {
@@ -264,6 +264,36 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
     setDragOverContentIndex(null);
   };
 
+  // Helper function to detect text color for content card image
+  const detectTextColorForContentCard = useCallback(async (imageUrl, cardIndex) => {
+    if (!imageUrl) return;
+    
+    const routeKey = getCurrentRouteKey();
+    if (!routeKey) return;
+    
+    try {
+      const textColor = await getTextColorForImage(imageUrl);
+      setContentCardTextColors(prev => ({
+        ...prev,
+        [routeKey]: {
+          ...prev[routeKey],
+          [cardIndex]: textColor
+        }
+      }));
+      console.log('=== DETECTED TEXT COLOR FOR CONTENT CARD ===', { routeKey, cardIndex, imageUrl, textColor });
+    } catch (error) {
+      console.error('Error detecting text color for content card:', error);
+      // Default to white on error
+      setContentCardTextColors(prev => ({
+        ...prev,
+        [routeKey]: {
+          ...prev[routeKey],
+          [cardIndex]: 'white'
+        }
+      }));
+    }
+  }, []);
+
   // Helper function to render a single content card
   const renderContentCard = (originalCardIndex, displayPosition) => {
     const isDragging = draggedContentCardIndex === displayPosition;
@@ -272,6 +302,11 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
     // Get content card image for this route and card index
     const routeKey = getCurrentRouteKey();
     const cardImage = contentCardImages[routeKey]?.[originalCardIndex];
+    
+    // Detect text color for the background image
+    if (cardImage) {
+      detectTextColorForContentCard(cardImage, originalCardIndex);
+    }
     
     const cardStyle = {
       width: '100%',
@@ -294,11 +329,10 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
       borderBottomLeftRadius: '0px',
       borderBottomRightRadius: '0px',
       transform: isDragging ? 'rotate(5deg)' : 'none',
-      border: isDragOver ? '3px dashed #3b82f6' : 'none',
+      border: 'none',
       opacity: isDragging ? 0.8 : 1,
       cursor: 'grab',
-      transition: 'transform 0.2s ease, opacity 0.2s ease',
-      ...getBorderStyle()
+      transition: 'transform 0.2s ease, opacity 0.2s ease'
     };
 
     return (
@@ -329,6 +363,17 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
           }
         }}
       >
+        {/* Drag handle */}
+        <div className="absolute top-2 left-2 z-20 cursor-grab">
+          <div className="w-6 h-6 bg-white bg-opacity-80 rounded flex items-center justify-center">
+            <div className="flex flex-col gap-0.5">
+              <div className="w-3 h-0.5 bg-gray-600"></div>
+              <div className="w-3 h-0.5 bg-gray-600"></div>
+              <div className="w-3 h-0.5 bg-gray-600"></div>
+            </div>
+          </div>
+        </div>
+        
         {getAnimatedBorderOverlay()}
         {/* Dark overlay for background images */}
         {cardImage && (
@@ -340,28 +385,36 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
             }}
           />
         )}
-        <span className="font-semibold relative z-10" style={{ 
-          color: cardImage ? 'white' : getReadableOnColor((() => {
-            if (themeColor.startsWith('#')) {
-              const hex = themeColor.slice(1);
-              const r = parseInt(hex.substr(0, 2), 16);
-              const g = parseInt(hex.substr(2, 2), 16);
-              const b = parseInt(hex.substr(4, 2), 16);
-              return `rgba(${r}, ${g}, ${b}, 0.1)`;
-            }
-            return 'rgba(255,255,255,0.1)';
-          })()), 
-          fontSize: '24px', 
-          lineHeight: '32px', 
-          opacity: 0.7 
-        }}>
-          {getContentText(originalCardIndex)}
-        </span>
+        
+        {/* Bottom rectangle with text field */}
+        <div 
+          className="absolute bottom-0 left-0 right-0 z-10 p-2"
+          style={{ 
+            backgroundColor: themeColor,
+            minHeight: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            borderTopLeftRadius: '0px',
+            borderTopRightRadius: '0px',
+            borderBottomLeftRadius: '0px',
+            borderBottomRightRadius: '0px'
+          }}
+        >
+          <p className="block font-semibold text-center uppercase" 
+             style={{ 
+               fontSize: '12px', 
+               lineHeight: '16px', 
+               margin: 0,
+               color: getReadableOnColor(themeColor)
+             }}>
+            {getContentText(originalCardIndex)}
+          </p>
+        </div>
         
         {/* Edit button for content cards */}
-        {isPromptMode && (
+        {isPromptMode && colorPromptSaved && (
           <button
-            className="absolute top-2 right-2 px-3 py-1 text-sm font-medium text-white transition-colors opacity-0 group-hover:opacity-100"
+            className="absolute top-2 right-2 px-3 py-1 text-sm font-medium text-white transition-colors"
             style={{ 
               backgroundColor: themeColor,
               borderTopLeftRadius: '0px', 
@@ -387,11 +440,11 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
               e.stopPropagation();
               console.log('Edit content card clicked', originalCardIndex);
               if (isPromptMode && onPromptClick) {
-                onPromptClick('content-card', { cardIndex: originalCardIndex }, { x: e.clientX, y: e.clientY });
+                onPromptClick('promo-card', { cardIndex: originalCardIndex, cardType: 'content-card' }, { x: e.clientX, y: e.clientY });
               }
             }}
           >
-            Edit content card
+            Edit
           </button>
         )}
       </div>
@@ -668,6 +721,8 @@ export default function Dashboard() {
   const [recommendedContentCards, setRecommendedContentCards] = useState({});
   // Route-specific content card images: { [routeKey]: { [cardIndex]: imageUrl } }
   const [contentCardImages, setContentCardImages] = useState({});
+  // Route-specific text colors for content cards: { [routeKey]: { [cardIndex]: color } }
+  const [contentCardTextColors, setContentCardTextColors] = useState({});
   // Hover hint bubble for FPS ("Select flight phase")
   const [fpsHoverTip, setFpsHoverTip] = useState({ visible: false, x: 0, y: 0, progress: 0 });
   // Hover hint bubble for Promo Cards ("Edit promo card")
@@ -899,7 +954,7 @@ export default function Dashboard() {
       // Keep IFE frame hidden - flight cards appear in original position
       setShowInFlightGUI(false);
       setShowIFEFrame(false);
-    } else {
+            } else {
       // Reset states when flights are not generated
       setShowInFlightGUI(false);
       setShowIFEFrame(false);
@@ -908,7 +963,7 @@ export default function Dashboard() {
 
   // Disable sweep animation - keep flight cards in original position
   useEffect(() => {
-    setShowSweepAnimation(false);
+      setShowSweepAnimation(false);
   }, [isPromptMode, flightsGenerated]);
 
   useEffect(() => {
@@ -1038,17 +1093,41 @@ export default function Dashboard() {
       // Get existing text for this position
       let existingText = '';
       if (elementType === 'promo-card' && elementData?.cardIndex !== undefined) {
-        // For promo cards, get existing content from route-specific promoCardContents
-        const routeContents = getRoutePromoCardContents();
-        const cardContent = routeContents[elementData.cardIndex];
-        console.log('=== DEBUG ROUTE-SPECIFIC PROMO CARD RETRIEVAL ===', {
+        // Check if this is a content card (passed as promo-card type)
+        if (elementData.cardType === 'content-card') {
+          // For content cards, get existing content from route-specific content cards
+          const routeContentCards = getRouteContentCards();
+          const contentCard = routeContentCards[elementData.cardIndex];
+          console.log('=== DEBUG ROUTE-SPECIFIC CONTENT CARD RETRIEVAL ===', {
           elementType,
           cardIndex: elementData.cardIndex,
-          routeKey: getCurrentRouteKey(),
-          routeContents,
+            routeKey: getCurrentRouteKey(),
+            routeContentCards,
+            contentCard
+          });
+          if (contentCard && contentCard.title) {
+            existingText = contentCard.title;
+            console.log('=== CONTENT CARD EXISTING TEXT ===', { existingText });
+          } else {
+            console.log('=== NO CONTENT CARD CONTENT FOUND ===', { 
+              hasContentCard: !!contentCard,
+              routeContentCards,
+              cardIndex: elementData.cardIndex,
+              routeKey: getCurrentRouteKey()
+            });
+          }
+        } else {
+          // For promo cards, get existing content from route-specific promoCardContents
+          const routeContents = getRoutePromoCardContents();
+          const cardContent = routeContents[elementData.cardIndex];
+          console.log('=== DEBUG ROUTE-SPECIFIC PROMO CARD RETRIEVAL ===', {
+            elementType,
+            cardIndex: elementData.cardIndex,
+            routeKey: getCurrentRouteKey(),
+            routeContents,
           cardContent,
-          hasUpdated: cardContent?.updated,
-          allRoutes: Object.keys(promoCardContents)
+            hasUpdated: cardContent?.updated,
+            allRoutes: Object.keys(promoCardContents)
         });
         if (cardContent && cardContent.updated) {
           existingText = `text:${cardContent.text || ''},image:${cardContent.image || ''}`;
@@ -1057,10 +1136,11 @@ export default function Dashboard() {
           console.log('=== NO EXISTING CONTENT FOUND ===', { 
             hasCardContent: !!cardContent,
             hasUpdated: cardContent?.updated,
-            routeContents,
+              routeContents,
             cardIndex: elementData.cardIndex,
-            routeKey: getCurrentRouteKey()
+              routeKey: getCurrentRouteKey()
           });
+          }
         }
       } else {
         existingText = fpsPrompts[positionKey] || '';
@@ -1183,15 +1263,87 @@ export default function Dashboard() {
       currentPromoCardContents: promoCardContents
     });
     
-        // Handle promo card submissions
+        // Handle promo card and content card submissions
     if (elementType === 'promo-card' && elementData && elementData.cardIndex !== undefined) {
-      console.log('=== DASHBOARD RECEIVED PROMO SUBMISSION ===', { 
+      console.log('=== DASHBOARD RECEIVED CARD SUBMISSION ===', { 
         promptText, 
         elementType, 
         elementData, 
         positionKey,
         isRemix: options.isRemix
       });
+      
+      // Check if this is a content card
+      if (elementData.cardType === 'content-card') {
+        // Handle content card submissions
+        console.log('=== HANDLING CONTENT CARD SUBMISSION ===', { promptText, isRemix: options.isRemix });
+        
+        if (options.isRemix) {
+          // For content card remix, generate a new AI image
+          const routeKey = getCurrentRouteKey();
+          if (routeKey) {
+            // Extract the image description from the remix prompt
+            const imageDescription = promptText.replace('remix:', '').trim();
+            console.log('=== GENERATING NEW AI IMAGE FOR CONTENT CARD ===', { 
+              cardIndex: elementData.cardIndex, 
+              imageDescription, 
+              routeKey 
+            });
+            
+            try {
+              // Generate new AI image
+              const newImageUrl = generateAIImageSync(imageDescription);
+              
+              // Update the content card image
+              setContentCardImages(prev => ({
+                ...prev,
+                [routeKey]: {
+                  ...prev[routeKey],
+                  [elementData.cardIndex]: newImageUrl
+                }
+              }));
+              
+              console.log('=== CONTENT CARD IMAGE UPDATED ===', { 
+                cardIndex: elementData.cardIndex, 
+                newImageUrl 
+              });
+            } catch (error) {
+              console.error('=== AI IMAGE GENERATION FAILED FOR CONTENT CARD REMIX ===', { error, imageDescription });
+              // Fallback to Unsplash image
+              const fallbackUrl = getUnsplashFallback(imageDescription);
+              setContentCardImages(prev => ({
+                ...prev,
+                [routeKey]: {
+                  ...prev[routeKey],
+                  [elementData.cardIndex]: fallbackUrl
+                }
+              }));
+            }
+          }
+        } else {
+          // For regular content card submission, update the title
+          const newTitle = promptText.trim();
+          const routeKey = getCurrentRouteKey();
+          if (routeKey) {
+            setRecommendedContentCards(prev => {
+              const routeCards = prev[routeKey] || [];
+              const updatedCards = [...routeCards];
+              if (updatedCards[elementData.cardIndex]) {
+                updatedCards[elementData.cardIndex] = {
+                  ...updatedCards[elementData.cardIndex],
+                  title: newTitle
+                };
+              }
+              return {
+                ...prev,
+                [routeKey]: updatedCards
+              };
+            });
+          }
+        }
+      } else {
+        // Handle promo card submissions
+        console.log('=== HANDLING PROMO CARD SUBMISSION ===', { promptText, isRemix: options.isRemix });
       
       // Parse the submitted text (format: "text:value,image:value")
       const parts = promptText.split(',');
@@ -1212,51 +1364,52 @@ export default function Dashboard() {
         imageContent 
       });
       
-      // Update the promo card content for the current route
-      const routeKey = getCurrentRouteKey();
-      if (routeKey) {
-        setPromoCardContents(prev => {
-          const routeContents = prev[routeKey] || {};
-          const existingContent = routeContents[elementData.cardIndex] || {};
-          const newRouteContents = {
-            ...routeContents,
-            [elementData.cardIndex]: {
-              text: textContent,
-              // Only update image if a new one is provided, otherwise keep existing
-              image: imageContent.trim() ? imageContent : existingContent.image,
-              updated: true,
-              // Add remix counter for remix operations to trigger re-render
-              remixCount: options.isRemix ? (existingContent.remixCount || 0) + 1 : existingContent.remixCount || 0,
-              // Add loading state for remix operations
-              isLoading: options.isRemix ? true : false
-            }
-          };
-          
-          const newContent = {
-            ...prev,
-            [routeKey]: newRouteContents
-          };
-          
-          console.log('=== UPDATING ROUTE-SPECIFIC PROMO CARD CONTENTS ===', {
-            routeKey,
-            cardIndex: elementData.cardIndex,
-            textContent,
-            imageContent,
-            isRemix: options.isRemix,
-            remixCount: newRouteContents[elementData.cardIndex].remixCount,
-            previousRouteContents: routeContents,
-            newRouteContents,
-            allRoutes: Object.keys(prev)
-          });
-          return newContent;
+        // Update the promo card content for the current route
+        const routeKey = getCurrentRouteKey();
+        if (routeKey) {
+      setPromoCardContents(prev => {
+            const routeContents = prev[routeKey] || {};
+            const existingContent = routeContents[elementData.cardIndex] || {};
+            const newRouteContents = {
+              ...routeContents,
+          [elementData.cardIndex]: {
+            text: textContent,
+            // Only update image if a new one is provided, otherwise keep existing
+            image: imageContent.trim() ? imageContent : existingContent.image,
+                updated: true,
+                // Add remix counter for remix operations to trigger re-render
+                remixCount: options.isRemix ? (existingContent.remixCount || 0) + 1 : existingContent.remixCount || 0,
+                // Add loading state for remix operations
+                isLoading: options.isRemix ? true : false
+              }
+            };
+            
+            const newContent = {
+              ...prev,
+              [routeKey]: newRouteContents
+            };
+            
+            console.log('=== UPDATING ROUTE-SPECIFIC PROMO CARD CONTENTS ===', {
+              routeKey,
+          cardIndex: elementData.cardIndex,
+          textContent,
+          imageContent,
+              isRemix: options.isRemix,
+              remixCount: newRouteContents[elementData.cardIndex].remixCount,
+              previousRouteContents: routeContents,
+              newRouteContents,
+              allRoutes: Object.keys(prev)
         });
-      }
+        return newContent;
+      });
+        }
       
       console.log('=== PROMO CARD CONTENT UPDATED ===', { 
         cardIndex: elementData.cardIndex, 
         textContent, 
         imageContent 
       });
+      }
     }
     
     // Store the submitted text for this position
@@ -1357,7 +1510,7 @@ export default function Dashboard() {
       } else if (containerBottom <= 100) {
         // Dark container mostly out of view - stick flight content
         shouldBeSticky = true;
-      } else {
+        } else {
         // In transition zone - maintain current state
         shouldBeSticky = isFlightContentSticky;
       }
@@ -1397,37 +1550,63 @@ export default function Dashboard() {
   const handleFlightPhaseSelect = (phase) => {
     setSelectedFlightPhase(phase);
     
-    // Store the original takeoff content when switching away from takeoff
-    // This preserves the hardcoded content for when user returns to takeoff
-    if (phase !== 'takeoff') {
-      const routeKey = getCurrentRouteKey();
-      if (routeKey) {
-        setPromoCardContents(prev => {
-          const newState = { ...prev };
-          // Store the original takeoff content in a special key
-          if (newState[routeKey]) {
-            newState[`${routeKey}-takeoff-original`] = newState[routeKey];
-          }
-          // Clear the current promo card contents to show phase-specific content
-          delete newState[routeKey];
-          return newState;
-        });
-      }
-    } else {
-      // When switching back to takeoff, restore the original content if it exists
-      const routeKey = getCurrentRouteKey();
-      if (routeKey) {
-        setPromoCardContents(prev => {
-          const newState = { ...prev };
-          // Restore original takeoff content if it was stored
-          if (newState[`${routeKey}-takeoff-original`]) {
-            newState[routeKey] = newState[`${routeKey}-takeoff-original`];
-            delete newState[`${routeKey}-takeoff-original`];
-          }
-          return newState;
-        });
-      }
+    // Store the current content for the previous phase before switching
+    const routeKey = getCurrentRouteKey();
+    if (routeKey) {
+      setPromoCardContents(prev => {
+        const newState = { ...prev };
+        const currentPhase = selectedFlightPhase;
+        
+        // If we have a current phase and current content, store it
+        if (currentPhase && newState[routeKey]) {
+          newState[`${routeKey}-${currentPhase}`] = newState[routeKey];
+        }
+        
+        // If we're switching to a phase that has stored content, restore it
+        if (newState[`${routeKey}-${phase}`]) {
+          newState[routeKey] = newState[`${routeKey}-${phase}`];
+        } else {
+          // If no stored content for this phase, set phase-specific default content
+          const phaseSpecificContent = getPhaseSpecificDefaultContent(phase);
+          newState[routeKey] = phaseSpecificContent;
+        }
+        
+        return newState;
+      });
     }
+  };
+
+  // Helper function to get phase-specific default content
+  const getPhaseSpecificDefaultContent = (phase) => {
+    const phaseContent = {
+      'takeoff': {
+        0: { text: 'Enjoy your welcome drink', image: 'welcome drink', updated: true },
+        1: { text: 'Feel at home', image: 'Settle in', updated: true },
+        2: { text: 'Connect your device', image: 'phone in an aircraft', updated: true }
+      },
+      'climb': {
+        0: { text: 'Order food', image: 'meal', updated: true },
+        1: { text: 'Offers onboard', image: 'offers', updated: true },
+        2: { text: 'Latest entertainment', image: 'movie', updated: true }
+      },
+      'cruise': {
+        0: { text: 'Popcorn with movie', image: 'popcorn', updated: true },
+        1: { text: 'Buy gifts', image: 'gifts', updated: true },
+        2: { text: 'Latest entertainment', image: 'movie', updated: true }
+      },
+      'descent': {
+        0: { text: 'Buy guides at discount', image: 'get your guide', updated: true },
+        1: { text: 'Buy gifts', image: 'gifts', updated: true },
+        2: { text: 'Save on your next flight', image: 'flight ticket offer', updated: true }
+      },
+      'landing': {
+        0: { text: 'Buy guides at discount', image: 'get your guide', updated: true },
+        1: { text: 'Buy gifts', image: 'gifts', updated: true },
+        2: { text: 'Save on your next flight', image: 'flight ticket offer', updated: true }
+      }
+    };
+    
+    return phaseContent[phase] || phaseContent['takeoff'];
   };
 
   // NEW: Handle card reordering for drag-drop functionality
@@ -1449,25 +1628,25 @@ export default function Dashboard() {
     const routeKey = getCurrentRouteKey();
     if (routeKey) {
       const routeContents = getRoutePromoCardContents();
-      const updatedContents = {};
-      newOrder.forEach((originalCardId, newPosition) => {
+    const updatedContents = {};
+    newOrder.forEach((originalCardId, newPosition) => {
         if (routeContents[originalCardId]) {
-          updatedContents[newPosition] = {
+        updatedContents[newPosition] = {
             ...routeContents[originalCardId],
-            // Keep the original content but update any position-dependent logic if needed
-          };
-        }
-      });
-      
-      // Update promoCardContents with the new positions while preserving content
-      const finalContents = {};
-      newOrder.forEach((originalCardId, newPosition) => {
+          // Keep the original content but update any position-dependent logic if needed
+        };
+      }
+    });
+    
+    // Update promoCardContents with the new positions while preserving content
+    const finalContents = {};
+    newOrder.forEach((originalCardId, newPosition) => {
         if (routeContents[originalCardId]) {
           finalContents[newPosition] = routeContents[originalCardId];
-        }
-      });
-      
-      if (Object.keys(finalContents).length > 0) {
+      }
+    });
+    
+    if (Object.keys(finalContents).length > 0) {
         setPromoCardContents(prev => {
           const newState = {
             ...prev,
@@ -1503,7 +1682,7 @@ export default function Dashboard() {
   console.log('🎯 Dashboard RENDER: showInFlightPreview =', showInFlightPreview, 'showIFEFrame =', showIFEFrame, 'isPromptMode =', isPromptMode);
   
 
-  
+
   return (
     <div 
       ref={dashboardRef}
@@ -1583,9 +1762,9 @@ export default function Dashboard() {
                 setIsPromptMode(true);
               }, 250); // Match ThemeCreator delay
             }}
-                      onFlightSelect={(segment) => {
-            setSelectedFlightSegment(segment);
-          }}
+            onFlightSelect={(segment) => {
+              setSelectedFlightSegment(segment);
+            }}
           flightCardProgress={flightRouteProgress}
           showIFEFrame={showIFEFrame}
           onAirlineSelect={(logoInfo, themeColor) => {
@@ -1791,6 +1970,8 @@ export default function Dashboard() {
               colorPromptClosedWithoutSave={colorPromptClosedWithoutSave}
               colorPromptSaved={colorPromptSaved}
               contentCardImages={contentCardImages}
+              contentCardTextColors={contentCardTextColors}
+              setContentCardTextColors={setContentCardTextColors}
               getCurrentRouteKey={getCurrentRouteKey}
             />
           </div>
@@ -1801,7 +1982,7 @@ export default function Dashboard() {
       
 
 
-
+      
       {/* Plus Icon Cursor for Prompt Mode */}
       <PlusIconCursor 
         isVisible={isPromptMode && showPlusIcon} 
@@ -2119,14 +2300,16 @@ export default function Dashboard() {
               borderTopLeftRadius: 0
             }}
           >
-            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Edit promo card</span>
+            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>
+              Edit promo card {pcHoverTip.elementData?.cardIndex !== undefined ? pcHoverTip.elementData.cardIndex + 1 : ''}
+            </span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 handlePromptClick('promo-card', pcHoverTip.elementData, { x: pcHoverTip.x, y: pcHoverTip.y });
               }}
               className="w-6 h-6 rounded-full border flex items-center justify-center"
-              title="Edit promo card"
+              title={`Edit promo card ${pcHoverTip.elementData?.cardIndex !== undefined ? pcHoverTip.elementData.cardIndex + 1 : ''}`}
               style={{ pointerEvents: 'auto', borderColor: hoverOnColor, color: hoverOnColor }}
             >
               +
@@ -2168,9 +2351,9 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-
-
       
+
+
 
 
       {/* IFE frame logic - DISABLED to keep flight cards in original position */}
@@ -2196,15 +2379,15 @@ export default function Dashboard() {
 
           {/* Selected Flight Card below In-flight GUI text - HIDDEN */}
           {false && (selectedFlightSegment || (origin && destination)) && (
-            <div 
-              className="w-full flex justify-center" 
-              style={{ 
+          <div 
+            className="w-full flex justify-center" 
+            style={{ 
                 marginBottom: 24,
                 opacity: showInFlightGUI ? 1 : 0,
                 transform: showInFlightGUI ? 'translateY(0)' : 'translateY(20px)',
-                transition: 'opacity 1.2s ease-in-out, transform 1.2s ease-in-out'
-              }}
-            >
+              transition: 'opacity 1.2s ease-in-out, transform 1.2s ease-in-out'
+            }}
+          >
               <div className="flex items-center gap-4" style={{ width: '434px' }}>
                 <div 
                   className="backdrop-blur-[10px] backdrop-filter pl-5 pr-3 py-4 rounded-full shadow-sm flex-1"
@@ -2258,11 +2441,11 @@ export default function Dashboard() {
                             const position = { x: rect.left, y: rect.top };
                             handlePromptClick('flight-journey-bar', { themeColor: activeThemeColor }, position);
                           }
-                        }}
-                      >
-                        <div 
+                    }}
+                  >
+                    <div
                           className="w-4 h-4 rounded-full"
-                          style={{
+                      style={{
                             background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, #10b981 100%)',
                             backgroundSize: '200% 200%'
                           }}
@@ -2283,8 +2466,8 @@ export default function Dashboard() {
                       >
                         <img src={process.env.PUBLIC_URL + '/flight icon.svg'} alt="Flight icon" className="w-4 h-4" />
                       </button>
-                    </div>
-                  </div>
+            </div>
+          </div>
                 </div>
                 <ChevronRightIcon className="w-6 h-6 text-black opacity-60 flex-shrink-0" />
               </div>
@@ -2297,4 +2480,4 @@ export default function Dashboard() {
       )}
     </div>
   );
-}
+} 

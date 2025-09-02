@@ -26,8 +26,8 @@ const blinkingCSS = `
   }
 `;
 
-// Custom placeholder component for promo cards with editable inputs
-const PromoCardPlaceholder = ({ textColor, onTextChange, onImageTextChange, textValue = '', imageValue = '', onTextFocus, onTextBlur, resetTrigger }) => {
+  // Custom placeholder component for promo cards with editable inputs
+  const PromoCardPlaceholder = ({ textColor, onTextChange, onImageTextChange, textValue = '', imageValue = '', onTextFocus, onTextBlur, resetTrigger, elementData, onRemix }) => {
   const [focusedField, setFocusedField] = useState(null); // Track which field is focused
   const textInputRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -125,7 +125,7 @@ const PromoCardPlaceholder = ({ textColor, onTextChange, onImageTextChange, text
         />
       </div>
       <span> and upload image of </span>
-      <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+      <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
         {/* Show dots when no text and not focused */}
         {!imageValue && focusedField !== 'image' && (
           <span 
@@ -178,6 +178,30 @@ const PromoCardPlaceholder = ({ textColor, onTextChange, onImageTextChange, text
             caretColor: 'transparent'
           }}
         />
+                  {/* Remix button next to the image input */}
+          {(textValue.trim() || imageValue.trim() || (elementData && elementData.cardType === 'content-card')) && (
+          <button
+            type="button"
+            onClick={() => {
+              if (onRemix) {
+                onRemix();
+              }
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              cursor: 'pointer',
+              padding: '2px',
+              color: textColor,
+              opacity: 0.7,
+              fontSize: '12px'
+            }}
+            title="Remix image"
+          >
+            <ArrowPathIcon className="w-3 h-3" />
+          </button>
+        )}
       </div>
       </div>
     </div>
@@ -231,7 +255,18 @@ export default function PromptBubble({
   // Initialize promo card state from existingText if available
   const initializePromoValues = () => {
     if (elementType === 'promo-card' && existingText) {
-      console.log('=== INITIALIZING PROMO VALUES FROM EXISTING TEXT ===', { existingText });
+      console.log('=== INITIALIZING PROMO VALUES FROM EXISTING TEXT ===', { existingText, elementData });
+      
+      // Check if this is a content card (passed as promo-card type)
+      if (elementData && elementData.cardType === 'content-card') {
+        // For content cards, use the existingText directly as the text content
+        // Content cards don't have the text:image: format, they just have plain text
+        // The image description is the same as the title for content cards
+        console.log('=== INITIALIZING CONTENT CARD VALUES ===', { existingText });
+        return { text: existingText, image: existingText };
+      }
+      
+      // For regular promo cards, parse the existingText format
       const parts = existingText.split(',');
       let textContent = '';
       let imageContent = '';
@@ -916,11 +951,20 @@ export default function PromptBubble({
     e.preventDefault();
     
     // Check if submission is valid based on element type and step
-    const isValidSubmission = elementType === 'flight-journey-bar'
-      ? true // No text input required for theme selection
-      : elementType === 'promo-card'
-      ? (promoTextValue.trim() || promoImageValue.trim()) // At least one field should be filled
-      : promptText.trim();
+    let isValidSubmission;
+    if (elementType === 'flight-journey-bar') {
+      isValidSubmission = true; // No text input required for theme selection
+    } else if (elementType === 'promo-card') {
+      if (elementData && elementData.cardType === 'content-card') {
+        // For content cards, only text is required
+        isValidSubmission = promoTextValue.trim();
+      } else {
+        // For regular promo cards, at least one field should be filled
+        isValidSubmission = (promoTextValue.trim() || promoImageValue.trim());
+      }
+    } else {
+      isValidSubmission = promptText.trim();
+    }
     
     console.log('=== VALIDATION CHECK ===', { 
       elementType, 
@@ -938,9 +982,18 @@ export default function PromptBubble({
 
       
       // For promo cards, combine the text and image values
-      const submitText = elementType === 'promo-card' 
-        ? `text:${promoTextValue.trim()},image:${promoImageValue.trim()}`
-        : promptText.trim() || '';
+      let submitText;
+      if (elementType === 'promo-card') {
+        if (elementData && elementData.cardType === 'content-card') {
+          // For content cards, just use the text value
+          submitText = promoTextValue.trim() || '';
+        } else {
+          // For regular promo cards, combine text and image values
+          submitText = `text:${promoTextValue.trim()},image:${promoImageValue.trim()}`;
+        }
+      } else {
+        submitText = promptText.trim() || '';
+      }
       
       console.log('=== SUBMITTING PROMO CARD ===', { 
         elementType, 
@@ -980,11 +1033,20 @@ export default function PromptBubble({
         e.preventDefault();
         
         // Check if submission is valid based on element type and step
-        const isValidSubmission = elementType === 'flight-journey-bar'
-          ? true // No text input required for theme selection
-          : elementType === 'promo-card'
-          ? (promoTextValue.trim() || promoImageValue.trim()) // At least one field should be filled
-          : promptText.trim();
+        let isValidSubmission;
+        if (elementType === 'flight-journey-bar') {
+          isValidSubmission = true; // No text input required for theme selection
+        } else if (elementType === 'promo-card') {
+          if (elementData && elementData.cardType === 'content-card') {
+            // For content cards, only text is required
+            isValidSubmission = promoTextValue.trim();
+          } else {
+            // For regular promo cards, at least one field should be filled
+            isValidSubmission = (promoTextValue.trim() || promoImageValue.trim());
+          }
+        } else {
+          isValidSubmission = promptText.trim();
+        }
         
         if (isValidSubmission) {
           setIsLoading(true);
@@ -992,9 +1054,18 @@ export default function PromptBubble({
 
           
           // For promo cards, combine the text and image values
-          const submitText = elementType === 'promo-card' 
-            ? `text:${promoTextValue.trim()},image:${promoImageValue.trim()}`
-            : promptText.trim() || '';
+          let submitText;
+          if (elementType === 'promo-card') {
+            if (elementData && elementData.cardType === 'content-card') {
+              // For content cards, just use the text value
+              submitText = promoTextValue.trim() || '';
+            } else {
+              // For regular promo cards, combine text and image values
+              submitText = `text:${promoTextValue.trim()},image:${promoImageValue.trim()}`;
+            }
+          } else {
+            submitText = promptText.trim() || '';
+          }
           
           console.log('=== KEYBOARD SUBMITTING PROMO CARD ===', { 
             elementType, 
@@ -1115,7 +1186,11 @@ export default function PromptBubble({
                 case 'flight-phase-button':
                   return 'Select Flight Phase';
                 case 'promo-card':
-                  return elementData?.cardIndex === 0 ? 'Edit Promo Card 1' : 'Edit Promo Card';
+                  // Check if this is a content card (passed as promo-card type)
+                  if (elementData && elementData.cardType === 'content-card') {
+                    return elementData?.cardIndex !== undefined ? `Edit Content Card ${elementData.cardIndex + 1}` : 'Edit Content Card';
+                  }
+                  return elementData?.cardIndex !== undefined ? `Edit Promo Card ${elementData.cardIndex + 1}` : 'Edit Promo Card';
 
                 default:
                   return 'Build theme';
@@ -1234,6 +1309,26 @@ export default function PromptBubble({
                 onTextFocus={setIsPromoTextFocused}
                 onTextBlur={setIsPromoTextFocused}
                 resetTrigger={promoResetTrigger}
+                elementData={elementData}
+                onRemix={() => {
+                  // Trigger remix functionality by calling onSubmit with remix flag
+                  let submitText;
+                  if (elementData && elementData.cardType === 'content-card') {
+                    // For content cards, use the image value (which is the title) for remix
+                    submitText = `remix:${promoImageValue}`;
+                  } else {
+                    // For promo cards, use either text or image value
+                    submitText = `remix:${promoTextValue || promoImageValue}`;
+                  }
+                  console.log('=== REMIX BUTTON CLICKED ===', { 
+                    elementType, 
+                    elementData, 
+                    promoTextValue, 
+                    promoImageValue, 
+                    submitText 
+                  });
+                  onSubmit(submitText, elementType, elementData, positionKey, { isRemix: true });
+                }}
               />
             </div>
           )}
@@ -1587,12 +1682,15 @@ export default function PromptBubble({
                     // This will be handled by Dashboard when onThemeColorChange is called
                   }
                 }}
-                className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border`}
+                className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 border`}
                 style={{
                   color: useLightText ? '#FFFFFF' : 'rgba(0, 0, 0, 0.7)',
                   borderColor: useLightText ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
                   backgroundColor: useLightText ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-                  borderTopLeftRadius: 0
+                  borderTopLeftRadius: '0px',
+                  borderTopRightRadius: '9999px',
+                  borderBottomLeftRadius: '9999px',
+                  borderBottomRightRadius: '9999px'
                 }}
               >
                 <BookmarkIcon className="w-4 h-4" />
@@ -1618,36 +1716,31 @@ export default function PromptBubble({
             {/* Spacer when counter is not shown */}
             {!isPromoTextFocused && <div></div>}
             
-            {/* Right side: Remix Button + Send Button */}
+            {/* Right side: Send Button */}
             <div className="flex items-center gap-2">
-              {/* Remix Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  // Trigger remix functionality by calling onSubmit with remix flag
-                  const submitText = `remix:${promoTextValue || promoImageValue}`;
-                  onSubmit(submitText, elementType, elementData, positionKey, { isRemix: true });
-                }}
-                disabled={!(promoTextValue.trim() || promoImageValue.trim()) || isLoading}
-                className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 p-1`}
-                style={{
-                  color: useLightText ? '#FFFFFF' : 'rgba(0, 0, 0, 0.7)'
-                }}
-                title="Remix image"
-              >
-                <ArrowPathIcon className="w-4 h-4" />
-              </button>
-              
               {/* Send Button */}
               <button
                 type="submit"
-                disabled={!(promoTextValue.trim() || promoImageValue.trim()) || isLoading}
-                className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0`}
+                disabled={
+                  isLoading || 
+                  (elementData && elementData.cardType === 'content-card' 
+                    ? !promoTextValue.trim() 
+                    : !(promoTextValue.trim() || promoImageValue.trim())
+                  )
+                }
+                className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 border`}
                 style={{
-                  color: useLightText ? '#FFFFFF' : 'rgba(0, 0, 0, 0.7)'
+                  color: useLightText ? '#FFFFFF' : 'rgba(0, 0, 0, 0.7)',
+                  borderColor: useLightText ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
+                  backgroundColor: useLightText ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                  borderTopLeftRadius: '0px',
+                  borderTopRightRadius: '9999px',
+                  borderBottomLeftRadius: '9999px',
+                  borderBottomRightRadius: '9999px'
                 }}
               >
                 <PaperAirplaneIcon className="w-4 h-4" />
+                <span className="text-xs font-medium">Send</span>
               </button>
             </div>
           </div>

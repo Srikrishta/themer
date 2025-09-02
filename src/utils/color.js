@@ -75,4 +75,86 @@ export function applyOnColorStyle(background) {
   return { color: on };
 }
 
+// Function to detect dominant color from image and determine text color
+export const getTextColorForImage = (imageUrl) => {
+  return new Promise((resolve) => {
+    if (!imageUrl) {
+      resolve('white'); // Default to white if no image
+      return;
+    }
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    
+    img.onload = () => {
+      try {
+        // Create canvas to analyze image
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        
+        // Draw image on canvas
+        ctx.drawImage(img, 0, 0);
+        
+        // Get image data
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        // Sample pixels to get average color (sample every 10th pixel for performance)
+        let totalR = 0, totalG = 0, totalB = 0;
+        let sampleCount = 0;
+        
+        for (let i = 0; i < data.length; i += 40) { // RGBA = 4 bytes, sample every 10th pixel
+          totalR += data[i];
+          totalG += data[i + 1];
+          totalB += data[i + 2];
+          sampleCount++;
+        }
+        
+        // Calculate average RGB values
+        const avgR = totalR / sampleCount;
+        const avgG = totalG / sampleCount;
+        const avgB = totalB / sampleCount;
+        
+        // Calculate luminance using the same formula as getReadableOnColor
+        const luminance = (0.299 * avgR + 0.587 * avgG + 0.114 * avgB) / 255;
+        
+        // Determine text color based on luminance
+        const textColor = luminance > 0.5 ? 'black' : 'white';
+        
+        console.log('=== IMAGE COLOR DETECTION ===', {
+          imageUrl,
+          avgR, avgG, avgB,
+          luminance,
+          textColor
+        });
+        
+        resolve(textColor);
+      } catch (error) {
+        console.error('Error analyzing image color:', error);
+        resolve('white'); // Default to white on error
+      }
+    };
+    
+    img.onerror = () => {
+      console.error('Error loading image for color detection:', imageUrl);
+      resolve('white'); // Default to white on error
+    };
+    
+    img.src = imageUrl;
+  });
+};
+
+// Function to get text color for multiple images
+export const getTextColorsForImages = async (imageUrls) => {
+  const colorPromises = Object.entries(imageUrls).map(async ([key, url]) => {
+    const color = await getTextColorForImage(url);
+    return [key, color];
+  });
+  
+  const results = await Promise.all(colorPromises);
+  return Object.fromEntries(results);
+};
+
 

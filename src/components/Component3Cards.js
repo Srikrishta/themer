@@ -1,4 +1,4 @@
-import { getReadableOnColor } from '../utils/color';
+import { getReadableOnColor, getTextColorForImage } from '../utils/color';
 import { useState, useEffect, useCallback } from 'react';
 
 // Helper function to map hash to Unsplash photo IDs for consistent fallbacks
@@ -144,6 +144,9 @@ export default function Component3Cards({
   // Drag and drop state
   const [draggedCardIndex, setDraggedCardIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
+  
+  // State for storing text colors based on image analysis
+  const [textColors, setTextColors] = useState({});
 
   // Robust remix management functions
   const MAX_REMIX_ATTEMPTS = 3;
@@ -273,6 +276,27 @@ export default function Component3Cards({
     }
     return 'rgba(255,255,255,0.1)';
   };
+
+  // Helper function to detect text color for an image
+  const detectTextColorForImage = useCallback(async (imageUrl, cardIndex) => {
+    if (!imageUrl) return;
+    
+    try {
+      const textColor = await getTextColorForImage(imageUrl);
+      setTextColors(prev => ({
+        ...prev,
+        [cardIndex]: textColor
+      }));
+      console.log('=== DETECTED TEXT COLOR FOR CARD ===', { cardIndex, imageUrl, textColor });
+    } catch (error) {
+      console.error('Error detecting text color:', error);
+      // Default to white on error
+      setTextColors(prev => ({
+        ...prev,
+        [cardIndex]: 'white'
+      }));
+    }
+  }, []);
 
   // Helper function to get animated border overlay for specific cards
   const getAnimatedBorderOverlay = (cardIndex) => {
@@ -691,6 +715,11 @@ export default function Component3Cards({
           }
         }
         
+        // Detect text color for the background image
+        if (backgroundImage) {
+          detectTextColorForImage(backgroundImage, originalCardIndex);
+        }
+        
         return {
           text: userContent.text,
           backgroundImage: backgroundImage,
@@ -769,7 +798,7 @@ export default function Component3Cards({
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
       transform: isDragging ? 'rotate(5deg)' : 'none',
-      border: isDragOver ? '3px dashed #3b82f6' : 'none',
+      border: 'none',
       opacity: isDragging ? 0.8 : 1,
       cursor: 'grab',
       transition: 'transform 0.2s ease, opacity 0.2s ease'
@@ -871,6 +900,17 @@ export default function Component3Cards({
           )}
         {promptStates[`promo-card-${originalCardIndex}`] && !middleCardPromptClosed ? (
           <div className="relative h-full w-full">
+            {/* Drag handle */}
+            <div className="absolute top-2 left-2 z-20 cursor-grab">
+              <div className="w-6 h-6 bg-white bg-opacity-80 rounded flex items-center justify-center">
+                <div className="flex flex-col gap-0.5">
+                  <div className="w-3 h-0.5 bg-gray-600"></div>
+                  <div className="w-3 h-0.5 bg-gray-600"></div>
+                  <div className="w-3 h-0.5 bg-gray-600"></div>
+                </div>
+              </div>
+            </div>
+            
             {cardContent.backgroundImage && (
               <img 
                 src={cardContent.backgroundImage}
@@ -878,33 +918,66 @@ export default function Component3Cards({
                 className="w-full h-full object-cover rounded-lg"
               />
             )}
-            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 rounded-lg">
-              <p className="block text-center font-semibold" style={{ 
-                fontSize: '24px', 
-                lineHeight: '32px', 
-                margin: 0,
-                opacity: 0.7,
-                color: cardContent.backgroundImage ? 'white' : getReadableOnColor(cardContent.bgColor)
-              }}>
+            <div className="absolute inset-0 bg-black bg-opacity-30 rounded-lg"></div>
+            
+            {/* Bottom rectangle with text field */}
+            <div 
+              className="absolute bottom-0 left-0 right-0 z-10 p-2 rounded-b-lg"
+              style={{ 
+                backgroundColor: themeColor,
+                minHeight: '40px',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+            >
+              <p className="block font-semibold text-center uppercase" 
+                 style={{ 
+                   fontSize: '12px', 
+                   lineHeight: '16px', 
+                   margin: 0,
+                   color: getReadableOnColor(themeColor)
+                 }}>
                 {cardContent.text}
               </p>
             </div>
           </div>
         ) : (
-          <div className="relative h-full w-full flex items-center justify-center">
+          <div className="relative h-full w-full">
+            {/* Drag handle */}
+            <div className="absolute top-2 left-2 z-20 cursor-grab">
+              <div className="w-6 h-6 bg-white bg-opacity-80 rounded flex items-center justify-center">
+                <div className="flex flex-col gap-0.5">
+                  <div className="w-3 h-0.5 bg-gray-600"></div>
+                  <div className="w-3 h-0.5 bg-gray-600"></div>
+                  <div className="w-3 h-0.5 bg-gray-600"></div>
+                </div>
+              </div>
+            </div>
+            
             {cardContent.backgroundImage && (
               <div className="absolute inset-0 bg-black bg-opacity-30 rounded-lg"></div>
             )}
-            <p className="block text-center font-semibold relative z-10" 
-               style={{ 
-                 fontSize: '24px', 
-                 lineHeight: '32px', 
-                 margin: 0,
-                 opacity: 0.7,
-                 color: cardContent.backgroundImage ? 'white' : getReadableOnColor(cardContent.bgColor)
-               }}>
-              {cardContent.text}
-            </p>
+            
+            {/* Bottom rectangle with text field */}
+            <div 
+              className="absolute bottom-0 left-0 right-0 z-10 p-2 rounded-b-lg"
+              style={{ 
+                backgroundColor: themeColor,
+                minHeight: '40px',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+            >
+              <p className="block font-semibold text-center uppercase" 
+                 style={{ 
+                   fontSize: '12px', 
+                   lineHeight: '16px', 
+                   margin: 0,
+                   color: getReadableOnColor(themeColor)
+                 }}>
+                {cardContent.text}
+              </p>
+            </div>
             
             {/* Edit button for promo cards */}
             {colorPromptSaved && (
