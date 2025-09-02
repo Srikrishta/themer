@@ -362,27 +362,18 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         onDragLeave={handleContentCardDragLeave}
         onDrop={(e) => handleContentCardDrop(e, displayPosition)}
         onMouseEnter={(e) => {
-          if (onContentCardHover) {
-            onContentCardHover(true, e.clientX, e.clientY);
-          }
           // Add content card hover tip
           if (isPromptMode && colorPromptSaved) {
             handleContentCardHover(true, e.clientX, e.clientY, { cardIndex: originalCardIndex, cardType: 'content-card' });
           }
         }}
         onMouseMove={(e) => {
-          if (onContentCardHover) {
-            onContentCardHover(true, e.clientX, e.clientY);
-          }
           // Update content card hover tip position
           if (isPromptMode && colorPromptSaved) {
             handleContentCardHover(true, e.clientX, e.clientY, { cardIndex: originalCardIndex, cardType: 'content-card' });
           }
         }}
         onMouseLeave={() => {
-          if (onContentCardHover) {
-            onContentCardHover(false, 0, 0);
-          }
           // Hide content card hover tip
           if (isPromptMode && colorPromptSaved) {
             handleContentCardHover(false, 0, 0, null);
@@ -822,6 +813,91 @@ export default function Dashboard() {
     // Return the theme for this specific flight, or default if none set
     return flightThemes[flightKey] || '#1E72AE';
   };
+
+  // Helper function to create lighter version of theme color
+  const getLightThemeColor = (opacity = 0.1) => {
+    if (activeThemeColor.startsWith('#')) {
+      // Convert hex to rgba with opacity
+      const hex = activeThemeColor.slice(1);
+      const r = parseInt(hex.substr(0, 2), 16);
+      const g = parseInt(hex.substr(2, 2), 16);
+      const b = parseInt(hex.substr(4, 2), 16);
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+    return 'rgba(255,255,255,0.1)';
+  };
+
+  // Helper function to get phase-specific content for promo cards
+  const getPhaseSpecificContent = (cardIndex) => {
+    if (!selectedFlightPhase) return null;
+    
+    const phaseContent = {
+      'takeoff': [
+        { text: "Enjoy your welcome drink", bgColor: getLightThemeColor() },
+        { text: "Relax at your seat", bgColor: getLightThemeColor() },
+        { text: "Connect your device", bgColor: getLightThemeColor() }
+      ],
+      'climb': [
+        { text: "Order food", bgColor: getLightThemeColor() },
+        { text: "Offers onboard", bgColor: getLightThemeColor() },
+        { text: "Latest entertainment", bgColor: getLightThemeColor() }
+      ],
+      'cruise': [
+        { text: "Popcorn with movie", bgColor: getLightThemeColor() },
+        { text: "Buy gifts", bgColor: getLightThemeColor() },
+        { text: "Latest entertainment", bgColor: getLightThemeColor() }
+      ],
+      'descent': [
+        { text: "Buy guides at discont", bgColor: getLightThemeColor() },
+        { text: "Buy gifts", bgColor: getLightThemeColor() },
+        { text: "Save on your next flight", bgColor: getLightThemeColor() }
+      ],
+      'landing': [
+        { text: "Buy guides at discont", bgColor: getLightThemeColor() },
+        { text: "Buy gifts", bgColor: getLightThemeColor() },
+        { text: "Save on your next flight", bgColor: getLightThemeColor() }
+      ]
+    };
+    
+    const content = phaseContent[selectedFlightPhase];
+    return content && content[cardIndex] ? content[cardIndex] : null;
+  };
+
+  // Helper function to get phase-specific image keywords for AI generation
+  const getPhaseSpecificImageKeyword = (cardIndex) => {
+    if (!selectedFlightPhase) return null;
+    
+    const phaseImageKeywords = {
+      'takeoff': [
+        "welcome drink", // welcome drink
+        "Relax in economy class in flight", // Relax in economy class in flight
+        "phone in an aircraft" // phone in an aircraft
+      ],
+      'climb': [
+        "meal", // meal
+        "offers", // offers
+        "movie" // movie
+      ],
+      'cruise': [
+        "popcorn", // popcorn
+        "gifts", // gifts
+        "movie" // movie
+      ],
+      'descent': [
+        "get your guide", // get your guide
+        "gifts", // gifts
+        "flight ticket offer" // flight ticket offer
+      ],
+      'landing': [
+        "get your guide", // get your guide
+        "gifts", // gifts
+        "flight ticket offer" // flight ticket offer
+      ]
+    };
+    
+    const keywords = phaseImageKeywords[selectedFlightPhase];
+    return keywords && keywords[cardIndex] ? keywords[cardIndex] : null;
+  };
   
   // Helper function to get current flight progress
   const getCurrentFlightProgress = () => {
@@ -1037,9 +1113,9 @@ export default function Dashboard() {
     console.log('=== HANDLE PROMPT HOVER ===', { isHovering, elementType, isPromptMode, colorPromptClosedWithoutSave });
     if (!isPromptMode) return;
     
-    // Prevent promo card hover from showing until color has been saved
-    if (elementType === 'promo-card' && colorPromptClosedWithoutSave) {
-      console.log('=== BLOCKING PROMO CARD HOVER - COLOR NOT SAVED ===');
+    // Prevent promo card hover from showing until color has been saved at least once
+    if (elementType === 'promo-card' && !colorPromptSaved && colorPromptClosedWithoutSave) {
+      console.log('=== BLOCKING PROMO CARD HOVER - COLOR NEVER SAVED ===');
       return;
     }
     
@@ -1115,12 +1191,11 @@ export default function Dashboard() {
     // Clear the closed without save state when opening a new color prompt
     if (elementType === 'flight-journey-bar') {
       setColorPromptClosedWithoutSave(false);
-      setColorPromptSaved(false);
     }
     
-    // Prevent promo card prompt bubble from showing until color has been saved
-    if (elementType === 'promo-card' && colorPromptClosedWithoutSave) {
-      console.log('=== BLOCKING PROMO CARD PROMPT - COLOR NOT SAVED ===');
+    // Prevent promo card prompt bubble from showing until color has been saved at least once
+    if (elementType === 'promo-card' && !colorPromptSaved && colorPromptClosedWithoutSave) {
+      console.log('=== BLOCKING PROMO CARD PROMPT - COLOR NEVER SAVED ===');
       return;
     }
     
@@ -1177,18 +1252,30 @@ export default function Dashboard() {
             hasUpdated: cardContent?.updated,
             allRoutes: Object.keys(promoCardContents)
         });
-        if (cardContent && cardContent.updated) {
+        if (cardContent && cardContent.updated && !selectedFlightPhase) {
+          // Use existing content only if no flight phase is selected
           existingText = `text:${cardContent.text || ''},image:${cardContent.image || ''}`;
           console.log('=== FORMATTED EXISTING TEXT ===', { existingText });
         } else {
-          console.log('=== NO EXISTING CONTENT FOUND ===', { 
+          console.log('=== NO EXISTING CONTENT FOUND OR FLIGHT PHASE SELECTED ===', { 
             hasCardContent: !!cardContent,
             hasUpdated: cardContent?.updated,
               routeContents,
             cardIndex: elementData.cardIndex,
-              routeKey: getCurrentRouteKey()
+              routeKey: getCurrentRouteKey(),
+            selectedFlightPhase
           });
+          
+          // If a flight phase is selected, provide phase-specific default content
+          if (selectedFlightPhase) {
+            const phaseContent = getPhaseSpecificContent(elementData.cardIndex);
+            const imageKeyword = getPhaseSpecificImageKeyword(elementData.cardIndex);
+            if (phaseContent) {
+              existingText = `text:${phaseContent.text || ''},image:${imageKeyword || ''}`;
+              console.log('=== PHASE-SPECIFIC DEFAULT CONTENT ===', { existingText, phase: selectedFlightPhase });
+            }
           }
+        }
         }
       } else {
         existingText = fpsPrompts[positionKey] || '';
@@ -1487,7 +1574,7 @@ export default function Dashboard() {
             image: imageContent.trim() ? imageContent : existingContent.image,
                 updated: true,
                 // Add remix counter for remix operations to trigger re-render
-                remixCount: options.isRemix ? (existingContent.remixCount || 0) + 1 : existingContent.remixCount || 0,
+                remixCount: options.isRemix ? (existingContent.remixCount || 0) + 1 : 0,
                 // Add loading state for remix operations
                 isLoading: options.isRemix ? true : false
               }
@@ -1906,8 +1993,9 @@ export default function Dashboard() {
             }
           }}
           onModifyClicked={() => {
-            // Don't mark as modified yet - wait for theme to be saved
-            console.log('🎯 Modify button clicked - waiting for theme to be saved');
+            // Mark the current route as modified when Add button is clicked
+            console.log('🎯 Add button clicked - marking route as modified');
+            markCurrentRouteAsModified();
           }}
           onShowPreview={(show) => {
             console.log('🎯 Dashboard: onShowPreview called with:', show);
@@ -2278,7 +2366,7 @@ export default function Dashboard() {
           if (info && info.id) {
             const logoColorMap = {
               'discover': '#1E72AE',
-              'lufthansa': '#050F43', 
+              'lufthansa': '#0A1D3D', 
               'swiss': '#CB0300'
             };
             const newColor = logoColorMap[info.id];
@@ -2306,15 +2394,14 @@ export default function Dashboard() {
 
       {/* Change Theme Button - Shows when hovering IFE frame after color prompt was closed without save */}
       {(() => {
-        const shouldShow = colorPromptClosedWithoutSave && (ifeFrameHover.isHovering || fjbHoverTip.visible || fpsHoverTip.visible || pcHoverTip.visible || contentCardHover.isHovering);
-        if (colorPromptClosedWithoutSave || shouldShow) {
+        const shouldShow = !colorPromptSaved && colorPromptClosedWithoutSave && (ifeFrameHover.isHovering || fjbHoverTip.visible || fpsHoverTip.visible || pcHoverTip.visible);
+        if ((!colorPromptSaved && colorPromptClosedWithoutSave) || shouldShow) {
           console.log('=== CHANGE THEME BUTTON DEBUG ===', {
             colorPromptClosedWithoutSave,
             ifeFrameHover: ifeFrameHover.isHovering,
             fjbHoverTip: fjbHoverTip.visible,
             fpsHoverTip: fpsHoverTip.visible,
             pcHoverTip: pcHoverTip.visible,
-            contentCardHover: contentCardHover.isHovering,
             promptBubble: !!getCurrentRoutePromptBubble(),
             shouldShow
           });
@@ -2325,8 +2412,8 @@ export default function Dashboard() {
           key={`change-theme-${activeThemeColor}`}
           className="fixed"
           style={{ 
-            left: (fjbHoverTip.visible ? fjbHoverTip.x : fpsHoverTip.visible ? fpsHoverTip.x : pcHoverTip.visible ? pcHoverTip.x : contentCardHover.isHovering ? contentCardHover.x : ifeFrameHover.x) + 10, 
-            top: (fjbHoverTip.visible ? fjbHoverTip.y : fpsHoverTip.visible ? fpsHoverTip.y : pcHoverTip.visible ? pcHoverTip.y : contentCardHover.isHovering ? contentCardHover.y : ifeFrameHover.y) - 40, 
+            left: (fjbHoverTip.visible ? fjbHoverTip.x : fpsHoverTip.visible ? fpsHoverTip.x : pcHoverTip.visible ? pcHoverTip.x : ifeFrameHover.x) + 10, 
+            top: (fjbHoverTip.visible ? fjbHoverTip.y : fpsHoverTip.visible ? fpsHoverTip.y : pcHoverTip.visible ? pcHoverTip.y : ifeFrameHover.y) - 40, 
             pointerEvents: 'auto', 
             zIndex: 999999999 
           }}
@@ -2358,7 +2445,7 @@ export default function Dashboard() {
       )}
 
       {/* FJB hover tip bubble: shows label and plus; click opens color PB */}
-      {isCurrentRouteModified() && isPromptMode && fjbHoverTip.visible && !getCurrentRoutePromptBubble() && !colorPromptClosedWithoutSave && (
+      {isCurrentRouteModified() && isPromptMode && fjbHoverTip.visible && !getCurrentRoutePromptBubble() && (
         <div
           key={`fjb-hover-${activeThemeColor}`}
           className="fixed"
@@ -2392,7 +2479,7 @@ export default function Dashboard() {
       )}
 
       {/* FPS hover tip bubble: shows label and plus; click opens FPS PB */}
-      {isCurrentRouteModified() && isPromptMode && fpsHoverTip.visible && !getCurrentRoutePromptBubble() && !colorPromptClosedWithoutSave && (
+      {isCurrentRouteModified() && isPromptMode && fpsHoverTip.visible && !getCurrentRoutePromptBubble() && (
         <div
           key={`fps-hover-${activeThemeColor}`}
           className="fixed"
@@ -2437,7 +2524,7 @@ export default function Dashboard() {
       )}
 
       {/* Promo Card hover tip bubble: shows label and plus; click opens PC PB */}
-      {isCurrentRouteModified() && isPromptMode && pcHoverTip.visible && !getCurrentRoutePromptBubble() && !colorPromptClosedWithoutSave && (
+      {isCurrentRouteModified() && isPromptMode && pcHoverTip.visible && !getCurrentRoutePromptBubble() && colorPromptSaved && (
         <div
           key={`pc-hover-edit-${activeThemeColor}`}
           className="fixed"
@@ -2473,7 +2560,7 @@ export default function Dashboard() {
       )}
 
       {/* Promo Card hover tip bubble when color not saved: shows "Change theme" */}
-      {isCurrentRouteModified() && isPromptMode && pcHoverTip.visible && !getCurrentRoutePromptBubble() && colorPromptClosedWithoutSave && (
+      {isCurrentRouteModified() && isPromptMode && pcHoverTip.visible && !getCurrentRoutePromptBubble() && !colorPromptSaved && colorPromptClosedWithoutSave && (
         <div
           key={`pc-hover-change-${activeThemeColor}`}
           className="fixed"

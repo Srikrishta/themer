@@ -225,15 +225,21 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
         >
           {isLandingPage ? (
             <img 
-              src={process.env.PUBLIC_URL + '/discover.svg'} 
+              src={process.env.PUBLIC_URL + '/discover1.svg'} 
               alt="Discover Logo" 
               className="w-full h-full object-contain p-2"
+              style={{
+                filter: `brightness(0) saturate(100%) invert(${textColor === '#FFFFFF' ? '1' : '0'})`
+              }}
             />
           ) : selectedLogo?.src ? (
             <img
               src={selectedLogo.src}
               alt={`${selectedLogo.id || 'airline'} logo`}
               className="w-full h-full object-contain p-2"
+              style={{
+                filter: `brightness(0) saturate(100%) invert(${textColor === '#FFFFFF' ? '1' : '0'})`
+              }}
             />
           ) : (
             <>

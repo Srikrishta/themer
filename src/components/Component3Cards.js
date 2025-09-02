@@ -424,6 +424,8 @@ export default function Component3Cards({
     });
   }, []);
 
+
+
   // Simplified async image generation for remix operations (without complex retry logic)
   const generateAIImage = useCallback(async (description, cardIndex = null) => {
     console.log('=== GENERATING AI IMAGE ===', { description, cardIndex });
@@ -617,6 +619,42 @@ export default function Component3Cards({
     return keywords && keywords[cardIndex] ? keywords[cardIndex] : null;
   };
 
+  // Preload images for a specific flight phase to improve navigation performance
+  const preloadPhaseImages = useCallback(async (flightPhase) => {
+    console.log('=== PRELOADING PHASE IMAGES ===', { flightPhase });
+    
+    const imageKeywords = [
+      getPhaseSpecificImageKeyword(0),
+      getPhaseSpecificImageKeyword(1),
+      getPhaseSpecificImageKeyword(2)
+    ].filter(Boolean);
+    
+    for (let i = 0; i < imageKeywords.length; i++) {
+      const imageKeyword = imageKeywords[i];
+      const cacheKey = `${flightPhase}-${i}-${imageKeyword}`;
+      
+      // Only preload if not already cached
+      if (!sessionStorage.getItem(cacheKey)) {
+        try {
+          const aiImageUrl = generateAIImageSync(imageKeyword);
+          sessionStorage.setItem(cacheKey, aiImageUrl);
+          console.log('=== PRELOADED IMAGE ===', { cacheKey, aiImageUrl });
+        } catch (error) {
+          console.error('=== PRELOAD FAILED ===', { error, imageKeyword });
+          const fallbackUrl = getUnsplashFallback(imageKeyword);
+          sessionStorage.setItem(cacheKey, fallbackUrl);
+        }
+      }
+    }
+  }, [generateAIImageSync, getPhaseSpecificImageKeyword, getUnsplashFallback]);
+
+  // Preload images when flight phase changes
+  useEffect(() => {
+    if (selectedFlightPhase) {
+      preloadPhaseImages(selectedFlightPhase);
+    }
+  }, [selectedFlightPhase, preloadPhaseImages]);
+
   // Helper function for default card content
   const getDefaultCardContent = (cardIndex) => {
     // If a flight phase is selected, show phase-specific content
@@ -639,6 +677,8 @@ export default function Component3Cards({
     
     return defaultContent[cardIndex] || defaultContent[0];
   };
+
+
 
   // Handle remix image generation with 5-second guarantee
   useEffect(() => {
@@ -714,11 +754,27 @@ export default function Component3Cards({
         // For regular content, use existing image or generate new one
         let backgroundImage = userContent.backgroundImage;
         if (!backgroundImage && userContent.image) {
-          try {
-            backgroundImage = generateAIImageSync(userContent.image);
-          } catch (error) {
-            console.error('=== SYNC IMAGE GENERATION FAILED ===', error);
-            backgroundImage = getUnsplashFallback(userContent.image);
+          // Check if we have a cached image for this user content
+          const userCacheKey = `user-${originalCardIndex}-${userContent.image}`;
+          const cachedUserImage = sessionStorage.getItem(userCacheKey);
+          
+          if (cachedUserImage) {
+            // Use cached image for faster loading
+            console.log('=== USING CACHED USER IMAGE ===', { userCacheKey, cachedUserImage });
+            backgroundImage = cachedUserImage;
+          } else {
+            // Generate new image and cache it
+            try {
+              backgroundImage = generateAIImageSync(userContent.image);
+              // Cache the generated image
+              sessionStorage.setItem(userCacheKey, backgroundImage);
+              console.log('=== CACHED NEW USER IMAGE ===', { userCacheKey, backgroundImage });
+            } catch (error) {
+              console.error('=== SYNC IMAGE GENERATION FAILED ===', error);
+              backgroundImage = getUnsplashFallback(userContent.image);
+              // Cache the fallback image
+              sessionStorage.setItem(userCacheKey, backgroundImage);
+            }
           }
         }
         
@@ -761,21 +817,38 @@ export default function Component3Cards({
           const phaseContent = getPhaseSpecificContent(originalCardIndex);
           const imageKeyword = getPhaseSpecificImageKeyword(originalCardIndex);
           if (phaseContent && imageKeyword) {
-            // Generate AI image for the phase-specific content
-            try {
-              const aiImageUrl = generateAIImageSync(imageKeyword);
+            // Check if we already have a cached image for this phase and card
+            const cacheKey = `${selectedFlightPhase}-${originalCardIndex}-${imageKeyword}`;
+            const cachedImage = sessionStorage.getItem(cacheKey);
+            
+            if (cachedImage) {
+              // Use cached image for faster loading
+              console.log('=== USING CACHED IMAGE ===', { cacheKey, cachedImage });
               return {
                 ...phaseContent,
-                backgroundImage: aiImageUrl
+                backgroundImage: cachedImage
               };
-            } catch (error) {
-              console.error('=== AI IMAGE GENERATION FAILED FOR PHASE ===', { error, imageKeyword });
-              // Fallback to Unsplash image
-              const fallbackUrl = getUnsplashFallback(imageKeyword);
-              return {
-                ...phaseContent,
-                backgroundImage: fallbackUrl
-              };
+            } else {
+              // Generate AI image for the phase-specific content and cache it
+              try {
+                const aiImageUrl = generateAIImageSync(imageKeyword);
+                // Cache the generated image
+                sessionStorage.setItem(cacheKey, aiImageUrl);
+                console.log('=== CACHED NEW AI IMAGE ===', { cacheKey, aiImageUrl });
+                return {
+                  ...phaseContent,
+                  backgroundImage: aiImageUrl
+                };
+              } catch (error) {
+                console.error('=== AI IMAGE GENERATION FAILED FOR PHASE ===', { error, imageKeyword });
+                // Fallback to Unsplash image and cache it
+                const fallbackUrl = getUnsplashFallback(imageKeyword);
+                sessionStorage.setItem(cacheKey, fallbackUrl);
+                return {
+                  ...phaseContent,
+                  backgroundImage: fallbackUrl
+                };
+              }
             }
           }
           // Fallback to generic phase text if no specific content
@@ -851,27 +924,25 @@ export default function Component3Cards({
         onDragLeave={handleDragLeave}
         onDrop={(e) => handleDrop(e, displayPosition)}
         onMouseEnter={(e) => {
-          if (isPromptMode && onPromptHover && !colorPromptClosedWithoutSave) {
+          if (isPromptMode && onPromptHover) {
             onPromptHover(true, 'promo-card', { cardIndex: originalCardIndex, cardType: cardInfo.type }, { x: e.clientX, y: e.clientY });
           }
         }}
         onMouseLeave={(e) => {
-          if (isPromptMode && onPromptHover && !colorPromptClosedWithoutSave) {
+          if (isPromptMode && onPromptHover) {
             onPromptHover(false, 'promo-card', { cardIndex: originalCardIndex, cardType: cardInfo.type }, { x: e.clientX, y: e.clientY });
           }
         }}
         onMouseMove={(e) => {
-          if (isPromptMode && onPromptHover && !colorPromptClosedWithoutSave) {
+          if (isPromptMode && onPromptHover) {
             onPromptHover(true, 'promo-card', { cardIndex: originalCardIndex, cardType: cardInfo.type }, { x: e.clientX, y: e.clientY });
           }
         }}
         onClick={(e) => {
           console.log('=== CARD CLICK ===', { originalCardIndex, displayPosition, cardInfo, colorPromptClosedWithoutSave });
-          if (isPromptMode && onPromptClick && !colorPromptClosedWithoutSave) {
+          if (isPromptMode && onPromptClick) {
             e.stopPropagation();
             onPromptClick('promo-card', { cardIndex: originalCardIndex, cardType: cardInfo.type }, { x: e.clientX, y: e.clientY });
-          } else if (isPromptMode && colorPromptClosedWithoutSave) {
-            console.log('=== BLOCKING PROMO CARD CLICK - COLOR NOT SAVED ===');
           }
         }}
       >

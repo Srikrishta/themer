@@ -51,14 +51,14 @@ const blinkingCSS = `
     // Create a canvas element to measure text
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
-    context.font = '14px system-ui, -apple-system, sans-serif'; // Match the input font
+    context.font = 'bold 14px system-ui, -apple-system, sans-serif'; // Match the input font with bold weight
     
     return context.measureText(text).width;
   };
   
   return (
     <div style={{ color: textColor, fontSize: '14px', pointerEvents: 'auto' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '2px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px', lineHeight: '1.4' }}>
         <span>Change text to </span>
       <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
         {/* Show dots when no text and not focused */}
@@ -117,6 +117,7 @@ const blinkingCSS = `
             outline: 'none',
             color: textValue ? textColor : 'transparent',
             fontSize: '14px',
+            fontWeight: 'bold',
             width: textValue ? `${Math.max(getTextWidth(textValue) + 10, 20)}px` : '50px',
             minWidth: '50px',
             padding: '0 2px',
@@ -125,7 +126,7 @@ const blinkingCSS = `
         />
       </div>
       <span> and upload image of </span>
-      <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
         {/* Show dots when no text and not focused */}
         {!imageValue && focusedField !== 'image' && (
           <span 
@@ -172,7 +173,8 @@ const blinkingCSS = `
             outline: 'none',
             color: imageValue ? textColor : 'transparent',
             fontSize: '14px',
-            width: imageValue ? `${Math.max(getTextWidth(imageValue) + 10, 20)}px` : '50px',
+            fontWeight: 'bold',
+            width: imageValue ? `${Math.min(Math.max(getTextWidth(imageValue) + 10, 20), 300)}px` : '50px',
             minWidth: '50px',
             padding: '0 2px',
             caretColor: 'transparent'
@@ -254,7 +256,7 @@ export default function PromptBubble({
   
   // Initialize promo card state from existingText if available
   const initializePromoValues = () => {
-    if (elementType === 'promo-card' && existingText) {
+    if (elementType === 'promo-card') {
       console.log('=== INITIALIZING PROMO VALUES FROM EXISTING TEXT ===', { existingText, elementData });
       
       // Check if this is a content card (passed as promo-card type)
@@ -271,24 +273,30 @@ export default function PromptBubble({
         const defaultImageDescription = defaultImageDescriptions[cardIndex] || '';
         
         console.log('=== INITIALIZING CONTENT CARD VALUES ===', { existingText, cardIndex, defaultImageDescription });
-        return { text: existingText, image: defaultImageDescription };
+        return { text: existingText || '', image: defaultImageDescription };
       }
       
       // For regular promo cards, parse the existingText format
-      const parts = existingText.split(',');
-      let textContent = '';
-      let imageContent = '';
-      
-      parts.forEach(part => {
-        if (part.startsWith('text:')) {
-          textContent = part.substring(5).trim();
-        } else if (part.startsWith('image:')) {
-          imageContent = part.substring(6).trim();
-        }
-      });
-      
-      console.log('=== INITIALIZED PROMO VALUES ===', { textContent, imageContent });
-      return { text: textContent, image: imageContent };
+      if (existingText) {
+        const parts = existingText.split(',');
+        let textContent = '';
+        let imageContent = '';
+        
+        parts.forEach(part => {
+          if (part.startsWith('text:')) {
+            textContent = part.substring(5).trim();
+          } else if (part.startsWith('image:')) {
+            imageContent = part.substring(6).trim();
+          }
+        });
+        
+        console.log('=== INITIALIZED PROMO VALUES ===', { textContent, imageContent });
+        return { text: textContent, image: imageContent };
+      } else {
+        // No existing text - return empty values to show placeholders
+        console.log('=== NO EXISTING TEXT - SHOWING PLACEHOLDERS ===');
+        return { text: '', image: '' };
+      }
     }
     return { text: '', image: '' };
   };
@@ -328,7 +336,7 @@ export default function PromptBubble({
     if (selectedLogo && selectedLogo.id) {
       const logoColorMap = {
         'discover': '#1E72AE',
-        'lufthansa': '#050F43',
+        'lufthansa': '#0A1D3D',
         'swiss': '#CB0300'
       };
       return logoColorMap[selectedLogo.id] || themeColor;
@@ -346,7 +354,7 @@ export default function PromptBubble({
     if (selectedLogo && selectedLogo.id) {
       const logoColorMap = {
         'discover': '#1E72AE',
-        'lufthansa': '#050F43',
+        'lufthansa': '#0A1D3D',
         'swiss': '#CB0300'
       };
       const logoColor = logoColorMap[selectedLogo.id];
@@ -1396,24 +1404,34 @@ export default function PromptBubble({
                       onClick={() => handleChipClick(chip.label)}
                       className={`inline-flex items-center px-3 py-2 rounded-full text-xs transition-all cursor-pointer border font-medium flex-shrink-0`}
                                               style={{
-                          backgroundColor: (selectedFlightPhase === chip.id || selectedChip === chip.id) ? 'white' : `${chip.color}10`,
-                          borderColor: (selectedFlightPhase === chip.id || selectedChip === chip.id) ? '#000000' : finalBorderColor,
-                          color: (selectedFlightPhase === chip.id || selectedChip === chip.id) ? '#000000' : adaptiveTextColor
+                          backgroundColor: (selectedFlightPhase === chip.id || selectedChip === chip.id) ? (useLightText ? 'white' : 'black') : `${chip.color}10`,
+                          borderColor: (selectedFlightPhase === chip.id || selectedChip === chip.id) ? (useLightText ? '#000000' : '#FFFFFF') : finalBorderColor,
+                          color: (selectedFlightPhase === chip.id || selectedChip === chip.id) ? (useLightText ? '#000000' : '#FFFFFF') : adaptiveTextColor
                         }}
-                      onMouseEnter={(e) => {
-                        if (selectedFlightPhase !== chip.id && selectedChip !== chip.id) {
-                          e.target.style.backgroundColor = `${chip.color}25`;
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (selectedFlightPhase !== chip.id && selectedChip !== chip.id) {
-                          e.target.style.backgroundColor = `${chip.color}10`;
-                        }
-                      }}
+                                              onMouseEnter={(e) => {
+                          if (selectedFlightPhase !== chip.id && selectedChip !== chip.id) {
+                            e.target.style.backgroundColor = `${chip.color}25`;
+                          } else {
+                            // Ensure selected chip styling is maintained
+                            e.target.style.backgroundColor = useLightText ? 'white' : 'black';
+                            e.target.style.borderColor = useLightText ? '#000000' : '#FFFFFF';
+                            e.target.style.color = useLightText ? '#000000' : '#FFFFFF';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (selectedFlightPhase !== chip.id && selectedChip !== chip.id) {
+                            e.target.style.backgroundColor = `${chip.color}10`;
+                          } else {
+                            // Restore selected chip styling
+                            e.target.style.backgroundColor = useLightText ? 'white' : 'black';
+                            e.target.style.borderColor = useLightText ? '#000000' : '#FFFFFF';
+                            e.target.style.color = useLightText ? '#000000' : '#FFFFFF';
+                          }
+                        }}
                     >
-                                             {isSelected && <CheckIcon className="w-3 h-3 mr-1.5 flex-shrink-0" style={{ color: (selectedFlightPhase === chip.id || selectedChip === chip.id) ? '#000000' : 'inherit' }} />}
+                                                                     {isSelected && <CheckIcon className="w-3 h-3 mr-1.5 flex-shrink-0" style={{ color: (selectedFlightPhase === chip.id || selectedChip === chip.id) ? (useLightText ? '#000000' : '#FFFFFF') : 'inherit' }} />}
                         {chip.label}
-                       {!isSelected && <PlusIcon className="w-3 h-3 ml-1.5 flex-shrink-0" style={{ color: (selectedFlightPhase === chip.id || selectedChip === chip.id) ? '#000000' : 'inherit' }} />}
+                        {!isSelected && <PlusIcon className="w-3 h-3 ml-1.5 flex-shrink-0" style={{ color: (selectedFlightPhase === chip.id || selectedChip === chip.id) ? (useLightText ? '#000000' : '#FFFFFF') : 'inherit' }} />}
                     </button>
                   );
                 })}
@@ -1432,11 +1450,11 @@ export default function PromptBubble({
                 const getLogoSource = (chipId) => {
                   switch (chipId) {
                     case 'discover':
-                      return '/discover.svg';
+                      return '/discover1.svg';
                     case 'lufthansa':
                       return '/lufthansa.png';
-                    case 'swiss':
-                      return '/swiss.png';
+                            case 'swiss':
+          return '/swiss-logo.svg';
                     default:
                       return null;
                   }
@@ -1467,6 +1485,9 @@ export default function PromptBubble({
                         src={logoSource} 
                         alt={`${chip.label} logo`}
                         className="w-16 h-16 object-contain flex-shrink-0"
+                        style={{
+                          filter: `brightness(0) saturate(100%) invert(${adaptiveTextColor === '#FFFFFF' ? '1' : '0'})`
+                        }}
                         onError={(e) => {
                           // Fallback to text if image fails to load
                           e.target.style.display = 'none';
@@ -1597,7 +1618,7 @@ export default function PromptBubble({
                       className={`flex items-center gap-2 px-2 py-1 border rounded-full max-w-full`} 
                       style={{ 
                         borderColor: finalBorderColor,
-                        backgroundColor: isSelected ? `${originalChipColor}15` : 'transparent'
+                        backgroundColor: isSelected ? (useLightText ? 'white' : 'black') : 'transparent'
                       }}
                     >
                       <div
@@ -1608,7 +1629,7 @@ export default function PromptBubble({
                           borderColor: finalBorderColor
                         }}
                       />
-                      <span className={`text-xs font-medium break-words`} style={{ color: adaptiveTextColor }}>{label}</span>
+                      <span className={`text-xs font-medium break-words`} style={{ color: isSelected ? (useLightText ? '#000000' : '#FFFFFF') : adaptiveTextColor }}>{label}</span>
                     </div>
                   </button>
                 );
@@ -1663,16 +1684,26 @@ export default function PromptBubble({
                 const ratio = Math.max(ratioWhite, ratioBlack);
                 const background = ratioWhite > ratioBlack ? 'vs white' : 'vs black';
                 const formattedRatio = ratio.toFixed(1);
-                const isAccessible = ratio >= 4.5;
-                const isAAA = ratio >= 7;
+                
+                // Determine readability level based on contrast ratio
+                let readabilityLevel;
+                if (ratio >= 7) {
+                  readabilityLevel = 'Very high';
+                } else if (ratio >= 4.5) {
+                  readabilityLevel = 'High';
+                } else if (ratio >= 3) {
+                  readabilityLevel = 'Low';
+                } else {
+                  readabilityLevel = 'Very low';
+                }
                 
                 return (
                   <span 
                     className="text-xs font-medium" 
                     style={{ color: adaptiveTextColor }}
-                    title={`Best contrast ratio ${background}: ${formattedRatio}:1 ${isAAA ? '(AAA - Excellent)' : isAccessible ? '(AA - Good)' : '(Fail - Poor accessibility)'}`}
+                    title={`Best contrast ratio ${background}: ${formattedRatio}:1`}
                   >
-                    Accessibility score: {formattedRatio}:1
+                    Readability: {readabilityLevel}
                   </span>
                 );
               })()}
@@ -1724,8 +1755,21 @@ export default function PromptBubble({
             {/* Spacer when counter is not shown */}
             {!isPromoTextFocused && <div></div>}
             
-            {/* Right side: Send Button */}
-            <div className="flex items-center gap-2">
+            {/* Right side: Image Icon + Send Button */}
+            <div className="flex items-center gap-3">
+              {/* Image Icon */}
+              <button
+                type="button"
+                onClick={() => {}}
+                className="p-1 hover:opacity-80 transition-opacity"
+                title="Upload custom image"
+                style={{
+                  color: useLightText ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)'
+                }}
+              >
+                <PhotoIcon className="w-4 h-4" />
+              </button>
+              
               {/* Send Button */}
               <button
                 type="submit"

@@ -129,7 +129,7 @@ export default function LandingPage() {
   // Theme colors for landing page (brand blue)
   // Using a single brand color to avoid cycling and ensure consistency
   const themeColors = [
-    '#1E73AF'
+    '#2563eb'
   ];
   
   const [cruiseLabelShown, setCruiseLabelShown] = useState(false);
@@ -461,9 +461,7 @@ export default function LandingPage() {
                       borderTopRightRadius: '24px',
                       borderBottomLeftRadius: '24px',
                       borderBottomRightRadius: '24px',
-                      ...(typeof mockThemeColor === 'string' && mockThemeColor.includes('gradient')
-                        ? { background: mockThemeColor }
-                        : { backgroundColor: mockThemeColor }),
+                      backgroundColor: '#2563eb',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center'
@@ -471,7 +469,7 @@ export default function LandingPage() {
                   >
                     <span
                       className="text-lg font-semibold"
-                      style={{ color: getReadableOnColor(mockThemeColor) }}
+                      style={{ color: '#FFFFFF' }}
                     >
                       Build themes
                     </span>

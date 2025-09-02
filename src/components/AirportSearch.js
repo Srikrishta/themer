@@ -493,15 +493,15 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     'Lufthansa': {
       logo: {
         id: 'lufthansa',
-        src: process.env.PUBLIC_URL + '/lufthansa.png',
+        src: process.env.PUBLIC_URL + '/lh-logo-crane-typo.svg',
         animationType: 'glow'
       },
-      themeColor: '#F9BA00' // Lufthansa yellow
+      themeColor: '#0A1D3D' // Lufthansa dark blue
     },
     'Swiss': {
       logo: {
         id: 'swiss',
-        src: process.env.PUBLIC_URL + '/swiss.png',
+        src: process.env.PUBLIC_URL + '/swiss-logo.svg',
         animationType: 'sparkles'
       },
       themeColor: '#FF0000' // Swiss red
@@ -510,7 +510,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
     'Discover': {
       logo: {
         id: 'discover',
-        src: process.env.PUBLIC_URL + '/discover.svg',
+        src: process.env.PUBLIC_URL + '/discover1.svg',
         animationType: 'sparkles'
       },
       themeColor: '#1E73AF' // Discover blue
@@ -1384,7 +1384,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                         }
                       }}
                     >
-                      Modify
+                      Add
                     </button>
                                                     ) : (
                     // Circular Progress Bar
@@ -1445,12 +1445,12 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
             {/* Right Chevron */}
             {selectedFlightCard.index < totalFlightCards - 1 && (
               <button
-                className="absolute transform -translate-y-1/2 w-6 h-6 backdrop-blur-[10px] backdrop-filter rounded-full flex items-center justify-center transition-all duration-200 shadow-lg"
+                className="absolute w-6 h-6 backdrop-blur-[10px] backdrop-filter rounded-full flex items-center justify-center transition-all duration-200 shadow-lg"
                 style={{ 
                   pointerEvents: 'auto',
                   zIndex: 1000,
                   left: `${rightChevronX}px`,
-                  top: `${chevronY}px`,
+                  top: `${chevronY - 3}px`,
                   backgroundColor: 'rgba(0, 0, 0, 0.1)',
                   border: '1px solid rgba(0, 0, 0, 0.2)'
                 }}
@@ -1521,12 +1521,12 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
           {/* Left Chevron */}
           {selectedFlightCard.index > 0 && (
             <button
-              className="absolute transform -translate-y-1/2 w-6 h-6 backdrop-blur-[10px] backdrop-filter rounded-full flex items-center justify-center transition-all duration-200 shadow-lg"
+              className="absolute w-6 h-6 backdrop-blur-[10px] backdrop-filter rounded-full flex items-center justify-center transition-all duration-200 shadow-lg"
               style={{ 
                 pointerEvents: 'auto',
                 zIndex: 1000,
                 left: `${leftChevronX}px`,
-                top: `${chevronY}px`,
+                top: `${chevronY - 3}px`,
                 backgroundColor: 'rgba(0, 0, 0, 0.1)',
                 border: '1px solid rgba(0, 0, 0, 0.2)'
               }}
@@ -1623,7 +1623,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                       }
                     }}
                   >
-                    Modify
+                    Add
                   </button>
                 ) : (
                   // Circular Progress Bar
@@ -1684,12 +1684,12 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
           {/* Right Chevron */}
           {selectedFlightCard.index < totalFlightCards - 1 && (
             <button
-              className="absolute transform -translate-y-1/2 w-6 h-6 backdrop-blur-[10px] backdrop-filter rounded-full flex items-center justify-center transition-all duration-200 shadow-lg"
+              className="absolute w-6 h-6 backdrop-blur-[10px] backdrop-filter rounded-full flex items-center justify-center transition-all duration-200 shadow-lg"
               style={{ 
                 pointerEvents: 'auto',
                 zIndex: 1000,
                 left: `${rightChevronX}px`,
-                top: `${chevronY}px`,
+                top: `${chevronY - 3}px`,
                 backgroundColor: 'rgba(0, 0, 0, 0.1)',
                 border: '1px solid rgba(0, 0, 0, 0.2)'
               }}
