@@ -138,7 +138,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, cardOrder, onCardReorder, contentCardOrder, onContentCardReorder, onContentCardHover, colorPromptClosedWithoutSave, colorPromptSaved, recommendedContentCards, contentCardImages, contentCardTextColors, setContentCardTextColors, getCurrentRouteKey }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, cardOrder, onCardReorder, contentCardOrder, onContentCardReorder, onContentCardHover, colorPromptClosedWithoutSave, colorPromptSaved, recommendedContentCards, contentCardImages, contentCardTextColors, setContentCardTextColors, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, handleContentCardHover }) {
   
   // Drag and drop state for content cards
   const [draggedContentCardIndex, setDraggedContentCardIndex] = useState(null);
@@ -294,6 +294,29 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
     }
   }, []);
 
+  // Helper function to get background color for cards (handles both solid and gradient)
+  const getCardBackgroundColor = (color) => {
+    if (typeof color === 'string' && color.includes('gradient')) {
+      // For gradients, use a light version of the first color in the gradient
+      const hexMatch = color.match(/#([0-9a-fA-F]{6})/);
+      if (hexMatch) {
+        const hex = hexMatch[1];
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+        return `rgba(${r}, ${g}, ${b}, 0.1)`;
+      }
+      return 'rgba(255,255,255,0.1)';
+    } else if (color.startsWith('#')) {
+      const hex = color.slice(1);
+      const r = parseInt(hex.substr(0, 2), 16);
+      const g = parseInt(hex.substr(2, 2), 16);
+      const b = parseInt(hex.substr(4, 2), 16);
+      return `rgba(${r}, ${g}, ${b}, 0.1)`;
+    }
+    return 'rgba(255,255,255,0.1)';
+  };
+
   // Helper function to render a single content card
   const renderContentCard = (originalCardIndex, displayPosition) => {
     const isDragging = draggedContentCardIndex === displayPosition;
@@ -311,16 +334,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
     const cardStyle = {
       width: '100%',
       height: '184px',
-      background: cardImage ? `url(${cardImage})` : (() => {
-        if (themeColor.startsWith('#')) {
-          const hex = themeColor.slice(1);
-          const r = parseInt(hex.substr(0, 2), 16);
-          const g = parseInt(hex.substr(2, 2), 16);
-          const b = parseInt(hex.substr(4, 2), 16);
-          return `rgba(${r}, ${g}, ${b}, 0.1)`;
-        }
-        return 'rgba(255,255,255,0.1)';
-      })(),
+      background: cardImage ? `url(${cardImage})` : getCardBackgroundColor(themeColor),
       backgroundSize: cardImage ? 'cover' : 'auto',
       backgroundPosition: cardImage ? 'center' : 'auto',
       backgroundRepeat: cardImage ? 'no-repeat' : 'auto',
@@ -351,15 +365,34 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
           if (onContentCardHover) {
             onContentCardHover(true, e.clientX, e.clientY);
           }
+          // Add content card hover tip
+          if (isPromptMode && colorPromptSaved) {
+            handleContentCardHover(true, e.clientX, e.clientY, { cardIndex: originalCardIndex, cardType: 'content-card' });
+          }
         }}
         onMouseMove={(e) => {
           if (onContentCardHover) {
             onContentCardHover(true, e.clientX, e.clientY);
           }
+          // Update content card hover tip position
+          if (isPromptMode && colorPromptSaved) {
+            handleContentCardHover(true, e.clientX, e.clientY, { cardIndex: originalCardIndex, cardType: 'content-card' });
+          }
         }}
         onMouseLeave={() => {
           if (onContentCardHover) {
             onContentCardHover(false, 0, 0);
+          }
+          // Hide content card hover tip
+          if (isPromptMode && colorPromptSaved) {
+            handleContentCardHover(false, 0, 0, null);
+          }
+        }}
+        onClick={(e) => {
+          // Open content card prompt bubble when clicking anywhere on the card
+          if (isPromptMode && colorPromptSaved && onPromptClick) {
+            e.stopPropagation();
+            onPromptClick('promo-card', { cardIndex: originalCardIndex, cardType: 'content-card' }, { x: e.clientX, y: e.clientY });
           }
         }}
       >
@@ -390,7 +423,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         <div 
           className="absolute bottom-0 left-0 right-0 z-10 p-2"
           style={{ 
-            backgroundColor: themeColor,
+            backgroundColor: getReadableOnColor(themeColor),
             minHeight: '40px',
             display: 'flex',
             alignItems: 'center',
@@ -405,7 +438,10 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                fontSize: '12px', 
                lineHeight: '16px', 
                margin: 0,
-               color: getReadableOnColor(themeColor)
+               ...(themeColor.includes('gradient') 
+                 ? { background: themeColor, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }
+                 : { color: themeColor }
+               )
              }}>
             {getContentText(originalCardIndex)}
           </p>
@@ -436,13 +472,10 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
             onMouseLeave={(e) => {
               e.target.style.backgroundColor = themeColor;
             }}
-            onClick={(e) => {
-              e.stopPropagation();
-              console.log('Edit content card clicked', originalCardIndex);
-              if (isPromptMode && onPromptClick) {
-                onPromptClick('promo-card', { cardIndex: originalCardIndex, cardType: 'content-card' }, { x: e.clientX, y: e.clientY });
-              }
-            }}
+                          onClick={(e) => {
+                // Intentionally do nothing; prompt bubble should be opened via the hover "+" button
+                e.stopPropagation();
+              }}
           >
             Edit
           </button>
@@ -534,6 +567,8 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         onCardReorder={onCardReorder}
         colorPromptClosedWithoutSave={colorPromptClosedWithoutSave}
         colorPromptSaved={colorPromptSaved}
+        currentRouteKey={getCurrentRouteKey()}
+        isModifyClicked={isCurrentRouteModified()}
       />
       
       {/* Recommended for you section */}
@@ -559,16 +594,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   borderTopRightRadius: '8px',
                   borderBottomLeftRadius: '0px',
                   borderBottomRightRadius: '0px',
-                  backgroundColor: (() => {
-                    if (themeColor.startsWith('#')) {
-                      const hex = themeColor.slice(1);
-                      const r = parseInt(hex.substr(0, 2), 16);
-                      const g = parseInt(hex.substr(2, 2), 16);
-                      const b = parseInt(hex.substr(4, 2), 16);
-                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
-                    }
-                    return 'rgba(255,255,255,0.1)';
-                  })()
+                  backgroundColor: getCardBackgroundColor(themeColor)
                 }}
               >
                 <span style={{ color: 'black', fontSize: '14px' }}>Placeholder 1 (isThemeBuildStarted: {isThemeBuildStarted.toString()})</span>
@@ -582,16 +608,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   borderTopRightRadius: '8px',
                   borderBottomLeftRadius: '0px',
                   borderBottomRightRadius: '0px',
-                  backgroundColor: (() => {
-                    if (themeColor.startsWith('#')) {
-                      const hex = themeColor.slice(1);
-                      const r = parseInt(hex.substr(0, 2), 16);
-                      const g = parseInt(hex.substr(2, 2), 16);
-                      const b = parseInt(hex.substr(4, 2), 16);
-                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
-                    }
-                    return 'rgba(255,255,255,0.1)';
-                  })()
+                  backgroundColor: getCardBackgroundColor(themeColor)
                 }}
               >
                 <span style={{ color: 'black', fontSize: '14px' }}>Placeholder 2</span>
@@ -605,16 +622,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   borderTopRightRadius: '8px',
                   borderBottomLeftRadius: '0px',
                   borderBottomRightRadius: '0px',
-                  backgroundColor: (() => {
-                    if (themeColor.startsWith('#')) {
-                      const hex = themeColor.slice(1);
-                      const r = parseInt(hex.substr(0, 2), 16);
-                      const g = parseInt(hex.substr(2, 2), 16);
-                      const b = parseInt(hex.substr(4, 2), 16);
-                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
-                    }
-                    return 'rgba(255,255,255,0.1)';
-                  })()
+                  backgroundColor: getCardBackgroundColor(themeColor)
                 }}
               >
                 <span style={{ color: 'black', fontSize: '14px' }}>Placeholder 3</span>
@@ -628,16 +636,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   borderTopRightRadius: '8px',
                   borderBottomLeftRadius: '0px',
                   borderBottomRightRadius: '0px',
-                  backgroundColor: (() => {
-                    if (themeColor.startsWith('#')) {
-                      const hex = themeColor.slice(1);
-                      const r = parseInt(hex.substr(0, 2), 16);
-                      const g = parseInt(hex.substr(2, 2), 16);
-                      const b = parseInt(hex.substr(4, 2), 16);
-                      return `rgba(${r}, ${g}, ${b}, 0.1)`;
-                    }
-                    return 'rgba(255,255,255,0.1)';
-                  })()
+                  backgroundColor: getCardBackgroundColor(themeColor)
                 }}
               >
                 <span style={{ color: 'black', fontSize: '14px' }}>Placeholder 4</span>
@@ -680,9 +679,9 @@ export default function Dashboard() {
   
   // NEW: Prompt mode state
   const [isPromptMode, setIsPromptMode] = useState(false);
-  const [isModifyClicked, setIsModifyClicked] = useState(false);
+  const [modifiedRoutes, setModifiedRoutes] = useState({});
   const [activeSegmentId, setActiveSegmentId] = useState(null); // Track which segment is in prompt mode
-  const [promptBubble, setPromptBubble] = useState(null); // { x, y, elementType, elementData }
+  const [routePromptBubbles, setRoutePromptBubbles] = useState({}); // { routeKey: { x, y, elementType, elementData } }
   const [colorPromptClosedWithoutSave, setColorPromptClosedWithoutSave] = useState(false); // Track if color PB was closed without saving
   const [colorPromptSaved, setColorPromptSaved] = useState(false); // Track if color PB was saved
   const [selectedLogo, setSelectedLogo] = useState(null); // { id, src }
@@ -727,6 +726,8 @@ export default function Dashboard() {
   const [fpsHoverTip, setFpsHoverTip] = useState({ visible: false, x: 0, y: 0, progress: 0 });
   // Hover hint bubble for Promo Cards ("Edit promo card")
   const [pcHoverTip, setPcHoverTip] = useState({ visible: false, x: 0, y: 0, elementData: null });
+  // Add state for content card hover tip
+  const [ccHoverTip, setCCHoverTip] = useState({ visible: false, x: 0, y: 0, elementData: null });
 
   // Callback for remix image loading
   const handleRemixImageLoaded = (cardIndex) => {
@@ -831,6 +832,52 @@ export default function Dashboard() {
     return flightRouteProgress[flightKey] || 0;
   };
   
+  // Helper function to check if current route is modified
+  const isCurrentRouteModified = () => {
+    const routeKey = getCurrentRouteKey();
+    if (!routeKey) return false;
+    return modifiedRoutes[routeKey] || false;
+  };
+  
+  // Helper function to mark current route as modified
+  const markCurrentRouteAsModified = () => {
+    const routeKey = getCurrentRouteKey();
+    if (!routeKey) return;
+    setModifiedRoutes(prev => ({
+      ...prev,
+      [routeKey]: true
+    }));
+  };
+  
+  // Helper function to get current route's prompt bubble
+  const getCurrentRoutePromptBubble = () => {
+    const routeKey = getCurrentRouteKey();
+    if (!routeKey) return null;
+    const bubble = routePromptBubbles[routeKey] || null;
+    console.log('🎯 Getting prompt bubble for route:', { routeKey, bubble, allBubbles: routePromptBubbles });
+    return bubble;
+  };
+  
+  // Helper function to set current route's prompt bubble
+  const setCurrentRoutePromptBubble = (bubbleData) => {
+    const routeKey = getCurrentRouteKey();
+    if (!routeKey) return;
+    console.log('🎯 Setting prompt bubble for route:', { routeKey, bubbleData });
+    setRoutePromptBubbles(prev => {
+      const newState = {
+        ...prev,
+        [routeKey]: bubbleData
+      };
+      console.log('🎯 Updated route prompt bubbles:', newState);
+      return newState;
+    });
+  };
+
+  // Add debugging for when routePromptBubbles state changes
+  useEffect(() => {
+    console.log('🎯 routePromptBubbles state changed:', routePromptBubbles);
+  }, [routePromptBubbles]);
+  
   // Update current flight key when origin/destination changes
   useEffect(() => {
     const newFlightKey = getFlightKey(origin, destination);
@@ -840,7 +887,8 @@ export default function Dashboard() {
         from: currentFlightKey, 
         to: newFlightKey,
         availableThemes: Object.keys(flightThemes),
-        availableProgress: Object.keys(flightRouteProgress)
+        availableProgress: Object.keys(flightRouteProgress),
+        routePromptBubbles: routePromptBubbles
       });
     }
   }, [origin, destination, currentFlightKey, flightThemes, flightRouteProgress]);
@@ -997,7 +1045,7 @@ export default function Dashboard() {
     
     // For FJB: do NOT show the icon-only plus; show hover bubble with "+ add theme"
     if (elementType === 'flight-journey-bar') {
-      if (!promptBubble) {
+      if (!getCurrentRoutePromptBubble()) {
         // Avoid flicker by only updating when moved enough pixels
         setShowPlusIcon(false);
         setFjbHoverTip(prev => {
@@ -1015,7 +1063,7 @@ export default function Dashboard() {
       return;
     }
     if (elementType === 'flight-icon') {
-      if (!promptBubble) {
+      if (!getCurrentRoutePromptBubble()) {
         // Replace cursor plus with hover tip for FPS
         setShowPlusIcon(false);
         setFpsHoverTip(prev => {
@@ -1034,7 +1082,7 @@ export default function Dashboard() {
     }
 
     if (elementType === 'promo-card') {
-      if (!promptBubble) {
+      if (!getCurrentRoutePromptBubble()) {
         setShowPlusIcon(false);
         setPcHoverTip(prev => {
           if (!isHovering) return { visible: false, x: 0, y: 0, elementData: null };
@@ -1049,7 +1097,7 @@ export default function Dashboard() {
       }
       return;
     }
-    if (promptBubble) return;
+    if (getCurrentRoutePromptBubble()) return;
     // Default behavior for other elements (none for now)
     console.log('Prompt hover:', isHovering, elementType, elementData, position);
   };
@@ -1153,7 +1201,7 @@ export default function Dashboard() {
           const rect = container.getBoundingClientRect();
           const relX = Math.max(0, Math.min(position.x - rect.left + 2, rect.width));
           const relY = Math.max(0, position.y - rect.top + 10);
-          setPromptBubble({
+          setCurrentRoutePromptBubble({
             x: relX,
             y: relY,
             elementType,
@@ -1162,7 +1210,7 @@ export default function Dashboard() {
             existingText
           });
         } else {
-          setPromptBubble({
+          setCurrentRoutePromptBubble({
             x: position.x,
             y: position.y,
             elementType,
@@ -1173,7 +1221,7 @@ export default function Dashboard() {
         }
       } else if (elementType === 'flight-phase-button') {
         // Flight phase button: position at the given point (viewport coordinates)
-        setPromptBubble({
+        setCurrentRoutePromptBubble({
           x: position.x,
           y: position.y,
           elementType,
@@ -1183,7 +1231,7 @@ export default function Dashboard() {
         });
       } else if (elementType === 'promo-card') {
         // For promo-card, place exactly at pointer (Viewport -> document handled in PromptBubble)
-        setPromptBubble({
+        setCurrentRoutePromptBubble({
           x: position.x,
           y: position.y,
           elementType,
@@ -1192,7 +1240,7 @@ export default function Dashboard() {
           existingText
         });
       } else {
-        setPromptBubble({
+        setCurrentRoutePromptBubble({
           x: position.x,
           y: position.y,
           elementType,
@@ -1242,12 +1290,12 @@ export default function Dashboard() {
   const handleExitPromptMode = () => {
     setIsPromptMode(false);
     setActiveSegmentId(null);
-    setPromptBubble(null);
+    setCurrentRoutePromptBubble(null);
     setShowPlusIcon(false);
   };
 
   const handlePromptBubbleClose = () => {
-    setPromptBubble(null);
+    setCurrentRoutePromptBubble(null);
     setShowPlusIcon(false); // Ensure plus icon is hidden when bubble closes
     setFjbHoverTip({ visible: false, x: 0, y: 0 });
 
@@ -1321,24 +1369,85 @@ export default function Dashboard() {
             }
           }
         } else {
-          // For regular content card submission, update the title
-          const newTitle = promptText.trim();
+          // For regular content card submission, parse text and image like promo cards
+          console.log('=== HANDLING REGULAR CONTENT CARD SUBMISSION ===', { promptText });
+          
+          // Parse the submitted text (format: "text:value,image:value")
+          const parts = promptText.split(',');
+          let textContent = '';
+          let imageContent = '';
+          
+          parts.forEach(part => {
+            if (part.startsWith('text:')) {
+              textContent = part.substring(5).trim();
+            } else if (part.startsWith('image:')) {
+              imageContent = part.substring(6).trim();
+            }
+          });
+          
+          // If no format detected, treat the entire text as title
+          if (!textContent && !imageContent) {
+            textContent = promptText.trim();
+          }
+          
+          console.log('=== PARSED CONTENT CARD CONTENT ===', { 
+            parts, 
+            textContent, 
+            imageContent 
+          });
+          
           const routeKey = getCurrentRouteKey();
           if (routeKey) {
-            setRecommendedContentCards(prev => {
-              const routeCards = prev[routeKey] || [];
-              const updatedCards = [...routeCards];
-              if (updatedCards[elementData.cardIndex]) {
-                updatedCards[elementData.cardIndex] = {
-                  ...updatedCards[elementData.cardIndex],
-                  title: newTitle
+            // Update the title
+            if (textContent) {
+              setRecommendedContentCards(prev => {
+                const routeCards = prev[routeKey] || [];
+                const updatedCards = [...routeCards];
+                if (updatedCards[elementData.cardIndex]) {
+                  updatedCards[elementData.cardIndex] = {
+                    ...updatedCards[elementData.cardIndex],
+                    title: textContent
+                  };
+                }
+                return {
+                  ...prev,
+                  [routeKey]: updatedCards
                 };
+              });
+            }
+            
+            // Update the image if provided
+            if (imageContent) {
+              try {
+                // Generate new AI image
+                const newImageUrl = generateAIImageSync(imageContent);
+                
+                // Update the content card image
+                setContentCardImages(prev => ({
+                  ...prev,
+                  [routeKey]: {
+                    ...prev[routeKey],
+                    [elementData.cardIndex]: newImageUrl
+                  }
+                }));
+                
+                console.log('=== CONTENT CARD IMAGE UPDATED ===', { 
+                  cardIndex: elementData.cardIndex, 
+                  newImageUrl 
+                });
+              } catch (error) {
+                console.error('=== AI IMAGE GENERATION FAILED FOR CONTENT CARD ===', { error, imageContent });
+                // Fallback to Unsplash image
+                const fallbackUrl = getUnsplashFallback(imageContent);
+                setContentCardImages(prev => ({
+                  ...prev,
+                  [routeKey]: {
+                    ...prev[routeKey],
+                    [elementData.cardIndex]: fallbackUrl
+                  }
+                }));
               }
-              return {
-                ...prev,
-                [routeKey]: updatedCards
-              };
-            });
+            }
           }
         }
       } else {
@@ -1424,7 +1533,7 @@ export default function Dashboard() {
     // Don't close the bubble for logo placeholder submissions (keep bubble open for editing)
     // Don't close the bubble for remix operations (keep bubble open for continued editing)
     if (elementType !== 'logo-placeholder' && !options.isRemix) {
-      setPromptBubble(null);
+      setCurrentRoutePromptBubble(null);
     }
     // Heuristic: if this is logo placeholder, parse prompt to choose or clear an animation
     if (elementType === 'logo-placeholder') {
@@ -1552,7 +1661,7 @@ export default function Dashboard() {
     
     // Store the current content for the previous phase before switching
     const routeKey = getCurrentRouteKey();
-    if (routeKey) {
+                if (routeKey && isCurrentRouteModified()) {
       setPromoCardContents(prev => {
         const newState = { ...prev };
         const currentPhase = selectedFlightPhase;
@@ -1573,6 +1682,8 @@ export default function Dashboard() {
         
         return newState;
       });
+    } else if (routeKey) {
+      console.log('🎯 Skipping phase-specific content update - route not modified yet');
     }
   };
 
@@ -1580,29 +1691,29 @@ export default function Dashboard() {
   const getPhaseSpecificDefaultContent = (phase) => {
     const phaseContent = {
       'takeoff': {
-        0: { text: 'Enjoy your welcome drink', image: 'welcome drink', updated: true },
-        1: { text: 'Feel at home', image: 'Settle in', updated: true },
-        2: { text: 'Connect your device', image: 'phone in an aircraft', updated: true }
+        0: { text: 'Enjoy your welcome drink', image: 'welcome drink', updated: false },
+        1: { text: 'Feel at home', image: 'Settle in', updated: false },
+        2: { text: 'Connect your device', image: 'phone in an aircraft', updated: false }
       },
       'climb': {
-        0: { text: 'Order food', image: 'meal', updated: true },
-        1: { text: 'Offers onboard', image: 'offers', updated: true },
-        2: { text: 'Latest entertainment', image: 'movie', updated: true }
+        0: { text: 'Order food', image: 'meal', updated: false },
+        1: { text: 'Offers onboard', image: 'offers', updated: false },
+        2: { text: 'Latest entertainment', image: 'movie', updated: false }
       },
       'cruise': {
-        0: { text: 'Popcorn with movie', image: 'popcorn', updated: true },
-        1: { text: 'Buy gifts', image: 'gifts', updated: true },
-        2: { text: 'Latest entertainment', image: 'movie', updated: true }
+        0: { text: 'Popcorn with movie', image: 'popcorn', updated: false },
+        1: { text: 'Buy gifts', image: 'gifts', updated: false },
+        2: { text: 'Latest entertainment', image: 'movie', updated: false }
       },
       'descent': {
-        0: { text: 'Buy guides at discount', image: 'get your guide', updated: true },
-        1: { text: 'Buy gifts', image: 'gifts', updated: true },
-        2: { text: 'Save on your next flight', image: 'flight ticket offer', updated: true }
+        0: { text: 'Buy guides at discount', image: 'get your guide', updated: false },
+        1: { text: 'Buy gifts', image: 'gifts', updated: false },
+        2: { text: 'Save on your next flight', image: 'flight ticket offer', updated: false }
       },
       'landing': {
-        0: { text: 'Buy guides at discount', image: 'get your guide', updated: true },
-        1: { text: 'Buy gifts', image: 'gifts', updated: true },
-        2: { text: 'Save on your next flight', image: 'flight ticket offer', updated: true }
+        0: { text: 'Buy guides at discount', image: 'get your guide', updated: false },
+        1: { text: 'Buy gifts', image: 'gifts', updated: false },
+        2: { text: 'Save on your next flight', image: 'flight ticket offer', updated: false }
       }
     };
     
@@ -1681,7 +1792,14 @@ export default function Dashboard() {
 
   console.log('🎯 Dashboard RENDER: showInFlightPreview =', showInFlightPreview, 'showIFEFrame =', showIFEFrame, 'isPromptMode =', isPromptMode);
   
-
+  // Add handler for content card hover
+  const handleContentCardHover = (isHovering, x, y, elementData) => {
+    if (isHovering) {
+      setCCHoverTip({ visible: true, x, y, elementData });
+    } else {
+      setCCHoverTip({ visible: false, x: 0, y: 0, elementData: null });
+    }
+  };
 
   return (
     <div 
@@ -1724,6 +1842,9 @@ export default function Dashboard() {
                 [flightKey]: color
               }));
               console.log('🎯 ThemeCreator: Stored theme for flight route:', { flightKey, color });
+              
+              // Mark the route as modified when theme is saved from ThemeCreator
+              markCurrentRouteAsModified();
             }
             // When theme color changes from ThemeCreator, clear any logo animation
             // as this is not from a theme chip selection
@@ -1779,9 +1900,15 @@ export default function Dashboard() {
                 [flightKey]: themeColor
               }));
               console.log('🎯 Dashboard: Stored airline theme for flight route:', { flightKey, themeColor });
+              
+              // Mark the route as modified when airline theme is saved
+              markCurrentRouteAsModified();
             }
           }}
-          onModifyClicked={() => setIsModifyClicked(true)}
+          onModifyClicked={() => {
+            // Don't mark as modified yet - wait for theme to be saved
+            console.log('🎯 Modify button clicked - waiting for theme to be saved');
+          }}
           onShowPreview={(show) => {
             console.log('🎯 Dashboard: onShowPreview called with:', show);
             setShowInFlightPreview(show);
@@ -1835,6 +1962,24 @@ export default function Dashboard() {
             }, 250);
           }}
         />
+      </div>
+      
+      {/* Theme preview label */}
+      <div 
+        className="w-full flex justify-center"
+        style={{
+          marginTop: 20,
+          marginBottom: 20
+        }}
+      >
+        <h1 
+          className="text-6xl font-extrabold tracking-tight text-gray-900"
+          style={{
+            opacity: 0.1
+          }}
+        >
+          Theme preview
+        </h1>
       </div>
       
       {/* In-flight preview label */}
@@ -1973,6 +2118,9 @@ export default function Dashboard() {
               contentCardTextColors={contentCardTextColors}
               setContentCardTextColors={setContentCardTextColors}
               getCurrentRouteKey={getCurrentRouteKey}
+              isModifyClicked={isCurrentRouteModified()}
+              isCurrentRouteModified={isCurrentRouteModified}
+              handleContentCardHover={handleContentCardHover}
             />
           </div>
         </div>
@@ -2000,11 +2148,11 @@ export default function Dashboard() {
 
       {/* Prompt Bubble */}
       <PromptBubble
-        key={`${promptBubble?.elementType}-${promptBubble?.positionKey}-${promptBubble?.existingText?.length || 0}`}
-        isVisible={!!promptBubble}
-        position={promptBubble || { x: 0, y: 0 }}
-        elementType={promptBubble?.elementType}
-        elementData={promptBubble?.elementData}
+        key={`${getCurrentRoutePromptBubble()?.elementType}-${getCurrentRoutePromptBubble()?.positionKey}-${getCurrentRoutePromptBubble()?.existingText?.length || 0}`}
+        isVisible={!!getCurrentRoutePromptBubble()}
+        position={getCurrentRoutePromptBubble() || { x: 0, y: 0 }}
+        elementType={getCurrentRoutePromptBubble()?.elementType}
+        elementData={getCurrentRoutePromptBubble()?.elementData}
         onClose={handlePromptBubbleClose}
         onSubmit={handlePromptBubbleSubmit}
         onCloseWithoutSave={() => {
@@ -2013,8 +2161,8 @@ export default function Dashboard() {
         }}
         themeColor={activeThemeColor}
         isThemeBuildStarted={isThemeBuildStarted}
-        existingText={promptBubble?.existingText || ''}
-        positionKey={promptBubble?.positionKey}
+        existingText={getCurrentRoutePromptBubble()?.existingText || ''}
+        positionKey={getCurrentRoutePromptBubble()?.positionKey}
         fpsPrompts={fpsPrompts}
         onThemeColorChange={(color, chipData) => {
           if (typeof color === 'string' && color.length > 0) {
@@ -2054,6 +2202,9 @@ export default function Dashboard() {
             setSelectedFlightPhase('takeoff');
             console.log('🎯 Auto-selected takeoff flight phase');
             
+            // Mark the route as modified when theme is saved
+            markCurrentRouteAsModified();
+            
             // Update route-specific promo card contents
             const routeKey = getCurrentRouteKey();
             if (routeKey) {
@@ -2066,7 +2217,7 @@ export default function Dashboard() {
                     2: { text: 'Connect your device', image: 'phone in an aircraft', updated: true }
                   }
                 };
-                console.log('🎯 Updated route-specific promo card contents for takeoff phase:', {
+                console.log('🎯 Updated route-specific promo card contents for takeoff phase (route modified):', {
                   routeKey,
                   allRoutes: Object.keys(newState)
                 });
@@ -2116,10 +2267,10 @@ export default function Dashboard() {
             });
             
             // Close the prompt bubble after saving the color
-            setPromptBubble(null);
+            setCurrentRoutePromptBubble(null);
           }
         }}
-        themeChips={promptBubble?.elementType === 'flight-journey-bar' ? fjbThemeChips : []}
+        themeChips={getCurrentRoutePromptBubble()?.elementType === 'flight-journey-bar' ? fjbThemeChips : []}
         selectedLogo={selectedLogo}
         onLogoSelect={(info) => {
           setSelectedLogo(info);
@@ -2140,6 +2291,9 @@ export default function Dashboard() {
                   [flightKey]: newColor
                 }));
                 console.log('🎯 Dashboard: Stored logo theme for flight route:', { flightKey, newColor });
+                
+                // Mark the route as modified when logo theme is saved
+                markCurrentRouteAsModified();
               }
             }
           }
@@ -2161,7 +2315,7 @@ export default function Dashboard() {
             fpsHoverTip: fpsHoverTip.visible,
             pcHoverTip: pcHoverTip.visible,
             contentCardHover: contentCardHover.isHovering,
-            promptBubble: !!promptBubble,
+            promptBubble: !!getCurrentRoutePromptBubble(),
             shouldShow
           });
         }
@@ -2204,7 +2358,7 @@ export default function Dashboard() {
       )}
 
       {/* FJB hover tip bubble: shows label and plus; click opens color PB */}
-      {isModifyClicked && isPromptMode && fjbHoverTip.visible && !promptBubble && !colorPromptClosedWithoutSave && (
+      {isCurrentRouteModified() && isPromptMode && fjbHoverTip.visible && !getCurrentRoutePromptBubble() && !colorPromptClosedWithoutSave && (
         <div
           key={`fjb-hover-${activeThemeColor}`}
           className="fixed"
@@ -2238,7 +2392,7 @@ export default function Dashboard() {
       )}
 
       {/* FPS hover tip bubble: shows label and plus; click opens FPS PB */}
-      {isModifyClicked && isPromptMode && fpsHoverTip.visible && !promptBubble && !colorPromptClosedWithoutSave && (
+      {isCurrentRouteModified() && isPromptMode && fpsHoverTip.visible && !getCurrentRoutePromptBubble() && !colorPromptClosedWithoutSave && (
         <div
           key={`fps-hover-${activeThemeColor}`}
           className="fixed"
@@ -2283,7 +2437,7 @@ export default function Dashboard() {
       )}
 
       {/* Promo Card hover tip bubble: shows label and plus; click opens PC PB */}
-      {isModifyClicked && isPromptMode && pcHoverTip.visible && !promptBubble && !colorPromptClosedWithoutSave && (
+      {isCurrentRouteModified() && isPromptMode && pcHoverTip.visible && !getCurrentRoutePromptBubble() && !colorPromptClosedWithoutSave && (
         <div
           key={`pc-hover-edit-${activeThemeColor}`}
           className="fixed"
@@ -2319,7 +2473,7 @@ export default function Dashboard() {
       )}
 
       {/* Promo Card hover tip bubble when color not saved: shows "Change theme" */}
-      {isModifyClicked && isPromptMode && pcHoverTip.visible && !promptBubble && colorPromptClosedWithoutSave && (
+      {isCurrentRouteModified() && isPromptMode && pcHoverTip.visible && !getCurrentRoutePromptBubble() && colorPromptClosedWithoutSave && (
         <div
           key={`pc-hover-change-${activeThemeColor}`}
           className="fixed"
@@ -2477,6 +2631,37 @@ export default function Dashboard() {
           {/* Preview elements will be added here later */}
 
         </>
+      )}
+
+      {/* Content Card hover tip bubble */}
+      {isPromptMode && ccHoverTip.visible && !getCurrentRoutePromptBubble() && colorPromptSaved && (
+        <div
+          key={`cc-hover-${activeThemeColor}`}
+          className="fixed"
+          style={{ left: ccHoverTip.x, top: ccHoverTip.y, pointerEvents: 'none', zIndex: 999999999 }}
+        >
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
+            style={{
+              ...(typeof activeThemeColor === 'string' && activeThemeColor.includes('gradient')
+                ? { background: activeThemeColor }
+                : { backgroundColor: activeThemeColor }),
+              borderColor: hoverBorderColor,
+              opacity: 1,
+              borderTopLeftRadius: 0
+            }}
+          >
+            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>
+              Edit content card {ccHoverTip.elementData?.cardIndex !== undefined ? ccHoverTip.elementData.cardIndex + 1 : ''}
+            </span>
+            <div
+              className="w-6 h-6 rounded-full border flex items-center justify-center"
+              style={{ borderColor: hoverOnColor, color: hoverOnColor }}
+            >
+              +
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

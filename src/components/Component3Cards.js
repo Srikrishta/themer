@@ -114,7 +114,9 @@ export default function Component3Cards({
   cardOrder = [0, 1, 2], 
   onCardReorder,
   colorPromptClosedWithoutSave = false,
-  colorPromptSaved = false
+  colorPromptSaved = false,
+  isModifyClicked = false,
+  currentRouteKey = null
 }) {
   console.log('=== COMPONENT3CARDS RENDER ===', {
     isPromptMode, 
@@ -129,7 +131,9 @@ export default function Component3Cards({
     hasOnCardReorder: !!onCardReorder,
     animationProgress,
     promoCardContents,
-    colorPromptClosedWithoutSave
+    colorPromptClosedWithoutSave,
+    isModifyClicked,
+    currentRouteKey
   });
 
   // State for takeoff phase loading
@@ -685,11 +689,14 @@ export default function Component3Cards({
         hasContent: !!promoCardContents[originalCardIndex],
         isUpdated: promoCardContents[originalCardIndex]?.updated,
         isRemix: promoCardContents[originalCardIndex]?.remixCount > 0,
-        remixCount: promoCardContents[originalCardIndex]?.remixCount || 0
+        remixCount: promoCardContents[originalCardIndex]?.remixCount || 0,
+        currentRouteKey,
+        isModifyClicked
       });
       
       // If user has submitted content for this card, use it (prioritize over phase-specific content)
-      if (promoCardContents[originalCardIndex]?.updated) {
+      // Only show user content if the route has been modified
+      if (promoCardContents[originalCardIndex]?.updated && isModifyClicked) {
         const userContent = promoCardContents[originalCardIndex];
         console.log('=== USING USER CONTENT ===', userContent);
         
@@ -727,55 +734,58 @@ export default function Component3Cards({
         };
       }
       
-      // If middle card prompt is closed and cruise label is shown, show content with images
-      if (middleCardPromptClosed && cruiseLabelShown) {
-        const contentWithImages = [
-          { 
-            text: "Welcome drink", 
-            backgroundImage: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=416&h=200&fit=crop&crop=center&auto=format",
-            bgColor: getLightThemeColor()
-          },
-          { 
-            text: "Settle in", 
-            backgroundImage: "https://images.unsplash.com/photo-1556388158-158ea5ccacbd?w=416&h=200&fit=crop&crop=center&auto=format",
-            bgColor: getLightThemeColor()
-          },
-          { 
-            text: "Connect your device", 
-            backgroundImage: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=416&h=200&fit=crop&crop=center&auto=format",
-            bgColor: getLightThemeColor()
+      // Only show images for routes that have been modified
+      if (isModifyClicked && currentRouteKey) {
+        // If middle card prompt is closed and cruise label is shown, show content with images
+        if (middleCardPromptClosed && cruiseLabelShown && isModifyClicked) {
+          const contentWithImages = [
+            { 
+              text: "Welcome drink", 
+              backgroundImage: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=416&h=200&fit=crop&crop=center&auto=format",
+              bgColor: getLightThemeColor()
+            },
+            { 
+              text: "Settle in", 
+              backgroundImage: "https://images.unsplash.com/photo-1556388158-158ea5ccacbd?w=416&h=200&fit=crop&crop=center&auto=format",
+              bgColor: getLightThemeColor()
+            },
+            { 
+              text: "Connect your device", 
+              backgroundImage: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=416&h=200&fit=crop&crop=center&auto=format",
+              bgColor: getLightThemeColor()
+            }
+          ];
+          return contentWithImages[originalCardIndex];
+        } else if (selectedFlightPhase) {
+          // Show phase-specific content with AI-generated images when flight phase is selected
+          const phaseContent = getPhaseSpecificContent(originalCardIndex);
+          const imageKeyword = getPhaseSpecificImageKeyword(originalCardIndex);
+          if (phaseContent && imageKeyword) {
+            // Generate AI image for the phase-specific content
+            try {
+              const aiImageUrl = generateAIImageSync(imageKeyword);
+              return {
+                ...phaseContent,
+                backgroundImage: aiImageUrl
+              };
+            } catch (error) {
+              console.error('=== AI IMAGE GENERATION FAILED FOR PHASE ===', { error, imageKeyword });
+              // Fallback to Unsplash image
+              const fallbackUrl = getUnsplashFallback(imageKeyword);
+              return {
+                ...phaseContent,
+                backgroundImage: fallbackUrl
+              };
+            }
           }
-        ];
-        return contentWithImages[originalCardIndex];
-      } else if (selectedFlightPhase) {
-        // Show phase-specific content with AI-generated images when flight phase is selected
-        const phaseContent = getPhaseSpecificContent(originalCardIndex);
-        const imageKeyword = getPhaseSpecificImageKeyword(originalCardIndex);
-        if (phaseContent && imageKeyword) {
-          // Generate AI image for the phase-specific content
-          try {
-            const aiImageUrl = generateAIImageSync(imageKeyword);
-            return {
-              ...phaseContent,
-              backgroundImage: aiImageUrl
-            };
-          } catch (error) {
-            console.error('=== AI IMAGE GENERATION FAILED FOR PHASE ===', { error, imageKeyword });
-            // Fallback to Unsplash image
-            const fallbackUrl = getUnsplashFallback(imageKeyword);
-            return {
-              ...phaseContent,
-              backgroundImage: fallbackUrl
-            };
-          }
+          // Fallback to generic phase text if no specific content
+          const phaseText = `add experiences for ${selectedFlightPhase.charAt(0).toUpperCase() + selectedFlightPhase.slice(1)}`;
+          return { text: phaseText, bgColor: getLightThemeColor() };
         }
-        // Fallback to generic phase text if no specific content
-        const phaseText = `add experiences for ${selectedFlightPhase.charAt(0).toUpperCase() + selectedFlightPhase.slice(1)}`;
-        return { text: phaseText, bgColor: getLightThemeColor() };
-      } else {
-        // Default state
-        return { text: "Add title", bgColor: getLightThemeColor() };
       }
+      
+      // Default state - no images for unmodified routes
+      return { text: "Add experience", bgColor: getLightThemeColor() };
     })();
     const imageDescription = promoCardContents[originalCardIndex]?.image || 'default';
     
@@ -924,7 +934,7 @@ export default function Component3Cards({
             <div 
               className="absolute bottom-0 left-0 right-0 z-10 p-2 rounded-b-lg"
               style={{ 
-                backgroundColor: themeColor,
+                backgroundColor: getReadableOnColor(themeColor),
                 minHeight: '40px',
                 display: 'flex',
                 alignItems: 'center'
@@ -935,7 +945,10 @@ export default function Component3Cards({
                    fontSize: '12px', 
                    lineHeight: '16px', 
                    margin: 0,
-                   color: getReadableOnColor(themeColor)
+                   ...(themeColor.includes('gradient') 
+                     ? { background: themeColor, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }
+                     : { color: themeColor }
+                   )
                  }}>
                 {cardContent.text}
               </p>
@@ -962,7 +975,7 @@ export default function Component3Cards({
             <div 
               className="absolute bottom-0 left-0 right-0 z-10 p-2 rounded-b-lg"
               style={{ 
-                backgroundColor: themeColor,
+                backgroundColor: getReadableOnColor(themeColor),
                 minHeight: '40px',
                 display: 'flex',
                 alignItems: 'center'
@@ -973,7 +986,10 @@ export default function Component3Cards({
                    fontSize: '12px', 
                    lineHeight: '16px', 
                    margin: 0,
-                   color: getReadableOnColor(themeColor)
+                   ...(themeColor.includes('gradient') 
+                     ? { background: themeColor, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }
+                     : { color: themeColor }
+                   )
                  }}>
                 {cardContent.text}
               </p>

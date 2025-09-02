@@ -259,11 +259,19 @@ export default function PromptBubble({
       
       // Check if this is a content card (passed as promo-card type)
       if (elementData && elementData.cardType === 'content-card') {
-        // For content cards, use the existingText directly as the text content
-        // Content cards don't have the text:image: format, they just have plain text
-        // The image description is the same as the title for content cards
-        console.log('=== INITIALIZING CONTENT CARD VALUES ===', { existingText });
-        return { text: existingText, image: existingText };
+        // For content cards, use the existingText as the text content
+        // Pre-populate image field with default values based on card index
+        const cardIndex = elementData.cardIndex;
+        const defaultImageDescriptions = {
+          0: 'crocodile dundee movie poster',
+          1: 'Get your guide of Milan',
+          2: 'multiplayer game',
+          3: 'popular podcast'
+        };
+        const defaultImageDescription = defaultImageDescriptions[cardIndex] || '';
+        
+        console.log('=== INITIALIZING CONTENT CARD VALUES ===', { existingText, cardIndex, defaultImageDescription });
+        return { text: existingText, image: defaultImageDescription };
       }
       
       // For regular promo cards, parse the existingText format

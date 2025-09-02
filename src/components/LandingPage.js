@@ -585,10 +585,33 @@ export default function LandingPage() {
                             }}
                           />
                         )}
-                        <div className="text-center relative z-10">
-                          <span className="font-semibold block" style={{ color: cardImage ? 'white' : '#000000', fontSize: '24px', lineHeight: '32px', opacity: 0.7 }}>
+                        
+                        {/* Bottom rectangle with text field - same style as promo cards */}
+                        <div 
+                          className="absolute bottom-0 left-0 right-0 z-10 p-2"
+                          style={{ 
+                            backgroundColor: getReadableOnColor(mockThemeColor),
+                            minHeight: '40px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            borderTopLeftRadius: '0px',
+                            borderTopRightRadius: '0px',
+                            borderBottomLeftRadius: '0px',
+                            borderBottomRightRadius: '0px'
+                          }}
+                        >
+                          <p className="block font-semibold text-center uppercase" 
+                             style={{ 
+                               fontSize: '12px', 
+                               lineHeight: '16px', 
+                               margin: 0,
+                               ...(mockThemeColor.includes('gradient') 
+                                 ? { background: mockThemeColor, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }
+                                 : { color: mockThemeColor }
+                               )
+                             }}>
                             Add content
-                          </span>
+                          </p>
                         </div>
                       
                       {/* Edit button for content cards */}

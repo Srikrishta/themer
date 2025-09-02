@@ -1,5 +1,3 @@
-
-
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { getReadableOnColor } from '../utils/color';
@@ -438,6 +436,26 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatingProgressIndex, setGeneratingProgressIndex] = useState(0);
   const [replacementIndex, setReplacementIndex] = useState(-1); // -1 means none replaced yet
+  
+  // NEW: Track which flight cards have been modified (flight key -> boolean)
+  const [modifiedFlightCards, setModifiedFlightCards] = useState({});
+  
+  // Helper function to check if a specific flight card has been modified
+  const isFlightCardModified = (selectedFlightCard) => {
+    if (!selectedFlightCard?.segment) return false;
+    const flightKey = getFlightKey(selectedFlightCard.segment.origin, selectedFlightCard.segment.destination);
+    return modifiedFlightCards[flightKey] || false;
+  };
+  
+  // Helper function to mark a flight card as modified
+  const markFlightCardAsModified = (selectedFlightCard) => {
+    if (!selectedFlightCard?.segment) return;
+    const flightKey = getFlightKey(selectedFlightCard.segment.origin, selectedFlightCard.segment.destination);
+    setModifiedFlightCards(prev => ({
+      ...prev,
+      [flightKey]: true
+    }));
+  };
   
   // DEBUG: Track isGenerating changes
   useEffect(() => {
@@ -1327,7 +1345,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                 
                 {/* Modify button or Progress bar */}
                 <div className="flex items-center">
-                  {!isModifyInProgress ? (
+                  {!isFlightCardModified(selectedFlightCard) ? (
                     <button
                       className="px-4 py-2 text-sm font-medium text-white backdrop-blur-[10px] backdrop-filter transition-colors"
                       style={{ 
@@ -1347,6 +1365,9 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                       onClick={(e) => {
                         e.stopPropagation();
                         console.log('Modify flight card clicked - enabling hover tips and triggering change theme prompt');
+                        
+                        // Mark this flight card as modified
+                        markFlightCardAsModified(selectedFlightCard);
                         
                         // Show progress bar
                         setIsModifyInProgress(true);
@@ -1563,7 +1584,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
               
               {/* Modify button or Progress bar */}
               <div className="flex items-center">
-                {!isModifyInProgress ? (
+                {!isFlightCardModified(selectedFlightCard) ? (
                   <button
                     className="px-4 py-2 text-sm font-medium text-white backdrop-blur-[10px] backdrop-filter transition-colors"
                     style={{ 
@@ -1583,6 +1604,9 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                     onClick={(e) => {
                       e.stopPropagation();
                       console.log('Modify flight card clicked - enabling hover tips and triggering change theme prompt');
+                        
+                        // Mark this flight card as modified
+                        markFlightCardAsModified(selectedFlightCard);
                       
                       // Show progress bar
                       setIsModifyInProgress(true);
