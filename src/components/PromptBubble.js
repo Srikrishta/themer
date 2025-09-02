@@ -4,6 +4,7 @@ import { XMarkIcon, PaperAirplaneIcon, PlusIcon, PhotoIcon, ArrowLeftIcon, Arrow
 import { HexColorPicker } from 'react-colorful';
 import { getReadableOnColor } from '../utils/color';
 import { argbFromHex } from '@material/material-color-utilities';
+import { getFestivalsForFlightSegment, formatFestivalChips } from '../utils/festivalUtils';
 
 // Blinking cursor component
 const BlinkingCursor = () => (
@@ -27,7 +28,7 @@ const blinkingCSS = `
 `;
 
   // Custom placeholder component for promo cards with editable inputs
-  const PromoCardPlaceholder = ({ textColor, onTextChange, onImageTextChange, textValue = '', imageValue = '', onTextFocus, onTextBlur, resetTrigger, elementData, onRemix }) => {
+  const PromoCardPlaceholder = ({ textColor, onTextChange, onImageTextChange, textValue = '', imageValue = '', onTextFocus, onTextBlur, resetTrigger, elementData, onRemix, isRemixLoading = false, maxWidth = 300 }) => {
   const [focusedField, setFocusedField] = useState(null); // Track which field is focused
   const textInputRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -40,6 +41,27 @@ const blinkingCSS = `
       if (imageInputRef.current) imageInputRef.current.blur();
     }
   }, [resetTrigger]);
+
+  // Auto-resize textarea function
+  const autoResizeTextarea = (textarea) => {
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+    }
+  };
+
+  // Auto-resize textareas when text values change
+  useEffect(() => {
+    if (textInputRef.current) {
+      autoResizeTextarea(textInputRef.current);
+    }
+  }, [textValue]);
+
+  useEffect(() => {
+    if (imageInputRef.current) {
+      autoResizeTextarea(imageInputRef.current);
+    }
+  }, [imageValue]);
   
   // Character limit for text field
   const TEXT_CHAR_LIMIT = 30;
@@ -56,9 +78,46 @@ const blinkingCSS = `
     return context.measureText(text).width;
   };
   
+  // Function to get cursor position considering text wrapping
+  const getCursorPosition = (text, fieldType) => {
+    if (!text) return { left: 2, top: 0 };
+    
+    // For textarea, we need to calculate based on the actual text wrapping
+    const maxWidth = 300 - 60; // maxWidth - 60 from the component
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    context.font = 'bold 14px system-ui, -apple-system, sans-serif';
+    
+    let currentLine = '';
+    let currentLineWidth = 0;
+    let lineNumber = 0;
+    
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      const charWidth = context.measureText(char).width;
+      
+      if (currentLineWidth + charWidth > maxWidth) {
+        // Move to next line
+        lineNumber++;
+        currentLine = char;
+        currentLineWidth = charWidth;
+      } else {
+        currentLine += char;
+        currentLineWidth += charWidth;
+      }
+    }
+    
+    return {
+      left: 2 + currentLineWidth,
+      top: lineNumber * 20 // Approximate line height
+    };
+  };
+  
+
+  
   return (
-    <div style={{ color: textColor, fontSize: '14px', pointerEvents: 'auto' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px', lineHeight: '1.4' }}>
+    <div style={{ color: textColor, fontSize: '14px', pointerEvents: 'auto', width: '100%' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px', lineHeight: '1.4', width: '100%' }}>
         <span>Change text to </span>
       <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
         {/* Show dots when no text and not focused */}
@@ -83,15 +142,16 @@ const blinkingCSS = `
         {focusedField === 'text' && (
           <span style={{ 
             position: 'absolute', 
-            left: `${2 + getTextWidth(textValue)}px` 
+            left: `${getCursorPosition(textValue, 'text').left}px`,
+            top: `${getCursorPosition(textValue, 'text').top}px`,
+            lineHeight: '1.4'
           }}>
             <BlinkingCursor />
           </span>
         )}
         {/* Input field in the natural position */}
-        <input
+        <textarea
           ref={textInputRef}
-          type="text"
           value={textValue}
           onChange={(e) => {
             // Enforce character limit
@@ -100,6 +160,8 @@ const blinkingCSS = `
             if (newValue.length <= TEXT_CHAR_LIMIT) {
               onTextChange(newValue);
               console.log('=== CALLING onTextChange ===', { newValue });
+              // Auto-resize the textarea
+              autoResizeTextarea(e.target);
             }
           }}
           onFocus={() => {
@@ -118,11 +180,18 @@ const blinkingCSS = `
             color: textValue ? textColor : 'transparent',
             fontSize: '14px',
             fontWeight: 'bold',
-            width: textValue ? `${Math.max(getTextWidth(textValue) + 10, 20)}px` : '50px',
+            lineHeight: '1.4',
+            width: '100%',
             minWidth: '50px',
+            maxWidth: '100%',
             padding: '0 2px',
-            caretColor: 'transparent'
+            caretColor: 'transparent',
+            resize: 'none',
+            overflow: 'hidden',
+            wordWrap: 'break-word',
+            whiteSpace: 'pre-wrap'
           }}
+          rows={1}
         />
       </div>
       <span> and upload image of </span>
@@ -149,20 +218,23 @@ const blinkingCSS = `
         {focusedField === 'image' && (
           <span style={{ 
             position: 'absolute', 
-            left: `${2 + getTextWidth(imageValue)}px` 
+            left: `${getCursorPosition(imageValue, 'image').left}px`,
+            top: `${getCursorPosition(imageValue, 'image').top}px`,
+            lineHeight: '1.4'
           }}>
             <BlinkingCursor />
           </span>
         )}
         {/* Input field in the natural position */}
-        <input
+        <textarea
           ref={imageInputRef}
-          type="text"
           value={imageValue}
           onChange={(e) => {
             console.log('=== IMAGE INPUT CHANGE ===', { value: e.target.value });
             onImageTextChange(e.target.value);
             console.log('=== CALLING onImageTextChange ===', { value: e.target.value });
+            // Auto-resize the textarea
+            autoResizeTextarea(e.target);
           }}
           onFocus={() => setFocusedField('image')}
           onBlur={() => setFocusedField(null)}
@@ -174,11 +246,18 @@ const blinkingCSS = `
             color: imageValue ? textColor : 'transparent',
             fontSize: '14px',
             fontWeight: 'bold',
-            width: imageValue ? `${Math.min(Math.max(getTextWidth(imageValue) + 10, 20), 300)}px` : '50px',
+            lineHeight: '1.4',
+            width: '100%',
             minWidth: '50px',
+            maxWidth: '100%',
             padding: '0 2px',
-            caretColor: 'transparent'
+            caretColor: 'transparent',
+            resize: 'none',
+            overflow: 'hidden',
+            wordWrap: 'break-word',
+            whiteSpace: 'pre-wrap'
           }}
+          rows={1}
         />
                   {/* Remix button next to the image input */}
           {(textValue.trim() || imageValue.trim() || (elementData && elementData.cardType === 'content-card')) && (
@@ -201,7 +280,13 @@ const blinkingCSS = `
             }}
             title="Remix image"
           >
-            <ArrowPathIcon className="w-3 h-3" />
+            {isRemixLoading ? (
+              <div className="w-3 h-3 animate-spin">
+                <ArrowPathIcon className="w-3 h-3" />
+              </div>
+            ) : (
+              <ArrowPathIcon className="w-3 h-3" />
+            )}
           </button>
         )}
       </div>
@@ -232,7 +317,8 @@ export default function PromptBubble({
       selectedFlightPhase = null,
     onFlightPhaseSelect,
     onCloseWithoutSave,
-    selectedFlightSegment = null
+    selectedFlightSegment = null,
+    selectedDates = []
 }) {
   console.log('=== PROMPT BUBBLE RENDER ===', {
     isVisible,
@@ -252,6 +338,80 @@ export default function PromptBubble({
   const [autoTypeIndex, setAutoTypeIndex] = useState(0);
   const [stickyPosition, setStickyPosition] = useState(null);
   const [selectedChip, setSelectedChip] = useState((elementType === 'flight-icon' || elementType === 'flight-phase-button') && positionKey === 'landing-demo' ? 'cruise' : null);
+  const [isRemixLoading, setIsRemixLoading] = useState(false);
+  const [remixedImageUrl, setRemixedImageUrl] = useState(null);
+  const [contentHeight, setContentHeight] = useState('auto');
+  
+  // Function to calculate required height based on text content
+  const calculateRequiredHeight = (text, imageText) => {
+    if (elementType !== 'promo-card') return 'auto';
+    
+    const maxWidth = bubbleWidth - 40; // Account for padding
+    const lineHeight = 20; // Line height in pixels
+    const baseHeight = 120; // Base height for the bubble
+    
+    // Calculate lines needed for text
+    const textLines = text ? Math.ceil((getTextWidth(text) + 20) / maxWidth) : 0;
+    
+    // Calculate lines needed for image text
+    const imageTextLines = imageText ? Math.ceil((getTextWidth(imageText) + 20) / maxWidth) : 0;
+    
+    const totalLines = Math.max(textLines, imageTextLines, 1);
+    const requiredHeight = baseHeight + (totalLines - 1) * lineHeight;
+    
+    return `${requiredHeight}px`;
+  };
+  
+  // Function to get accurate text width using canvas measurement
+  const getTextWidth = (text) => {
+    if (!text) return 0;
+    
+    // Create a canvas element to measure text
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    context.font = 'bold 14px system-ui, -apple-system, sans-serif'; // Match the input font with bold weight
+    
+    return context.measureText(text).width;
+  };
+  
+  // Monitor remix image loading to clear loading state
+  useEffect(() => {
+    if (isRemixLoading && elementType === 'promo-card' && elementData) {
+      // Find the promo card image in the DOM and monitor its loading
+      const cardIndex = elementData.cardIndex;
+      const promoCard = document.querySelector(`[data-card-index="${cardIndex}"]`);
+      
+      if (promoCard) {
+        const image = promoCard.querySelector('img');
+        if (image) {
+          const handleImageLoad = () => {
+            console.log('=== REMIX IMAGE LOADED ===', { cardIndex });
+            setIsRemixLoading(false);
+            // Capture the remixed image URL for saving when user clicks send
+            setRemixedImageUrl(image.src);
+          };
+          
+          const handleImageError = () => {
+            console.log('=== REMIX IMAGE ERROR ===', { cardIndex });
+            setIsRemixLoading(false);
+          };
+          
+          // If image is already loaded, clear loading state immediately
+          if (image.complete) {
+            setIsRemixLoading(false);
+          } else {
+            image.addEventListener('load', handleImageLoad);
+            image.addEventListener('error', handleImageError);
+            
+            return () => {
+              image.removeEventListener('load', handleImageLoad);
+              image.removeEventListener('error', handleImageError);
+            };
+          }
+        }
+      }
+    }
+  }, [isRemixLoading, elementType, elementData]);
 
   
   // Initialize promo card state from existingText if available
@@ -328,6 +488,8 @@ export default function PromptBubble({
   useEffect(() => {
     console.log('=== PROMO IMAGE VALUE CHANGED ===', { promoImageValue });
   }, [promoImageValue]);
+  
+
 
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showGradientPicker, setShowGradientPicker] = useState(false);
@@ -536,6 +698,14 @@ export default function PromptBubble({
 
   // Bubble width (wider for FJB to accommodate more chips)
   const bubbleWidth = elementType === 'flight-journey-bar' ? 360 : 250;
+  
+  // Update content height when text changes
+  useEffect(() => {
+    if (elementType === 'promo-card') {
+      const newHeight = calculateRequiredHeight(promoTextValue, promoImageValue);
+      setContentHeight(newHeight);
+    }
+  }, [promoTextValue, promoImageValue, elementType, bubbleWidth]);
 
   // Flight phase chips for FPS
   const flightPhaseChips = [
@@ -546,6 +716,18 @@ export default function PromptBubble({
     { id: 'landing', label: 'Landing', color: '#6B7280' },
     { id: 'add-new', label: 'Add new', color: '#6B7280' }
   ];
+
+  // Festival chips based on route and dates
+  const getFestivalChips = () => {
+    if (!selectedFlightSegment || !selectedDates || selectedDates.length === 0) {
+      return [];
+    }
+
+    const festivals = getFestivalsForFlightSegment(selectedFlightSegment, selectedDates);
+    return formatFestivalChips(festivals);
+  };
+
+  const festivalChips = getFestivalChips();
   // Logo placeholder chips
   const logoChips = [
     { id: 'discover', label: 'Discover' },
@@ -1017,15 +1199,19 @@ export default function PromptBubble({
         promoImageValue, 
         submitText, 
         elementData, 
-        positionKey 
+        positionKey,
+        remixedImageUrl
       });
       
-      onSubmit(submitText, elementType, elementData, positionKey);
+      // If we have a remixed image URL, include it in the submission
+      const submissionOptions = remixedImageUrl ? { remixedImageUrl } : {};
+      onSubmit(submitText, elementType, elementData, positionKey, submissionOptions);
       
       // Clear promo card values after submission to show placeholder text again
       if (elementType === 'promo-card') {
         setPromoTextValue('');
         setPromoImageValue('');
+        setRemixedImageUrl(null); // Clear remixed image URL
         setPromoResetTrigger(prev => prev + 1); // Trigger reset of focus state
       } else {
         setPromptText('');
@@ -1089,15 +1275,19 @@ export default function PromptBubble({
             promoImageValue, 
             submitText, 
             elementData, 
-            positionKey 
+            positionKey,
+            remixedImageUrl
           });
           
-          onSubmit(submitText, elementType, elementData, positionKey);
+          // If we have a remixed image URL, include it in the submission
+          const submissionOptions = remixedImageUrl ? { remixedImageUrl } : {};
+          onSubmit(submitText, elementType, elementData, positionKey, submissionOptions);
           
           // Clear promo card values after submission to show placeholder text again  
           if (elementType === 'promo-card') {
             setPromoTextValue('');
             setPromoImageValue('');
+            setRemixedImageUrl(null); // Clear remixed image URL
             setPromoResetTrigger(prev => prev + 1); // Trigger reset of focus state
           } else {
             setPromptText('');
@@ -1185,6 +1375,8 @@ export default function PromptBubble({
         borderBottomRightRadius: '24px',
         width: `${bubbleWidth}px`,
         maxWidth: `${bubbleWidth}px`,
+        height: elementType === 'promo-card' ? 'auto' : contentHeight,
+        minHeight: elementType === 'promo-card' ? '120px' : 'auto',
         zIndex: 999999999 // DEBUG: Extra high z-index
       }}
     >
@@ -1232,7 +1424,7 @@ export default function PromptBubble({
 
 
       {/* Input Form */}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3" style={{ minHeight: 'fit-content' }}>
         {/* Hidden file input for logo upload (triggered by image icon) */}
         {elementType === 'logo-placeholder' && (
           <input
@@ -1313,7 +1505,8 @@ export default function PromptBubble({
                 color: useLightText ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)',
                 fontSize: '14px',
                 lineHeight: '20px',
-                width: '200px'
+                width: '100%',
+                minHeight: 'fit-content'
               }}
             >
               <PromoCardPlaceholder 
@@ -1326,7 +1519,12 @@ export default function PromptBubble({
                 onTextBlur={setIsPromoTextFocused}
                 resetTrigger={promoResetTrigger}
                 elementData={elementData}
+                isRemixLoading={isRemixLoading}
+                maxWidth={bubbleWidth}
                 onRemix={() => {
+                  // Set loading state for remix button
+                  setIsRemixLoading(true);
+                  
                   // Trigger remix functionality by calling onSubmit with remix flag
                   let submitText;
                   if (elementData && elementData.cardType === 'content-card') {
@@ -1438,6 +1636,8 @@ export default function PromptBubble({
               </div>
             </div>
           )}
+
+
           {/* Logo Placeholder Label and Chips */}
           {false && (
             <>
@@ -1592,6 +1792,19 @@ export default function PromptBubble({
                   isGradient: true
                 });
                 
+                // 5. Festival chips - add festival chips to the main theme chips
+                if (festivalChips.length > 0) {
+                  festivalChips.forEach(festivalChip => {
+                    customChips.push({
+                      label: festivalChip.label,
+                      color: festivalChip.color,
+                      isFestival: true,
+                      location: festivalChip.location,
+                      type: festivalChip.type
+                    });
+                  });
+                }
+                
                 return customChips;
               })().map((chip, idx) => {
                 // Get the original chip color for the color circle
@@ -1612,7 +1825,7 @@ export default function PromptBubble({
                     type="button"
                     onClick={() => handleColorChange(originalChipColor, chip)}
                     className={`transition-colors`}
-                    title={label}
+                    title={chip.isFestival ? `${label} - ${chip.location} (${chip.type})` : label}
                   >
                     <div 
                       className={`flex items-center gap-2 px-2 py-1 border rounded-full max-w-full`} 

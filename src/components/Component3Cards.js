@@ -734,15 +734,100 @@ export default function Component3Cards({
         isModifyClicked
       });
       
-      // If user has submitted content for this card, use it (prioritize over phase-specific content)
-      // Only show user content if the route has been modified
-      if (promoCardContents[originalCardIndex]?.updated && isModifyClicked) {
+      // Check for route-specific content first (this is where the saved content is stored)
+      if (currentRouteKey) {
+        const routeContents = promoCardContents[currentRouteKey];
+        console.log('=== CHECKING ROUTE CONTENTS ===', {
+          currentRouteKey,
+          routeContents,
+          cardIndex: originalCardIndex,
+          hasRouteContents: !!routeContents,
+          hasCardContent: routeContents && !!routeContents[originalCardIndex],
+          allPromoCardContents: promoCardContents,
+          allPromoCardContentsKeys: Object.keys(promoCardContents),
+          directContent: promoCardContents[originalCardIndex]
+        });
+        
+        if (routeContents && routeContents[originalCardIndex]) {
+          const savedContent = routeContents[originalCardIndex];
+          console.log('=== FOUND ROUTE-SPECIFIC CONTENT ===', savedContent);
+          
+          // For remix operations, return existing content and let useEffect handle image generation
+          if (savedContent.remixCount > 0) {
+            console.log('=== REMIX OPERATION DETECTED ===', { remixCount: savedContent.remixCount });
+            
+            return {
+              text: savedContent.text,
+              backgroundImage: savedContent.backgroundImage, // Keep existing image for now
+              bgColor: getLightThemeColor()
+            };
+          }
+          
+          // For regular content, use existing image or generate new one
+          let backgroundImage = savedContent.backgroundImage;
+          console.log('=== PROCESSING IMAGE FOR CONTENT ===', {
+            cardIndex: originalCardIndex,
+            savedContent,
+            hasBackgroundImage: !!savedContent.backgroundImage,
+            hasImage: !!savedContent.image,
+            backgroundImage: savedContent.backgroundImage,
+            image: savedContent.image
+          });
+          
+          if (!backgroundImage && savedContent.image) {
+            // Check if we have a cached image for this user content
+            const userCacheKey = `user-${originalCardIndex}-${savedContent.image}`;
+            const cachedUserImage = sessionStorage.getItem(userCacheKey);
+            
+            if (cachedUserImage) {
+              // Use cached image for faster loading
+              console.log('=== USING CACHED USER IMAGE ===', { userCacheKey, cachedUserImage });
+              backgroundImage = cachedUserImage;
+            } else {
+              // Generate new image and cache it
+              try {
+                console.log('=== GENERATING NEW AI IMAGE ===', { imagePrompt: savedContent.image });
+                backgroundImage = generateAIImageSync(savedContent.image);
+                // Cache the generated image
+                sessionStorage.setItem(userCacheKey, backgroundImage);
+                console.log('=== CACHED NEW USER IMAGE ===', { userCacheKey, backgroundImage });
+              } catch (error) {
+                console.error('=== SYNC IMAGE GENERATION FAILED ===', error);
+                backgroundImage = getUnsplashFallback(savedContent.image);
+                // Cache the fallback image
+                sessionStorage.setItem(userCacheKey, backgroundImage);
+                console.log('=== USING FALLBACK IMAGE ===', { fallbackImage: backgroundImage });
+              }
+            }
+          }
+          
+          // Detect text color for the background image
+          if (backgroundImage) {
+            detectTextColorForImage(backgroundImage, originalCardIndex);
+          }
+          
+          const finalContent = {
+            text: savedContent.text,
+            backgroundImage: backgroundImage,
+            bgColor: getLightThemeColor()
+          };
+          console.log('=== RETURNING FINAL CONTENT ===', {
+            cardIndex: originalCardIndex,
+            finalContent,
+            hasBackgroundImage: !!finalContent.backgroundImage
+          });
+          return finalContent;
+        }
+      }
+      
+      // Check for direct content if route-specific content is not found
+      if (promoCardContents[originalCardIndex]) {
         const userContent = promoCardContents[originalCardIndex];
-        console.log('=== USING USER CONTENT ===', userContent);
+        console.log('=== USING DIRECT CONTENT ===', userContent);
         
         // For remix operations, return existing content and let useEffect handle image generation
         if (userContent.remixCount > 0) {
-          console.log('=== REMIX OPERATION DETECTED ===', { remixCount: userContent.remixCount });
+          console.log('=== REMIX OPERATION DETECTED (DIRECT) ===', { remixCount: userContent.remixCount });
           
           return {
             text: userContent.text,
@@ -760,20 +845,22 @@ export default function Component3Cards({
           
           if (cachedUserImage) {
             // Use cached image for faster loading
-            console.log('=== USING CACHED USER IMAGE ===', { userCacheKey, cachedUserImage });
+            console.log('=== USING CACHED USER IMAGE (DIRECT) ===', { userCacheKey, cachedUserImage });
             backgroundImage = cachedUserImage;
           } else {
             // Generate new image and cache it
             try {
+              console.log('=== GENERATING NEW AI IMAGE (DIRECT) ===', { imagePrompt: userContent.image });
               backgroundImage = generateAIImageSync(userContent.image);
               // Cache the generated image
               sessionStorage.setItem(userCacheKey, backgroundImage);
-              console.log('=== CACHED NEW USER IMAGE ===', { userCacheKey, backgroundImage });
+              console.log('=== CACHED NEW USER IMAGE (DIRECT) ===', { userCacheKey, backgroundImage });
             } catch (error) {
-              console.error('=== SYNC IMAGE GENERATION FAILED ===', error);
+              console.error('=== SYNC IMAGE GENERATION FAILED (DIRECT) ===', error);
               backgroundImage = getUnsplashFallback(userContent.image);
               // Cache the fallback image
               sessionStorage.setItem(userCacheKey, backgroundImage);
+              console.log('=== USING FALLBACK IMAGE (DIRECT) ===', { fallbackImage: backgroundImage });
             }
           }
         }
@@ -783,79 +870,20 @@ export default function Component3Cards({
           detectTextColorForImage(backgroundImage, originalCardIndex);
         }
         
-        return {
+        const finalContent = {
           text: userContent.text,
           backgroundImage: backgroundImage,
           bgColor: getLightThemeColor()
         };
+        console.log('=== RETURNING FINAL CONTENT (DIRECT) ===', {
+          cardIndex: originalCardIndex,
+          finalContent,
+          hasBackgroundImage: !!finalContent.backgroundImage
+        });
+        return finalContent;
       }
       
-      // Only show images for routes that have been modified
-      if (isModifyClicked && currentRouteKey) {
-        // If middle card prompt is closed and cruise label is shown, show content with images
-        if (middleCardPromptClosed && cruiseLabelShown && isModifyClicked) {
-          const contentWithImages = [
-            { 
-              text: "Welcome drink", 
-              backgroundImage: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=416&h=200&fit=crop&crop=center&auto=format",
-              bgColor: getLightThemeColor()
-            },
-            { 
-              text: "Settle in", 
-              backgroundImage: "https://images.unsplash.com/photo-1556388158-158ea5ccacbd?w=416&h=200&fit=crop&crop=center&auto=format",
-              bgColor: getLightThemeColor()
-            },
-            { 
-              text: "Connect your device", 
-              backgroundImage: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=416&h=200&fit=crop&crop=center&auto=format",
-              bgColor: getLightThemeColor()
-            }
-          ];
-          return contentWithImages[originalCardIndex];
-        } else if (selectedFlightPhase) {
-          // Show phase-specific content with AI-generated images when flight phase is selected
-          const phaseContent = getPhaseSpecificContent(originalCardIndex);
-          const imageKeyword = getPhaseSpecificImageKeyword(originalCardIndex);
-          if (phaseContent && imageKeyword) {
-            // Check if we already have a cached image for this phase and card
-            const cacheKey = `${selectedFlightPhase}-${originalCardIndex}-${imageKeyword}`;
-            const cachedImage = sessionStorage.getItem(cacheKey);
-            
-            if (cachedImage) {
-              // Use cached image for faster loading
-              console.log('=== USING CACHED IMAGE ===', { cacheKey, cachedImage });
-              return {
-                ...phaseContent,
-                backgroundImage: cachedImage
-              };
-            } else {
-              // Generate AI image for the phase-specific content and cache it
-              try {
-                const aiImageUrl = generateAIImageSync(imageKeyword);
-                // Cache the generated image
-                sessionStorage.setItem(cacheKey, aiImageUrl);
-                console.log('=== CACHED NEW AI IMAGE ===', { cacheKey, aiImageUrl });
-                return {
-                  ...phaseContent,
-                  backgroundImage: aiImageUrl
-                };
-              } catch (error) {
-                console.error('=== AI IMAGE GENERATION FAILED FOR PHASE ===', { error, imageKeyword });
-                // Fallback to Unsplash image and cache it
-                const fallbackUrl = getUnsplashFallback(imageKeyword);
-                sessionStorage.setItem(cacheKey, fallbackUrl);
-                return {
-                  ...phaseContent,
-                  backgroundImage: fallbackUrl
-                };
-              }
-            }
-          }
-          // Fallback to generic phase text if no specific content
-          const phaseText = `add experiences for ${selectedFlightPhase.charAt(0).toUpperCase() + selectedFlightPhase.slice(1)}`;
-          return { text: phaseText, bgColor: getLightThemeColor() };
-        }
-      }
+
       
       // Default state - no images for unmodified routes
       return { text: "Add experience", bgColor: getLightThemeColor() };
@@ -916,6 +944,7 @@ export default function Component3Cards({
         className="bg-black h-[200px] overflow-clip relative rounded-lg shrink-0 flex items-center justify-center"
         style={cardStyle}
         data-name={cardInfo.name}
+        data-card-index={originalCardIndex}
         id={cardInfo.id}
         onDragStart={(e) => handleDragStart(e, displayPosition)}
         onDragEnd={handleDragEnd}

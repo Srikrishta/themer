@@ -1484,7 +1484,8 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
         const leftChevronX = flightCardLeft - 40 - 12; // 40px gap + 12px for chevron center (24px button / 2)
         const rightChevronX = flightCardRight + 40 - 12; // 40px gap - 12px for chevron center
         
-        // Position chevrons at exactly half the height of the flight card
+        // Position chevrons at the center of the flight card
+        // Calculate the flight card's center position relative to the container
         const chevronY = flightCardTop + (flightCardHeight / 2);
         
         console.log('🎯 Direct chevron positioning from actual DOM elements:', {

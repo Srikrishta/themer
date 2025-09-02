@@ -705,6 +705,8 @@ export default function Dashboard() {
   const [contentCardOrder, setContentCardOrder] = useState([0, 1, 2, 3]); // Default order: 1, 2, 3, 4
   // NEW: Track the currently selected flight segment for FJB
   const [selectedFlightSegment, setSelectedFlightSegment] = useState(null);
+  // NEW: Track selected dates for festival chips
+  const [selectedDates, setSelectedDates] = useState([]);
   // NEW: Track flight card progress percentages (flight card index -> progress percentage)
   const [flightCardProgress, setFlightCardProgress] = useState({});
   // Route-specific recommended content cards: { [routeKey]: contentCards }
@@ -1563,15 +1565,19 @@ export default function Dashboard() {
         // Update the promo card content for the current route
         const routeKey = getCurrentRouteKey();
         if (routeKey) {
-      setPromoCardContents(prev => {
+          setPromoCardContents(prev => {
             const routeContents = prev[routeKey] || {};
             const existingContent = routeContents[elementData.cardIndex] || {};
-            const newRouteContents = {
+            
+            // Update the specific card that was edited
+            const updatedRouteContents = {
               ...routeContents,
-          [elementData.cardIndex]: {
-            text: textContent,
-            // Only update image if a new one is provided, otherwise keep existing
-            image: imageContent.trim() ? imageContent : existingContent.image,
+              [elementData.cardIndex]: {
+                // For remix operations, preserve existing text content
+                text: options.isRemix ? existingContent.text : textContent,
+                // Use remixed image URL if provided, otherwise use image content or existing image
+                image: options.remixedImageUrl ? options.remixedImageUrl : (imageContent.trim() ? imageContent : existingContent.image),
+                backgroundImage: options.remixedImageUrl || existingContent.backgroundImage,
                 updated: true,
                 // Add remix counter for remix operations to trigger re-render
                 remixCount: options.isRemix ? (existingContent.remixCount || 0) + 1 : 0,
@@ -1580,24 +1586,35 @@ export default function Dashboard() {
               }
             };
             
+            // If this is the first time saving content for this route, populate all flight phase cards
+            const hasAnyUpdatedCards = Object.values(routeContents).some(card => card.updated);
+            if (!hasAnyUpdatedCards) {
+              // Populate all flight phase cards with default content
+              updatedRouteContents[0] = { text: 'Enjoy your welcome drink', image: 'welcome drink', updated: true };
+              updatedRouteContents[1] = { text: 'Feel at home', image: 'Settle in', updated: true };
+              updatedRouteContents[2] = { text: 'Connect your device', image: 'phone in an aircraft', updated: true };
+            }
+            
             const newContent = {
               ...prev,
-              [routeKey]: newRouteContents
+              [routeKey]: updatedRouteContents
             };
             
             console.log('=== UPDATING ROUTE-SPECIFIC PROMO CARD CONTENTS ===', {
               routeKey,
-          cardIndex: elementData.cardIndex,
-          textContent,
-          imageContent,
+              cardIndex: elementData.cardIndex,
+              textContent,
+              imageContent,
               isRemix: options.isRemix,
-              remixCount: newRouteContents[elementData.cardIndex].remixCount,
+              remixCount: updatedRouteContents[elementData.cardIndex].remixCount,
               previousRouteContents: routeContents,
-              newRouteContents,
-              allRoutes: Object.keys(prev)
-        });
-        return newContent;
-      });
+              newRouteContents: updatedRouteContents,
+              allRoutes: Object.keys(prev),
+              hasAnyUpdatedCards,
+              populatedAllCards: !hasAnyUpdatedCards
+            });
+            return newContent;
+          });
         }
       
       console.log('=== PROMO CARD CONTENT UPDATED ===', { 
@@ -1997,6 +2014,10 @@ export default function Dashboard() {
             console.log('🎯 Add button clicked - marking route as modified');
             markCurrentRouteAsModified();
           }}
+          onDatesChange={(dates) => {
+            setSelectedDates(dates);
+            console.log('🎯 Dashboard: Dates updated from ThemeCreator:', dates);
+          }}
           onShowPreview={(show) => {
             console.log('🎯 Dashboard: onShowPreview called with:', show);
             setShowInFlightPreview(show);
@@ -2390,6 +2411,7 @@ export default function Dashboard() {
         selectedFlightPhase={selectedFlightPhase}
         onFlightPhaseSelect={handleFlightPhaseSelect}
         selectedFlightSegment={selectedFlightSegment}
+        selectedDates={selectedDates}
       />
 
       {/* Change Theme Button - Shows when hovering IFE frame after color prompt was closed without save */}
