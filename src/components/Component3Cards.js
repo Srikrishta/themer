@@ -1,5 +1,6 @@
 import { getReadableOnColor, getTextColorForImage } from '../utils/color';
 import { useState, useEffect, useCallback } from 'react';
+import { getPromoCardContent, shouldUseFestivalContent } from '../utils/festivalUtils';
 
 // Helper function to map hash to Unsplash photo IDs for consistent fallbacks
 const getUnsplashFallback = (description) => {
@@ -100,6 +101,8 @@ const gradientAnimationCSS = `
 
 export default function Component3Cards({ 
   themeColor = '#1E1E1E', 
+  origin = null,
+  destination = null,
   routes = [], 
   isPromptMode = false, 
   onPromptHover, 
@@ -116,8 +119,97 @@ export default function Component3Cards({
   colorPromptClosedWithoutSave = false,
   colorPromptSaved = false,
   isModifyClicked = false,
-  currentRouteKey = null
+  currentRouteKey = null,
+  selectedDates = []
 }) {
+  // Helper function to check if current theme is a festival theme
+  const isFestivalThemeSelected = () => {
+    // Check if themeColor matches any festival color from festivals.json
+    const festivalColors = [
+      // January
+      '#3B82F6', // Amsterdam Light Festival
+      '#10B981', // Christmas in Rome
+      
+      // February
+      '#F59E0B', // Rome Carnival
+      '#14B8A6', // Carnevale Ambrosiano
+      '#EC4899', // Milan Fashion Week (Winter)
+      '#6366F1', // Paris Fashion Week (Winter)
+      
+      // March
+      '#6366F1', // Paris Fashion Week (Winter)
+      
+      // April
+      '#F43F5E', // Milan Furniture Fair
+      '#F59E0B', // Natale di Roma
+      '#F97316', // King's Day
+      '#059669', // Frühlingsfest
+      
+      // May
+      '#059669', // Frühlingsfest
+      '#F59E0B', // Cannes Film Festival
+      '#EF4444', // Amsterdam Dance Event
+      
+      // June
+      '#F59E0B', // Cannes Film Festival
+      '#EF4444', // Amsterdam Dance Event
+      '#10B981', // Festa di Sant'Ambrogio
+      
+      // July
+      '#F59E0B', // Cannes Film Festival
+      '#EF4444', // Amsterdam Dance Event
+      '#10B981', // Festa di Sant'Ambrogio
+      
+      // August
+      '#F59E0B', // Cannes Film Festival
+      '#EF4444', // Amsterdam Dance Event
+      '#10B981', // Festa di Sant'Ambrogio
+      
+      // September
+      '#F59E0B', // Oktoberfest
+      '#581C87', // Nuit Blanche
+      '#6366F1', // Paris Fashion Week (Autumn)
+      '#EC4899', // Milan Fashion Week (Autumn)
+      
+      // October
+      '#FCD34D', // Oktoberfest
+      '#EF4444', // Amsterdam Dance Event
+      '#8B5CF6', // Rome Film Festival
+      '#6366F1', // Paris Fashion Week (Autumn)
+      
+      // November
+      '#7C3AED', // Tollwood Festival (Winter)
+      '#EF4444', // Christmas Market
+      
+      // December
+      '#3B82F6', // Amsterdam Light Festival
+      '#F43F5E', // Christmas Market (Paris)
+      '#10B981', // Festa di Sant'Ambrogio
+      '#F59E0B'  // Christmas in Rome
+    ];
+    return festivalColors.includes(themeColor);
+  };
+
+  console.log('=== COMPONENT3CARDS RENDER ===', {
+    selectedDates,
+    origin,
+    destination,
+    selectedFlightPhase,
+    hasOrigin: !!origin,
+    hasDestination: !!destination,
+    hasDates: !!selectedDates && selectedDates.length > 0,
+    themeColor,
+    isFestivalTheme: isFestivalThemeSelected(),
+    routeStructure: {
+      hasOrigin: !!origin,
+      hasDestination: !!destination,
+      originAirport: origin?.airport,
+      destAirport: destination?.airport,
+      originCity: origin?.airport?.city,
+      destCity: destination?.airport?.city
+    }
+  });
+  
   console.log('=== COMPONENT3CARDS RENDER ===', {
     isPromptMode, 
     cruiseLabelShown, 
@@ -547,10 +639,76 @@ export default function Component3Cards({
     }
   }, [isRemixRateLimited, recordRemixAttempt, recordRemixError, resetRemixState, testImageLoad]);
 
-  // Helper function to get phase-specific content
+  // Helper function to get phase-specific content with festival support
   const getPhaseSpecificContent = (cardIndex) => {
     if (!selectedFlightPhase) return null;
     
+    // Debug logging
+    console.log('=== GET PHASE SPECIFIC CONTENT ===', {
+      cardIndex,
+      selectedFlightPhase,
+      origin,
+      destination,
+      selectedDates,
+      hasOrigin: !!origin,
+      hasDestination: !!destination,
+      themeColor,
+      isFestivalTheme: isFestivalThemeSelected()
+    });
+    
+    // Always attempt to resolve festival content based on theme and segment
+    const festivalContent = getPromoCardContent(
+      { origin, destination },
+      selectedDates,
+      selectedFlightPhase,
+      cardIndex,
+      themeColor
+    );
+    
+    console.log('=== FESTIVAL CONTENT RESULT ===', {
+      festivalContent,
+      cardIndex,
+      selectedFlightPhase,
+      hasText: !!festivalContent?.text,
+      hasImagePrompt: !!festivalContent?.image,
+      text: festivalContent?.text,
+      imagePrompt: festivalContent?.image
+    });
+    
+    if (festivalContent && festivalContent.text) {
+      // Generate or reuse background image for festival content
+      let backgroundImage = null;
+      if (festivalContent.image) {
+        const cacheKey = `festival-${selectedFlightPhase}-${cardIndex}-${festivalContent.text}`;
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+          backgroundImage = cached;
+          console.log('=== USING CACHED FESTIVAL IMAGE ===', { cacheKey });
+        } else {
+          try {
+            backgroundImage = generateAIImageSync(festivalContent.image);
+            sessionStorage.setItem(cacheKey, backgroundImage);
+            console.log('=== CACHED NEW FESTIVAL IMAGE ===', { cacheKey, backgroundImage });
+          } catch (e) {
+            console.warn('=== FESTIVAL IMAGE GENERATION FAILED, USING FALLBACK ===', e);
+            backgroundImage = getUnsplashFallback(festivalContent.image);
+            sessionStorage.setItem(cacheKey, backgroundImage);
+          }
+        }
+      }
+      
+      if (backgroundImage) {
+        detectTextColorForImage(backgroundImage, cardIndex);
+      }
+      
+      return {
+        text: festivalContent.text,
+        backgroundImage,
+        bgColor: getLightThemeColor()
+      };
+    }
+    
+    // Fallback to default phase content
     const phaseContent = {
       'takeoff': [
         { text: "croissants at 4€", bgColor: getLightThemeColor() },
@@ -731,8 +889,46 @@ export default function Component3Cards({
         isRemix: promoCardContents[originalCardIndex]?.remixCount > 0,
         remixCount: promoCardContents[originalCardIndex]?.remixCount || 0,
         currentRouteKey,
-        isModifyClicked
+        isModifyClicked,
+        themeColor,
+        isFestivalTheme: isFestivalThemeSelected()
       });
+      
+      // If a festival theme is selected, always prioritize festival content
+      if (selectedFlightPhase && isFestivalThemeSelected()) {
+        console.log('=== FESTIVAL THEME SELECTED, CHECKING FESTIVAL CONTENT FIRST ===', {
+          cardIndex: originalCardIndex,
+          themeColor,
+          selectedFlightPhase,
+          isFestivalTheme: isFestivalThemeSelected()
+        });
+        
+        const festivalContent = getPhaseSpecificContent(originalCardIndex);
+        console.log('=== FESTIVAL CONTENT FROM GET PHASE SPECIFIC ===', {
+          cardIndex: originalCardIndex,
+          festivalContent,
+          hasContent: !!festivalContent,
+          hasText: !!festivalContent?.text,
+          hasBackgroundImage: !!festivalContent?.backgroundImage,
+          text: festivalContent?.text
+        });
+        
+        if (festivalContent) {
+          console.log('=== USING FESTIVAL CONTENT (PRIORITY) ===', {
+            cardIndex: originalCardIndex,
+            festivalContent,
+            returningText: festivalContent.text,
+            returningBackgroundImage: festivalContent.backgroundImage
+          });
+          return festivalContent;
+        } else {
+          console.log('=== NO FESTIVAL CONTENT FOUND ===', {
+            cardIndex: originalCardIndex,
+            themeColor,
+            selectedFlightPhase
+          });
+        }
+      }
       
       // Check for route-specific content first (this is where the saved content is stored)
       if (currentRouteKey) {

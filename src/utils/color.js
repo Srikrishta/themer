@@ -38,6 +38,12 @@ function extractFirstHexFromGradient(input) {
   return hexMatch ? `#${hexMatch[1]}` : null;
 }
 
+function extractAllHexFromGradient(input) {
+  if (typeof input !== 'string') return [];
+  const hexMatches = input.match(/#([0-9a-fA-F]{6})/g);
+  return hexMatches ? hexMatches.map(match => match) : [];
+}
+
 function normalizeHex(input) {
   if (typeof input !== 'string') return null;
   // Expand 3-digit hex to 6-digit
@@ -53,12 +59,41 @@ function normalizeHex(input) {
 export function getReadableOnColor(background) {
   if (!background || typeof background !== 'string') return '#000000';
 
-  // Handle gradients by sampling the first hex stop
-  const bgCandidate = background.includes('gradient')
-    ? extractFirstHexFromGradient(background) || '#ffffff'
-    : background;
-  const bgHex = normalizeHex(bgCandidate) || '#ffffff';
-
+  // Handle gradients by analyzing all color stops
+  if (background.includes('gradient')) {
+    const hexColors = extractAllHexFromGradient(background);
+    if (hexColors.length > 0) {
+      // Calculate average luminance across all gradient stops
+      let totalLuminance = 0;
+      let validColors = 0;
+      
+      for (const hexColor of hexColors) {
+        const normalizedHex = normalizeHex(hexColor);
+        if (normalizedHex) {
+          const { r, g, b } = argbToRgb(argbFromHex(normalizedHex));
+          const luminance = relativeLuminance({ r, g, b });
+          totalLuminance += luminance;
+          validColors++;
+        }
+      }
+      
+      if (validColors > 0) {
+        const avgLuminance = totalLuminance / validColors;
+        // Use black text for light backgrounds (luminance > 0.5), white for dark backgrounds
+        return avgLuminance > 0.5 ? '#000000' : '#FFFFFF';
+      }
+    }
+    
+    // Fallback to first color if analysis fails
+    const bgCandidate = extractFirstHexFromGradient(background) || '#ffffff';
+    const bgHex = normalizeHex(bgCandidate) || '#ffffff';
+    const { r, g, b } = argbToRgb(argbFromHex(bgHex));
+    const luminance = relativeLuminance({ r, g, b });
+    return luminance > 0.5 ? '#000000' : '#FFFFFF';
+  }
+  
+  // Handle solid colors
+  const bgHex = normalizeHex(background) || '#ffffff';
   const bgArgb = argbFromHex(bgHex);
   const cWhite = contrastRatioFromArgb(bgArgb, WHITE_ARGB);
   const cBlack = contrastRatioFromArgb(bgArgb, BLACK_ARGB);

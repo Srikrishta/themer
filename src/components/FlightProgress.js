@@ -95,9 +95,13 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
   // NEW: Handle flight phase click and notify parent
   const handleFlightPhaseClick = (phase) => {
     // Notify parent component about the selection
+    // This should only update the flight phase, not open any prompt bubbles
     if (onFlightPhaseSelect) {
       onFlightPhaseSelect(phase);
     }
+    
+    // Ensure no prompt bubbles are opened when flight phase chips are clicked
+    console.log('=== FLIGHT PHASE CLICKED ===', { phase, action: 'flight phase selection only' });
   };
 
   // Set CSS custom property for theme color
@@ -953,7 +957,18 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               position: 'absolute',
               left: `${barWidth * 0.05}px`,
               top: '40px',
-              color: selectedFlightPhase === 'takeoff' ? getElementColor() : onColor,
+              color: selectedFlightPhase === 'takeoff' 
+                ? (themeColor.includes('gradient') ? undefined : getElementColor())
+                : onColor,
+              ...(selectedFlightPhase === 'takeoff' && themeColor.includes('gradient') 
+                ? { 
+                    background: themeColor, 
+                    WebkitBackgroundClip: 'text', 
+                    WebkitTextFillColor: 'transparent', 
+                    backgroundClip: 'text' 
+                  }
+                : {}
+              ),
               fontSize: '10px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
@@ -963,7 +978,9 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               cursor: 'pointer',
               padding: '4px 8px',
               borderRadius: '12px',
-              backgroundColor: selectedFlightPhase === 'takeoff' ? onColor : 'transparent',
+              backgroundColor: selectedFlightPhase === 'takeoff' 
+                ? (themeColor.includes('gradient') ? '#FFFFFF' : getReadableOnColor(themeColor))
+                : 'transparent',
               border: `1px solid ${onColor}`,
               transition: 'all 0.2s ease'
             }}
@@ -979,7 +996,18 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               position: 'absolute',
               left: `${barWidth * 0.20}px`,
               top: '40px',
-              color: selectedFlightPhase === 'climb' ? getElementColor() : onColor,
+              color: selectedFlightPhase === 'climb' 
+                ? (themeColor.includes('gradient') ? undefined : getElementColor())
+                : onColor,
+              ...(selectedFlightPhase === 'climb' && themeColor.includes('gradient') 
+                ? { 
+                    background: themeColor, 
+                    WebkitBackgroundClip: 'text', 
+                    WebkitTextFillColor: 'transparent', 
+                    backgroundClip: 'text' 
+                  }
+                : {}
+              ),
               fontSize: '10px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
@@ -989,7 +1017,9 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               cursor: 'pointer',
               padding: '4px 8px',
               borderRadius: '12px',
-              backgroundColor: selectedFlightPhase === 'climb' ? onColor : 'transparent',
+              backgroundColor: selectedFlightPhase === 'climb' 
+                ? (themeColor.includes('gradient') ? '#FFFFFF' : getReadableOnColor(themeColor))
+                : 'transparent',
               border: `1px solid ${onColor}`,
               transition: 'all 0.2s ease'
             }}
@@ -1005,7 +1035,18 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               position: 'absolute',
               left: `${barWidth * 0.35}px`,
               top: '40px',
-              color: selectedFlightPhase === 'cruise' ? getElementColor() : onColor,
+              color: selectedFlightPhase === 'cruise' 
+                ? (themeColor.includes('gradient') ? undefined : getElementColor())
+                : onColor,
+              ...(selectedFlightPhase === 'cruise' && themeColor.includes('gradient') 
+                ? { 
+                    background: themeColor, 
+                    WebkitBackgroundClip: 'text', 
+                    WebkitTextFillColor: 'transparent', 
+                    backgroundClip: 'text' 
+                  }
+                : {}
+              ),
               fontSize: '10px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
@@ -1015,7 +1056,9 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               cursor: 'pointer',
               padding: '4px 8px',
               borderRadius: '12px',
-              backgroundColor: selectedFlightPhase === 'cruise' ? onColor : 'transparent',
+              backgroundColor: selectedFlightPhase === 'cruise' 
+                ? (themeColor.includes('gradient') ? '#FFFFFF' : getReadableOnColor(themeColor))
+                : 'transparent',
               border: `1px solid ${onColor}`,
               transition: 'all 0.2s ease'
             }}
@@ -1031,7 +1074,18 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               position: 'absolute',
               left: `${barWidth * 0.75}px`,
               top: '40px',
-              color: selectedFlightPhase === 'descent' ? getElementColor() : onColor,
+              color: selectedFlightPhase === 'descent' 
+                ? (themeColor.includes('gradient') ? undefined : getElementColor())
+                : onColor,
+              ...(selectedFlightPhase === 'descent' && themeColor.includes('gradient') 
+                ? { 
+                    background: themeColor, 
+                    WebkitBackgroundClip: 'text', 
+                    WebkitTextFillColor: 'transparent', 
+                    backgroundClip: 'text' 
+                  }
+                : {}
+              ),
               fontSize: '10px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
@@ -1041,7 +1095,9 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               cursor: 'pointer',
               padding: '4px 8px',
               borderRadius: '12px',
-              backgroundColor: selectedFlightPhase === 'descent' ? onColor : 'transparent',
+              backgroundColor: selectedFlightPhase === 'descent' 
+                ? (themeColor.includes('gradient') ? '#FFFFFF' : getReadableOnColor(themeColor))
+                : 'transparent',
               border: `1px solid ${onColor}`,
               transition: 'all 0.2s ease'
             }}
@@ -1057,7 +1113,18 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               position: 'absolute',
               left: `${barWidth * 0.88}px`,
               top: '40px',
-              color: selectedFlightPhase === 'landing' ? getElementColor() : onColor,
+              color: selectedFlightPhase === 'landing' 
+                ? (themeColor.includes('gradient') ? undefined : getElementColor())
+                : onColor,
+              ...(selectedFlightPhase === 'landing' && themeColor.includes('gradient') 
+                ? { 
+                    background: themeColor, 
+                    WebkitBackgroundClip: 'text', 
+                    WebkitTextFillColor: 'transparent', 
+                    backgroundClip: 'text' 
+                  }
+                : {}
+              ),
               fontSize: '10px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
@@ -1067,7 +1134,9 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
               cursor: 'pointer',
               padding: '4px 8px',
               borderRadius: '12px',
-              backgroundColor: selectedFlightPhase === 'landing' ? onColor : 'transparent',
+              backgroundColor: selectedFlightPhase === 'landing' 
+                ? (themeColor.includes('gradient') ? '#FFFFFF' : getReadableOnColor(themeColor))
+                : 'transparent',
               border: `1px solid ${onColor}`,
               transition: 'all 0.2s ease'
             }}

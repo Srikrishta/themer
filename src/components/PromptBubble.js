@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { XMarkIcon, PaperAirplaneIcon, PlusIcon, PhotoIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon, BookmarkIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PaperAirplaneIcon, PlusIcon, PhotoIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon, BookmarkIcon, ArrowPathIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import { HexColorPicker } from 'react-colorful';
 import { getReadableOnColor } from '../utils/color';
 import { argbFromHex } from '@material/material-color-utilities';
-import { getFestivalsForFlightSegment, formatFestivalChips } from '../utils/festivalUtils';
+import { getFestivalsForFlightSegment, formatFestivalChips, getPromoCardContent, getContentCardContent, shouldUseFestivalContent } from '../utils/festivalUtils';
 
 // Blinking cursor component
 const BlinkingCursor = () => (
@@ -78,40 +78,7 @@ const blinkingCSS = `
     return context.measureText(text).width;
   };
   
-  // Function to get cursor position considering text wrapping
-  const getCursorPosition = (text, fieldType) => {
-    if (!text) return { left: 2, top: 0 };
-    
-    // For textarea, we need to calculate based on the actual text wrapping
-    const maxWidth = 300 - 60; // maxWidth - 60 from the component
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    context.font = 'bold 14px system-ui, -apple-system, sans-serif';
-    
-    let currentLine = '';
-    let currentLineWidth = 0;
-    let lineNumber = 0;
-    
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      const charWidth = context.measureText(char).width;
-      
-      if (currentLineWidth + charWidth > maxWidth) {
-        // Move to next line
-        lineNumber++;
-        currentLine = char;
-        currentLineWidth = charWidth;
-      } else {
-        currentLine += char;
-        currentLineWidth += charWidth;
-      }
-    }
-    
-    return {
-      left: 2 + currentLineWidth,
-      top: lineNumber * 20 // Approximate line height
-    };
-  };
+
   
 
   
@@ -138,17 +105,7 @@ const blinkingCSS = `
             ......
           </span>
         )}
-        {/* Show cursor when focused */}
-        {focusedField === 'text' && (
-          <span style={{ 
-            position: 'absolute', 
-            left: `${getCursorPosition(textValue, 'text').left}px`,
-            top: `${getCursorPosition(textValue, 'text').top}px`,
-            lineHeight: '1.4'
-          }}>
-            <BlinkingCursor />
-          </span>
-        )}
+
         {/* Input field in the natural position */}
         <textarea
           ref={textInputRef}
@@ -185,7 +142,7 @@ const blinkingCSS = `
             minWidth: '50px',
             maxWidth: '100%',
             padding: '0 2px',
-            caretColor: 'transparent',
+            caretColor: textColor,
             resize: 'none',
             overflow: 'hidden',
             wordWrap: 'break-word',
@@ -214,17 +171,7 @@ const blinkingCSS = `
             ......
           </span>
         )}
-        {/* Show cursor when focused */}
-        {focusedField === 'image' && (
-          <span style={{ 
-            position: 'absolute', 
-            left: `${getCursorPosition(imageValue, 'image').left}px`,
-            top: `${getCursorPosition(imageValue, 'image').top}px`,
-            lineHeight: '1.4'
-          }}>
-            <BlinkingCursor />
-          </span>
-        )}
+
         {/* Input field in the natural position */}
         <textarea
           ref={imageInputRef}
@@ -251,7 +198,7 @@ const blinkingCSS = `
             minWidth: '50px',
             maxWidth: '100%',
             padding: '0 2px',
-            caretColor: 'transparent',
+            caretColor: textColor,
             resize: 'none',
             overflow: 'hidden',
             wordWrap: 'break-word',
@@ -424,6 +371,26 @@ export default function PromptBubble({
         // For content cards, use the existingText as the text content
         // Pre-populate image field with default values based on card index
         const cardIndex = elementData.cardIndex;
+        
+        // Check if we should use festival content for content cards
+        const useFestivalContent = shouldUseFestivalContent(selectedFlightSegment, selectedDates);
+        
+        if (useFestivalContent && selectedFlightPhase) {
+          const festivalContent = getContentCardContent(selectedFlightSegment, selectedDates, selectedFlightPhase, cardIndex);
+          if (festivalContent) {
+            console.log('=== INITIALIZING FESTIVAL CONTENT CARD VALUES ===', { 
+              existingText, 
+              cardIndex, 
+              festivalContent 
+            });
+            return { 
+              text: existingText || festivalContent.text || '', 
+              image: festivalContent.image || '' 
+            };
+          }
+        }
+        
+        // Fallback to default content card values
         const defaultImageDescriptions = {
           0: 'crocodile dundee movie poster',
           1: 'Get your guide of Milan',
@@ -453,6 +420,24 @@ export default function PromptBubble({
         console.log('=== INITIALIZED PROMO VALUES ===', { textContent, imageContent });
         return { text: textContent, image: imageContent };
       } else {
+        // Check if we should use festival content for promo cards
+        const useFestivalContent = shouldUseFestivalContent(selectedFlightSegment, selectedDates);
+        
+        if (useFestivalContent && selectedFlightPhase && elementData) {
+          const cardIndex = elementData.cardIndex;
+          const festivalContent = getPromoCardContent(selectedFlightSegment, selectedDates, selectedFlightPhase, cardIndex);
+          if (festivalContent) {
+            console.log('=== INITIALIZING FESTIVAL PROMO CARD VALUES ===', { 
+              cardIndex, 
+              festivalContent 
+            });
+            return { 
+              text: festivalContent.text || '', 
+              image: festivalContent.image || '' 
+            };
+          }
+        }
+        
         // No existing text - return empty values to show placeholders
         console.log('=== NO EXISTING TEXT - SHOWING PLACEHOLDERS ===');
         return { text: '', image: '' };
@@ -493,6 +478,13 @@ export default function PromptBubble({
 
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showGradientPicker, setShowGradientPicker] = useState(false);
+  const [activeChipColorPicker, setActiveChipColorPicker] = useState(null); // Track which chip's color picker is open
+  const [selectedChipData, setSelectedChipData] = useState(null); // Track which chip was clicked and its data
+  const [gradientStops, setGradientStops] = useState([
+    { position: 0, color: '#5079BE', opacity: 100 },
+    { position: 100, color: '#253858', opacity: 100 }
+  ]);
+  const [gradientDirection, setGradientDirection] = useState('120deg');
   const [selectedColor, setSelectedColor] = useState(() => {
     // Initialize with logo color if available, otherwise use themeColor
     if (selectedLogo && selectedLogo.id) {
@@ -564,7 +556,17 @@ export default function PromptBubble({
     return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
   };
   const shouldUseLightText = (color) => {
-    if (isGradient) return true;
+    if (isGradient) {
+      // For gradients, analyze the first color stop to determine text color
+      const firstColorMatch = color.match(/#([0-9a-fA-F]{6})/);
+      if (firstColorMatch) {
+        const firstColor = `#${firstColorMatch[1]}`;
+        const lum = getLuminance(parseHex(firstColor));
+        return lum < 0.5; // dark bg => light text
+      }
+      // If we can't extract a color from gradient, default to light text for safety
+      return true;
+    }
     if (typeof color === 'string' && color.startsWith('#') && (color.length === 7)) {
       const lum = getLuminance(parseHex(color));
       return lum < 0.5; // dark bg => light text
@@ -966,7 +968,7 @@ export default function PromptBubble({
 
   const availableChips = getAvailableChips();
 
-  // Auto-click send button for landing page demo
+  // Auto-click save button for landing page demo
   useEffect(() => {
     if (elementType === 'flight-icon' && positionKey === 'landing-demo' && isVisible) {
       console.log('=== LANDING DEMO AUTO-SUBMISSION CHECK ===', { 
@@ -995,7 +997,7 @@ export default function PromptBubble({
     }
   }, [isVisible, promptText, isLoading, elementType, positionKey, onSubmit, elementData]);
 
-  // Auto-click send button for middle card demo
+  // Auto-click save button for middle card demo
   useEffect(() => {
     if (elementType === 'promo-card' && positionKey === 'middle-card-demo' && isVisible && !isLoading && promptText.trim() && !isTyping) {
       console.log('=== MIDDLE CARD AUTO-SUBMISSION CHECK ===', { 
@@ -1304,8 +1306,14 @@ export default function PromptBubble({
     if (chip) {
       setSelectedChip(chip.id);
       // Also update the flight phase selection for flight-phase-button element type
+      // This should only update the flight phase, not open any prompt bubbles
       if ((elementType === 'flight-icon' || elementType === 'flight-phase-button') && onFlightPhaseSelect) {
         onFlightPhaseSelect(chip.label.toLowerCase());
+        console.log('=== FLIGHT PHASE CHIP CLICKED ===', { 
+          chipLabel, 
+          elementType, 
+          action: 'flight phase selection only - no prompt bubble opening' 
+        });
       }
     }
   };
@@ -1313,6 +1321,27 @@ export default function PromptBubble({
   const handleColorChange = (color, chipData) => {
     // Only update visual selection, don't apply theme change immediately
     setPendingColor({ color, chipData });
+  };
+
+  const handleChipChevronClick = (e, chip, chipIndex) => {
+    e.stopPropagation(); // Prevent the chip button click
+    setSelectedChipData(chip);
+    
+    // Check if this is a gradient chip
+    if (chip.isGradient || String(chip.color).includes('gradient')) {
+      setShowGradientPicker(true);
+      setActiveChipColorPicker(null);
+      setShowColorPicker(false);
+    } else {
+      setActiveChipColorPicker(chipIndex);
+      setShowGradientPicker(false);
+      setShowColorPicker(false);
+    }
+  };
+
+  const updateGradient = () => {
+    const gradientString = `linear-gradient(${gradientDirection}, ${gradientStops.map(stop => `${stop.color}${stop.opacity !== 100 ? Math.round(stop.opacity * 2.55) : ''} ${stop.position}%`).join(', ')})`;
+    handleColorChange(gradientString, { label: selectedChipData?.label || 'Custom Gradient', color: gradientString });
   };
 
   // Helper function to normalize colors for comparison
@@ -1713,7 +1742,8 @@ export default function PromptBubble({
         {/* Actions for promo cards and flight journey bar */}
         {elementType === 'flight-journey-bar' && (
           <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <div className="flex flex-wrap gap-2 flex-1">
               {(() => {
                 // Create custom chips based on flight data (origin, destination, airline)
                 const customChips = [];
@@ -1843,6 +1873,11 @@ export default function PromptBubble({
                         }}
                       />
                       <span className={`text-xs font-medium break-words`} style={{ color: isSelected ? (useLightText ? '#000000' : '#FFFFFF') : adaptiveTextColor }}>{label}</span>
+                      <ChevronDownIcon 
+                        className="w-3 h-3 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" 
+                        style={{ color: isSelected ? (useLightText ? '#000000' : '#FFFFFF') : adaptiveTextColor }}
+                        onClick={(e) => handleChipChevronClick(e, chip, idx)}
+                      />
                     </div>
                   </button>
                 );
@@ -1881,9 +1916,21 @@ export default function PromptBubble({
                     <circle cx="12" cy="12" r="10" fill="url(#colorWheelSpectrum)" stroke="#333" strokeWidth="0.5"/>
                     <circle cx="12" cy="12" r="3" fill="url(#colorWheelGradient)"/>
                   </svg>
-                  <span className={`text-xs font-medium`} style={{ color: adaptiveTextColor }}>{selectedColor}</span>
+                  <span className={`text-xs font-medium`} style={{ color: adaptiveTextColor }}>Custom</span>
+                  <ChevronDownIcon 
+                    className="w-3 h-3 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" 
+                    style={{ color: adaptiveTextColor }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowColorPicker(!showColorPicker);
+                      setShowGradientPicker(false);
+                      setActiveChipColorPicker(null);
+                    }}
+                  />
                 </div>
               </button>
+              
+            </div>
             </div>
             
             <div className="flex items-center justify-between">
@@ -1968,7 +2015,7 @@ export default function PromptBubble({
             {/* Spacer when counter is not shown */}
             {!isPromoTextFocused && <div></div>}
             
-            {/* Right side: Image Icon + Send Button */}
+            {/* Right side: Image Icon + Save Button */}
             <div className="flex items-center gap-3">
               {/* Image Icon */}
               <button
@@ -1983,7 +2030,7 @@ export default function PromptBubble({
                 <PhotoIcon className="w-4 h-4" />
               </button>
               
-              {/* Send Button */}
+              {/* Save Button */}
               <button
                 type="submit"
                 disabled={
@@ -2004,8 +2051,8 @@ export default function PromptBubble({
                   borderBottomRightRadius: '9999px'
                 }}
               >
-                <PaperAirplaneIcon className="w-4 h-4" />
-                <span className="text-xs font-medium">Send</span>
+                <BookmarkIcon className="w-4 h-4" />
+                <span className="text-xs font-medium">Save</span>
               </button>
             </div>
           </div>
@@ -2021,7 +2068,7 @@ export default function PromptBubble({
               Logo functionality disabled
             </span>
             
-            {/* Right side: Image Icon + Send Button */}
+            {/* Right side: Image Icon + Save Button */}
             <div className="flex items-center gap-3">
               {/* Image Icon */}
               <button
@@ -2035,7 +2082,7 @@ export default function PromptBubble({
                 </svg>
               </button>
               
-              {/* Send Button */}
+              {/* Save Button */}
               <button
                 type="submit"
                 disabled={
@@ -2047,7 +2094,7 @@ export default function PromptBubble({
                   color: useLightText ? '#FFFFFF' : 'rgba(0, 0, 0, 0.7)'
                 }}
               >
-                <PaperAirplaneIcon className="w-4 h-4" />
+                <BookmarkIcon className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -2070,70 +2117,233 @@ export default function PromptBubble({
           </div>
         )}
 
-        {/* Custom Gradient Picker for FJB */}
+        {/* Advanced Gradient Picker */}
         {elementType === 'flight-journey-bar' && showGradientPicker && (
-          <div className="absolute top-full left-0 mt-2 z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-lg p-4" style={{ width: '280px' }}>
-            <div className="mb-3">
-              <label className="block text-sm font-medium text-gray-200 mb-2">Create Custom Gradient</label>
-              <div className="space-y-3">
-                {/* Direction Selector */}
-                <div>
-                  <label className="block text-xs text-gray-300 mb-1">Direction</label>
-                  <select 
-                    className="w-full text-xs border border-gray-500 bg-gray-700 text-gray-200 rounded px-2 py-1"
-                    onChange={(e) => {
-                      const direction = e.target.value;
-                      const gradient = `linear-gradient(${direction}, #d4fc79 0%, #96e6a1 100%)`;
-                      handleColorChange(gradient, { label: 'Custom Gradient', color: gradient });
-                    }}
-                  >
-                    <option value="120deg">Diagonal (120°)</option>
-                    <option value="0deg">Horizontal →</option>
-                    <option value="90deg">Vertical ↓</option>
-                    <option value="180deg">Horizontal ←</option>
-                    <option value="270deg">Vertical ↑</option>
-                    <option value="45deg">Diagonal ↘</option>
-                    <option value="135deg">Diagonal ↙</option>
-                    <option value="225deg">Diagonal ↖</option>
-                    <option value="315deg">Diagonal ↗</option>
-                  </select>
-                </div>
-                
-                {/* Preset Gradients */}
-                <div>
-                  <label className="block text-xs text-gray-300 mb-1">Quick Presets</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { name: 'Fire', gradient: 'linear-gradient(120deg, #ff6b6b 0%, #ffa500 100%)' },
-                      { name: 'Ocean', gradient: 'linear-gradient(120deg, #00c9ff 0%, #92fe9d 100%)' },
-                      { name: 'Night', gradient: 'linear-gradient(120deg, #2c3e50 0%, #34495e 100%)' },
-                      { name: 'Aurora', gradient: 'linear-gradient(120deg, #8360c3 0%, #2ebf91 100%)' },
-                      { name: 'Candy', gradient: 'linear-gradient(120deg, #f093fb 0%, #f5576c 100%)' },
-                      { name: 'Forest', gradient: 'linear-gradient(120deg, #134e5e 0%, #71b280 100%)' }
-                    ].map((preset, idx) => (
-                      <button
-                        key={idx}
-                        className="h-8 rounded border border-gray-300 hover:scale-105 transition-transform"
-                        style={{ background: preset.gradient }}
-                        title={preset.name}
-                        onClick={() => handleColorChange(preset.gradient, { label: preset.name, color: preset.gradient })}
-                      />
-                    ))}
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => setShowGradientPicker(false)}
-                  className="w-full mt-2 px-3 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+          <div className="absolute top-full left-0 mt-2 z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-lg p-4" style={{ width: '320px' }}>
+            {/* Header */}
+            <div className="flex items-center justify-between mb-3">
+              <select 
+                className="text-xs border border-gray-500 bg-gray-700 text-gray-200 rounded px-2 py-1"
+                value={gradientDirection}
+                onChange={(e) => {
+                  const direction = e.target.value;
+                  setGradientDirection(direction);
+                  updateGradient();
+                }}
+              >
+                <option value="120deg">Linear</option>
+                <option value="0deg">Horizontal →</option>
+                <option value="90deg">Vertical ↓</option>
+                <option value="180deg">Horizontal ←</option>
+                <option value="270deg">Vertical ↑</option>
+                <option value="45deg">Diagonal ↘</option>
+                <option value="135deg">Diagonal ↙</option>
+                <option value="225deg">Diagonal ↖</option>
+                <option value="315deg">Diagonal ↗</option>
+              </select>
+              <div className="flex gap-2">
+                <button 
+                  className="p-1 text-gray-400 hover:text-gray-200"
+                  onClick={() => {
+                    const reversedStops = [...gradientStops].reverse().map(stop => ({
+                      ...stop,
+                      position: 100 - stop.position
+                    }));
+                    setGradientStops(reversedStops);
+                    updateGradient();
+                  }}
                 >
-                  Close
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                </button>
+                <button 
+                  className="p-1 text-gray-400 hover:text-gray-200"
+                  onClick={() => {
+                    const rotatedStops = gradientStops.map(stop => ({
+                      ...stop,
+                      position: (stop.position + 25) % 100
+                    }));
+                    setGradientStops(rotatedStops);
+                    updateGradient();
+                  }}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
                 </button>
               </div>
             </div>
+            
+            {/* Gradient Visualizer */}
+            <div 
+              className="relative h-8 bg-gray-700 rounded mb-3 cursor-pointer" 
+              style={{ 
+                background: `linear-gradient(${gradientDirection}, ${gradientStops.map(stop => `${stop.color}${stop.opacity !== 100 ? Math.round(stop.opacity * 2.55) : ''} ${stop.position}%`).join(', ')})`
+              }}
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const percentage = Math.round((clickX / rect.width) * 100);
+                const newStop = { position: percentage, color: '#808080', opacity: 100 };
+                setGradientStops([...gradientStops, newStop].sort((a, b) => a.position - b.position));
+                updateGradient();
+              }}
+            >
+              {gradientStops.map((stop, index) => (
+                <div
+                  key={index}
+                  className="absolute top-1/2 transform -translate-y-1/2 w-4 h-4 border-2 border-white shadow-lg cursor-pointer"
+                  style={{
+                    left: `${stop.position}%`,
+                    backgroundColor: stop.color,
+                    transform: 'translate(-50%, -50%)'
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Open color picker for this stop
+                    const newColor = prompt('Enter hex color:', stop.color);
+                    if (newColor && /^#[0-9A-Fa-f]{6}$/.test(newColor)) {
+                      const newStops = [...gradientStops];
+                      newStops[index].color = newColor;
+                      setGradientStops(newStops);
+                      updateGradient();
+                    }
+                  }}
+                />
+              ))}
+            </div>
+            
+            {/* Stops Management */}
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-gray-300">Stops</span>
+              <button 
+                className="text-gray-400 hover:text-gray-200"
+                onClick={() => {
+                  if (gradientStops.length < 5) {
+                    const newStop = { position: 50, color: '#808080', opacity: 100 };
+                    setGradientStops([...gradientStops, newStop].sort((a, b) => a.position - b.position));
+                    updateGradient();
+                  }
+                }}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Stop Controls */}
+            {gradientStops.map((stop, index) => (
+              <div key={index} className="flex items-center gap-2 mb-2">
+                <button className="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded">
+                  {stop.position}%
+                </button>
+                <div 
+                  className="w-4 h-4 border border-gray-500"
+                  style={{ backgroundColor: stop.color }}
+                />
+                <input
+                  type="text"
+                  value={stop.color}
+                  onChange={(e) => {
+                    const newColor = e.target.value;
+                    if (/^#[0-9A-Fa-f]{6}$/.test(newColor)) {
+                      const newStops = [...gradientStops];
+                      newStops[index].color = newColor;
+                      setGradientStops(newStops);
+                      updateGradient();
+                    }
+                  }}
+                  className="flex-1 px-2 py-1 text-xs bg-gray-700 text-gray-200 border border-gray-500 rounded"
+                  placeholder="#000000"
+                />
+                <input
+                  type="text"
+                  value={`${stop.opacity} %`}
+                  onChange={(e) => {
+                    const newOpacity = parseInt(e.target.value);
+                    if (!isNaN(newOpacity) && newOpacity >= 0 && newOpacity <= 100) {
+                      const newStops = [...gradientStops];
+                      newStops[index].opacity = newOpacity;
+                      setGradientStops(newStops);
+                      updateGradient();
+                    }
+                  }}
+                  className="w-16 px-2 py-1 text-xs bg-gray-700 text-gray-200 border border-gray-500 rounded"
+                />
+                {gradientStops.length > 2 && (
+                  <button 
+                    className="text-gray-400 hover:text-red-400"
+                    onClick={() => {
+                      const newStops = gradientStops.filter((_, i) => i !== index);
+                      setGradientStops(newStops);
+                      updateGradient();
+                    }}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            ))}
+            
+            <button
+              onClick={() => {
+                // Apply the gradient change
+                if (selectedChipData && pendingColor) {
+                  if (onThemeColorChange) {
+                    onThemeColorChange(pendingColor.color, selectedChipData);
+                  }
+                }
+                
+                // Close the gradient picker
+                setShowGradientPicker(false);
+                setSelectedChipData(null);
+                setPendingColor(null);
+              }}
+              className="w-full mt-2 px-3 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        )}
+
+        {/* Color Picker for Chip Chevron Clicks */}
+        {elementType === 'flight-journey-bar' && activeChipColorPicker !== null && (
+          <div className="absolute top-full left-0 mt-2 z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-lg p-3">
+            <HexColorPicker
+              color={pendingColor ? pendingColor.color : selectedColor}
+              onChange={(color) => handleColorChange(color, { label: 'Custom Color', color: color })}
+              className="rounded-lg"
+            />
+            <div className="mt-3">
+              <label className="block text-xs text-gray-300 mb-1">Hex Color</label>
+              <input
+                type="text"
+                value={pendingColor ? pendingColor.color : selectedColor}
+                onChange={(e) => {
+                  const hexValue = e.target.value;
+                  if (/^#[0-9A-Fa-f]{6}$/.test(hexValue)) {
+                    handleColorChange(hexValue, { label: 'Custom Color', color: hexValue });
+                  }
+                }}
+                className="w-full px-2 py-1 text-xs bg-gray-700 text-gray-200 border border-gray-500 rounded focus:outline-none focus:border-gray-400"
+                placeholder="#000000"
+                maxLength="7"
+              />
+            </div>
+            <button
+              onClick={() => setActiveChipColorPicker(null)}
+              className="w-full mt-2 px-3 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+            >
+              Close
+            </button>
           </div>
         )}
         
-        {/* Send Button for Flight Phase Selection (FPS) */}
+        {/* Save Button for Flight Phase Selection (FPS) */}
         {elementType !== 'promo-card' && elementType !== 'flight-journey-bar' && (
           <button
             type="submit"
@@ -2143,7 +2353,7 @@ export default function PromptBubble({
               color: selectedChip === 'cruise' ? '#10B981' : (useLightText ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)')
             }}
           >
-            <PaperAirplaneIcon className="w-4 h-4" />
+            <BookmarkIcon className="w-4 h-4" />
           </button>
         )}
       </form>

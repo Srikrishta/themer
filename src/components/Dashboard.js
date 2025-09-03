@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { getReadableOnColor, getTextColorForImage } from '../utils/color';
+import { getFestivalsForFlightSegment, formatFestivalChips, getContentCardContent, shouldUseFestivalContent } from '../utils/festivalUtils';
 import ThemeCreator from './ThemeCreator';
 import FlightJourneyBar from './FlightJourneyBar';
 import FlightProgress from './FlightProgress';
@@ -28,15 +29,18 @@ const gradientAnimationCSS = `
   }
 `;
 
-// Helper function to generate AI images for content cards
+// Helper function to generate AI images for content cards and promo cards
 const generateAIImageSync = (description) => {
-  console.log('=== GENERATING AI IMAGE FOR CONTENT CARD ===', { description });
+  console.log('=== GENERATING AI IMAGE ===', { description });
   
   // Detect different categories and enhance accordingly
   const isMovie = /\b(movie|film|cinema|theater|dvd|streaming|entertainment|crocodile|dundee)\b/i.test(description);
   const isGuide = /\b(guide|travel|tour|destination|city|country|vacation|trip)\b/i.test(description);
   const isGame = /\b(game|gaming|play|console|video|poster|arcade)\b/i.test(description);
   const isPodcast = /\b(podcast|audio|radio|broadcast|talk|show)\b/i.test(description);
+  const isDrink = /\b(drink|beverage|welcome|cocktail|wine|beer|juice|coffee|tea|soda|water)\b/i.test(description);
+  const isHome = /\b(home|settle|comfort|relax|cozy|warm|comfortable|rest|peaceful|calm|tranquil|domestic)\b/i.test(description);
+  const isDevice = /\b(phone|device|mobile|smartphone|tablet|computer|laptop|tech|technology|connect)\b/i.test(description);
   
   let enhancedPrompt;
   
@@ -48,6 +52,12 @@ const generateAIImageSync = (description) => {
     enhancedPrompt = `modern gaming photography of ${description}, video game poster style, digital art, gaming aesthetic, 4k, professional quality`;
   } else if (isPodcast) {
     enhancedPrompt = `professional podcast studio photography of ${description}, audio equipment, modern podcast setup, clean background, 4k, photorealistic`;
+  } else if (isDrink) {
+    enhancedPrompt = `high quality professional beverage photography of ${description}, elegant glassware, beautiful presentation, restaurant style, soft lighting, 4k, photorealistic, appetizing drink`;
+  } else if (isHome) {
+    enhancedPrompt = `cozy home lifestyle photography of ${description}, warm lighting, comfortable atmosphere, domestic setting, inviting, peaceful, 4k, photorealistic, home comfort`;
+  } else if (isDevice) {
+    enhancedPrompt = `modern technology photography of ${description}, sleek design, professional lighting, futuristic, clean background, 4k, high quality`;
   } else {
     // Generic enhancement for any other content
     enhancedPrompt = `high quality professional photography of ${description}, beautiful composition, excellent lighting, vibrant colors, 4k, photorealistic, detailed`;
@@ -68,11 +78,11 @@ const generateAIImageSync = (description) => {
   return aiImageUrl;
 };
 
-// Helper function to get Unsplash fallback for content cards
+// Helper function to get Unsplash fallback for content cards and promo cards
 const getUnsplashFallback = (description) => {
-  console.log('=== GETTING UNSPLASH FALLBACK FOR CONTENT CARD ===', { description });
+  console.log('=== GETTING UNSPLASH FALLBACK ===', { description });
   
-  // Keyword-based mappings for content cards
+  // Keyword-based mappings for content cards and promo cards
   const keywordMappings = {
     // Movies
     'movie': 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=416&h=200&fit=crop&crop=center&auto=format',
@@ -86,7 +96,15 @@ const getUnsplashFallback = (description) => {
     'gaming': 'https://images.unsplash.com/photo-1518709414923-e5cf8b0ac4fe?w=416&h=200&fit=crop&crop=center&auto=format',
     // Podcasts
     'podcast': 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=416&h=200&fit=crop&crop=center&auto=format',
-    'audio': 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=416&h=200&fit=crop&crop=center&auto=format'
+    'audio': 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=416&h=200&fit=crop&crop=center&auto=format',
+    // Promo card categories
+    'drink': 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=416&h=200&fit=crop&crop=center&auto=format',
+    'welcome': 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=416&h=200&fit=crop&crop=center&auto=format',
+    'settle': 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=416&h=200&fit=crop&crop=center&auto=format',
+    'home': 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=416&h=200&fit=crop&crop=center&auto=format',
+    'phone': 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=416&h=200&fit=crop&crop=center&auto=format',
+    'device': 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=416&h=200&fit=crop&crop=center&auto=format',
+    'aircraft': 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=416&h=200&fit=crop&crop=center&auto=format'
   };
   
   // Check for direct keyword matches first
@@ -105,7 +123,10 @@ const getUnsplashFallback = (description) => {
     'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=416&h=200&fit=crop&crop=center&auto=format', // movie
     'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=416&h=200&fit=crop&crop=center&auto=format', // guide
     'https://images.unsplash.com/photo-1518709414923-e5cf8b0ac4fe?w=416&h=200&fit=crop&crop=center&auto=format', // game
-    'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=416&h=200&fit=crop&crop=center&auto=format'  // podcast
+    'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=416&h=200&fit=crop&crop=center&auto=format', // podcast
+    'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=416&h=200&fit=crop&crop=center&auto=format', // drink
+    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=416&h=200&fit=crop&crop=center&auto=format', // home
+    'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=416&h=200&fit=crop&crop=center&auto=format'  // aircraft
   ];
   
   // Create hash from description for consistent selection
@@ -138,7 +159,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, cardOrder, onCardReorder, contentCardOrder, onContentCardReorder, onContentCardHover, colorPromptClosedWithoutSave, colorPromptSaved, recommendedContentCards, contentCardImages, contentCardTextColors, setContentCardTextColors, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, handleContentCardHover }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, cardOrder, onCardReorder, contentCardOrder, onContentCardReorder, onContentCardHover, colorPromptClosedWithoutSave, colorPromptSaved, recommendedContentCards, contentCardImages, contentCardTextColors, setContentCardTextColors, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, handleContentCardHover, selectedDates = [] }) {
   
   // Drag and drop state for content cards
   const [draggedContentCardIndex, setDraggedContentCardIndex] = useState(null);
@@ -197,7 +218,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
     );
   };
 
-  // Helper function to get content text based on flight phase
+  // Helper function to get content text based on flight phase with festival support
   const getContentText = (cardIndex) => {
     const routeContentCards = getRouteContentCards();
     console.log('🎯 getContentText called with:', { 
@@ -212,6 +233,17 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
     if (contentCard && contentCard.title) {
       console.log('🎯 Using content card title:', contentCard.title);
       return contentCard.title;
+    }
+    
+    // Check if we should use festival content
+    const useFestivalContent = shouldUseFestivalContent(routes[0], selectedDates);
+    
+    if (useFestivalContent && selectedFlightPhase) {
+      const festivalContent = getContentCardContent(routes[0], selectedDates, selectedFlightPhase, cardIndex);
+      if (festivalContent && festivalContent.text) {
+        console.log('🎯 Using festival content text:', festivalContent.text);
+        return festivalContent.text;
+      }
     }
     
     // Fallback to flight phase based text
@@ -412,9 +444,9 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         
         {/* Bottom rectangle with text field */}
         <div 
-          className="absolute bottom-0 left-0 right-0 z-10 p-2"
+          className="absolute bottom-0 left-0 right-0 z-10 p-2 backdrop-blur-md backdrop-filter shadow-none"
           style={{ 
-            backgroundColor: getReadableOnColor(themeColor),
+            backgroundColor: getReadableOnColor(themeColor) + 'CC',
             minHeight: '40px',
             display: 'flex',
             alignItems: 'center',
@@ -438,39 +470,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
           </p>
         </div>
         
-        {/* Edit button for content cards */}
-        {isPromptMode && colorPromptSaved && (
-          <button
-            className="absolute top-2 right-2 px-3 py-1 text-sm font-medium text-white transition-colors"
-            style={{ 
-              backgroundColor: themeColor,
-              borderTopLeftRadius: '0px', 
-              borderTopRightRadius: '9999px', 
-              borderBottomLeftRadius: '9999px', 
-              borderBottomRightRadius: '9999px' 
-            }}
-            onMouseEnter={(e) => {
-              // Create a slightly darker version of the theme color for hover
-              if (themeColor.startsWith('#')) {
-                const hex = themeColor.slice(1);
-                const r = parseInt(hex.substr(0, 2), 16);
-                const g = parseInt(hex.substr(2, 2), 16);
-                const b = parseInt(hex.substr(4, 2), 16);
-                const darkerColor = `rgb(${Math.max(0, r - 40)}, ${Math.max(0, g - 40)}, ${Math.max(0, b - 40)})`;
-                e.target.style.backgroundColor = darkerColor;
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = themeColor;
-            }}
-                          onClick={(e) => {
-                // Intentionally do nothing; prompt bubble should be opened via the hover "+" button
-                e.stopPropagation();
-              }}
-          >
-            Edit
-          </button>
-        )}
+
       </div>
     );
   };
@@ -547,6 +547,8 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
       </div>
       <Component3Cards 
         themeColor={themeColor} 
+        origin={origin}
+        destination={destination}
         routes={routes}
         isPromptMode={isPromptMode}
         onPromptHover={onPromptHover}
@@ -560,6 +562,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         colorPromptSaved={colorPromptSaved}
         currentRouteKey={getCurrentRouteKey()}
         isModifyClicked={isCurrentRouteModified()}
+        selectedDates={selectedDates}
       />
       
       {/* Recommended for you section */}
@@ -2230,6 +2233,7 @@ export default function Dashboard() {
               isModifyClicked={isCurrentRouteModified()}
               isCurrentRouteModified={isCurrentRouteModified}
               handleContentCardHover={handleContentCardHover}
+              selectedDates={selectedDates}
             />
           </div>
         </div>
@@ -2286,17 +2290,61 @@ export default function Dashboard() {
               }));
               console.log('🎯 Stored theme for flight route:', { flightKey, color, allThemes: { ...flightThemes, [flightKey]: color } });
               
-              // Store progress for the current flight route (50% when theme is saved)
+              // Store progress for the current flight route (100% when theme is saved)
               setFlightRouteProgress(prev => ({
                 ...prev,
-                [flightKey]: 50
+                [flightKey]: 100
               }));
-              console.log('🎯 Stored progress for flight route:', { flightKey, progress: 50, allProgress: { ...flightRouteProgress, [flightKey]: 50 } });
+              console.log('🎯 Stored progress for flight route:', { flightKey, progress: 100, allProgress: { ...flightRouteProgress, [flightKey]: 100 } });
             }
             
             // Clear the closed without save state since the user saved
             setColorPromptClosedWithoutSave(false);
             setColorPromptSaved(true);
+            
+            // Auto-trigger hover tip for the first promo card
+            setTimeout(() => {
+              // Calculate position for the first promo card (Component3Cards)
+              // Get the actual position of the Component3Cards container
+              const component3CardsElement = document.querySelector('[data-name="3-cards"]');
+              if (component3CardsElement) {
+                const containerRect = component3CardsElement.getBoundingClientRect();
+                
+                // Component3Cards has 3 cards with gap-8 (32px) between them
+                // Each card is 416px wide
+                const cardWidth = 416;
+                const gap = 32;
+                const totalCardsWidth = cardWidth * 3 + gap * 2; // 3 cards + 2 gaps
+                const startX = (1302 - totalCardsWidth) / 2; // Center the cards within 1302px container
+                
+                // Position of first card (index 0) relative to the Component3Cards container
+                const firstCardX = containerRect.left + startX;
+                const firstCardY = containerRect.top + 100; // Position near the top of the card
+                
+                // Set hover tip for first promo card
+                setPcHoverTip({
+                  visible: true,
+                  x: firstCardX + 50, // Offset from card edge
+                  y: firstCardY,
+                  elementData: { cardIndex: 0, cardType: 'shopping' }
+                });
+                
+                console.log('🎯 Auto-triggered hover tip for first promo card:', {
+                  containerRect: { left: containerRect.left, top: containerRect.top },
+                  firstCardX,
+                  firstCardY,
+                  cardIndex: 0
+                });
+              } else {
+                console.warn('🎯 Component3Cards element not found for hover tip positioning');
+              }
+              
+              // Auto-hide the hover tip after 3 seconds
+              setTimeout(() => {
+                setPcHoverTip({ visible: false, x: 0, y: 0, elementData: null });
+                console.log('🎯 Auto-hid hover tip for first promo card');
+              }, 3000);
+            }, 500); // Small delay to ensure state updates are complete
             // Update selected theme chip and apply logo animation
             if (chipData && chipData.label) {
               setSelectedThemeChip(chipData);
@@ -2321,9 +2369,9 @@ export default function Dashboard() {
                 const newState = {
                   ...prev,
                   [routeKey]: {
-                    0: { text: 'Enjoy your welcome drink', image: 'welcome drink', updated: true },
-                    1: { text: 'Feel at home', image: 'Settle in', updated: true },
-                    2: { text: 'Connect your device', image: 'phone in an aircraft', updated: true }
+                    0: { text: 'Enjoy your welcome drink', image: 'welcome drink', updated: true, backgroundImage: null },
+                    1: { text: 'Feel at home', image: 'Settle in', updated: true, backgroundImage: null },
+                    2: { text: 'Connect your device', image: 'phone in an aircraft', updated: true, backgroundImage: null }
                   }
                 };
                 console.log('🎯 Updated route-specific promo card contents for takeoff phase (route modified):', {
@@ -2332,6 +2380,68 @@ export default function Dashboard() {
                 });
                 return newState;
               });
+              
+              // Generate images for promo cards immediately after updating contents
+              const generatePromoCardImages = async () => {
+                const imagePrompts = [
+                  'welcome drink',
+                  'Settle in', 
+                  'phone in an aircraft'
+                ];
+                
+                const promoCardImages = {};
+                
+                // Generate images one by one to avoid overwhelming the API
+                for (let index = 0; index < imagePrompts.length; index++) {
+                  const prompt = imagePrompts[index];
+                  try {
+                    // Use the sync version for immediate URL generation
+                    const aiImageUrl = generateAIImageSync(prompt);
+                    promoCardImages[index] = aiImageUrl;
+                    
+                    // Update each card individually as images are generated
+                    setPromoCardContents(prev => {
+                      const updatedState = { ...prev };
+                      if (updatedState[routeKey] && updatedState[routeKey][index]) {
+                        updatedState[routeKey][index] = {
+                          ...updatedState[routeKey][index],
+                          backgroundImage: aiImageUrl
+                        };
+                      }
+                      return updatedState;
+                    });
+                    
+                    console.log('🎯 Generated image for promo card:', { index, prompt, aiImageUrl });
+                  } catch (error) {
+                    console.error('=== AI IMAGE GENERATION FAILED FOR PROMO CARD ===', { error, prompt });
+                    const fallbackUrl = getUnsplashFallback(prompt);
+                    promoCardImages[index] = fallbackUrl;
+                    
+                    // Update with fallback image
+                    setPromoCardContents(prev => {
+                      const updatedState = { ...prev };
+                      if (updatedState[routeKey] && updatedState[routeKey][index]) {
+                        updatedState[routeKey][index] = {
+                          ...updatedState[routeKey][index],
+                          backgroundImage: fallbackUrl
+                        };
+                      }
+                      return updatedState;
+                    });
+                  }
+                  
+                  // Small delay between requests to avoid rate limiting
+                  await new Promise(resolve => setTimeout(resolve, 200));
+                }
+                
+                console.log('🎯 Completed generating images for promo cards:', {
+                  routeKey,
+                  promoCardImages
+                });
+              };
+              
+              // Start generating images
+              generatePromoCardImages();
             }
             
             // Update route-specific recommended content cards

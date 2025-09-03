@@ -708,7 +708,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
             <div className="flex-none">
               <div className="flex items-center gap-2">
                 {!collapsed && (
-                  <h3 className="text-base font-semibold text-white break-words">
+                  <h3 className="text-base font-semibold text-white truncate max-w-[60px] sm:max-w-[70px] md:max-w-[80px] lg:max-w-[90px] xl:max-w-[100px]">
                     {segment.origin.airport.code} → {segment.destination.airport.code}
                   </h3>
                 )}
@@ -731,7 +731,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                     <button
                       key={id}
                       type="button"
-                      className="inline-flex items-center rounded-[24px] transition-colors bg-blue-600 text-white hover:bg-blue-700 h-9 px-3 shrink-0"
+                      className="inline-flex items-center rounded-[24px] transition-colors bg-blue-600 text-white hover:bg-blue-700 h-9 px-4 shrink-0 min-w-[90px]"
                       title={title}
                       onClick={(e) => { 
                         e.stopPropagation(); 
@@ -741,7 +741,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                         }
                       }}
                     >
-                      <span className="text-sm font-medium whitespace-nowrap">{label}</span>
+                      <span className="text-xs font-medium whitespace-nowrap">{label}</span>
                     </button>
                   );
                 })}
