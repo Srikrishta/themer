@@ -464,7 +464,8 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
   const [selectedInlineFlightIndex, setSelectedInlineFlightIndex] = useState(0);
   const [isReversingToRoutes, setIsReversingToRoutes] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 200, left: 200 });
-  const [datePickerPosition, setDatePickerPosition] = useState({ top: 0, left: 0, width: 400 });
+  const [datePickerPosition, setDatePickerPosition] = useState({ top: 100, left: 100, width: 400 });
+  const [isDatePickerPositionReady, setIsDatePickerPositionReady] = useState(false);
   const [isScrollingUp, setIsScrollingUp] = useState(false);
   const [airlineDropdownPosition, setAirlineDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0, width: 0, height: 0 });
@@ -785,8 +786,15 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
   // Update date picker position when it opens or window resizes
   useEffect(() => {
     if (isDatePickerOpen) {
-      const position = calculateDatePickerPosition();
-      setDatePickerPosition(position);
+      setIsDatePickerPositionReady(false);
+      // Use requestAnimationFrame to ensure the position is calculated after the DOM has been updated
+      requestAnimationFrame(() => {
+        const position = calculateDatePickerPosition();
+        setDatePickerPosition(position);
+        setIsDatePickerPositionReady(true);
+      });
+    } else {
+      setIsDatePickerPositionReady(false);
     }
   }, [isDatePickerOpen]);
 
@@ -801,8 +809,13 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
   useEffect(() => {
     const handleResize = () => {
       if (isDatePickerOpen) {
-        const position = calculateDatePickerPosition();
-        setDatePickerPosition(position);
+        setIsDatePickerPositionReady(false);
+        // Use requestAnimationFrame to ensure the position is calculated after the DOM has been updated
+        requestAnimationFrame(() => {
+          const position = calculateDatePickerPosition();
+          setDatePickerPosition(position);
+          setIsDatePickerPositionReady(true);
+        });
       }
       if (isAirlineDropdownOpen) {
         const position = calculateAirlineDropdownPosition();
@@ -2109,7 +2122,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
       </div>
 
       {/* Date Picker Portal - renders outside the component hierarchy to avoid z-index issues */}
-      {isDatePickerOpen && createPortal(
+      {isDatePickerOpen && isDatePickerPositionReady && createPortal(
         <div 
           data-datepicker-portal
           className="fixed rounded-lg shadow-lg" 
@@ -2119,7 +2132,8 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
             width: datePickerPosition.width,
             backgroundColor: '#1E1E1E', 
             zIndex: 2147483647,
-            position: 'fixed'
+            position: 'fixed',
+            transition: 'top 0.1s ease-out, left 0.1s ease-out'
           }}>
           <DatePicker
             currentDate={currentDate}

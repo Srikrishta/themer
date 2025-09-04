@@ -2525,56 +2525,7 @@ export default function Dashboard() {
       />
 
       {/* Change Theme Button - Shows when hovering IFE frame after color prompt was closed without save */}
-      {(() => {
-        const shouldShow = !colorPromptSaved && colorPromptClosedWithoutSave && (ifeFrameHover.isHovering || fjbHoverTip.visible || fpsHoverTip.visible || pcHoverTip.visible);
-        if ((!colorPromptSaved && colorPromptClosedWithoutSave) || shouldShow) {
-          console.log('=== CHANGE THEME BUTTON DEBUG ===', {
-            colorPromptClosedWithoutSave,
-            ifeFrameHover: ifeFrameHover.isHovering,
-            fjbHoverTip: fjbHoverTip.visible,
-            fpsHoverTip: fpsHoverTip.visible,
-            pcHoverTip: pcHoverTip.visible,
-            promptBubble: !!getCurrentRoutePromptBubble(),
-            shouldShow
-          });
-        }
-        return shouldShow;
-      })() && (
-        <div
-          key={`change-theme-${activeThemeColor}`}
-          className="fixed"
-          style={{ 
-            left: (fjbHoverTip.visible ? fjbHoverTip.x : fpsHoverTip.visible ? fpsHoverTip.x : pcHoverTip.visible ? pcHoverTip.x : ifeFrameHover.x) + 10, 
-            top: (fjbHoverTip.visible ? fjbHoverTip.y : fpsHoverTip.visible ? fpsHoverTip.y : pcHoverTip.visible ? pcHoverTip.y : ifeFrameHover.y) - 40, 
-            pointerEvents: 'auto', 
-            zIndex: 999999999 
-          }}
-        >
-          <button
-            className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md transition-colors"
-            style={{
-              ...(typeof activeThemeColor === 'string' && activeThemeColor.includes('gradient')
-                ? { background: activeThemeColor }
-                : { backgroundColor: activeThemeColor }),
-              borderColor: hoverBorderColor,
-              color: hoverOnColor,
-              borderTopLeftRadius: 0
-            }}
-            onClick={(e) => {
-              e.stopPropagation(); // Prevent any event bubbling
-              console.log('=== CHANGE THEME BUTTON CLICKED ===');
-              // Reset the closed without save state and trigger color prompt
-              setColorPromptClosedWithoutSave(false);
-              const position = { x: window.innerWidth / 2, y: 400 };
-              console.log('=== CALLING handlePromptClick WITH flight-journey-bar ===', { position });
-              handlePromptClick('flight-journey-bar', { themeColor: activeThemeColor }, position);
-            }}
-          >
-            <span className="text-sm font-medium">Change Theme</span>
-            <PlusIcon className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+      {/* REMOVED: Dummy change theme button that was showing as overlay */}
 
       {/* FJB hover tip bubble: shows label and plus; click opens color PB */}
       {isCurrentRouteModified() && isPromptMode && fjbHoverTip.visible && !getCurrentRoutePromptBubble() && (
@@ -2586,15 +2537,13 @@ export default function Dashboard() {
           <div
             className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
             style={{
-              ...(typeof activeThemeColor === 'string' && activeThemeColor.includes('gradient')
-                ? { background: activeThemeColor }
-                : { backgroundColor: activeThemeColor }),
+              backgroundColor: '#1f2937', // Dark container color
               borderColor: hoverBorderColor,
               opacity: 1,
               borderTopLeftRadius: 0
             }}
           >
-            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Change theme</span>
+            <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>Change theme</span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -2602,7 +2551,7 @@ export default function Dashboard() {
               }}
               className="w-6 h-6 rounded-full border flex items-center justify-center"
               title="Change theme"
-              style={{ pointerEvents: 'auto', borderColor: hoverOnColor, color: hoverOnColor }}
+              style={{ pointerEvents: 'auto', borderColor: '#FFFFFF', color: '#FFFFFF' }}
             >
               +
             </button>
@@ -2620,15 +2569,13 @@ export default function Dashboard() {
           <div
             className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
             style={{
-              ...(typeof activeThemeColor === 'string' && activeThemeColor.includes('gradient')
-                ? { background: activeThemeColor }
-                : { backgroundColor: activeThemeColor }),
+              backgroundColor: '#1f2937', // Dark container color
               borderColor: hoverBorderColor,
               opacity: 1,
               borderTopLeftRadius: 0
             }}
           >
-            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Select flight phase</span>
+            <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>Select flight phase</span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -2647,7 +2594,7 @@ export default function Dashboard() {
               }}
               className="w-6 h-6 rounded-full border flex items-center justify-center"
               title="Select flight phase"
-              style={{ pointerEvents: 'auto', borderColor: hoverOnColor, color: hoverOnColor }}
+              style={{ pointerEvents: 'auto', borderColor: '#FFFFFF', color: '#FFFFFF' }}
             >
               +
             </button>
@@ -2665,15 +2612,13 @@ export default function Dashboard() {
           <div
             className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
             style={{
-              ...(typeof activeThemeColor === 'string' && activeThemeColor.includes('gradient')
-                ? { background: activeThemeColor }
-                : { backgroundColor: activeThemeColor }),
+              backgroundColor: '#1f2937', // Dark container color
               borderColor: hoverBorderColor,
               opacity: 1,
               borderTopLeftRadius: 0
             }}
           >
-            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>
+            <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>
               Edit promo card {pcHoverTip.elementData?.cardIndex !== undefined ? pcHoverTip.elementData.cardIndex + 1 : ''}
             </span>
             <button
@@ -2683,7 +2628,7 @@ export default function Dashboard() {
               }}
               className="w-6 h-6 rounded-full border flex items-center justify-center"
               title={`Edit promo card ${pcHoverTip.elementData?.cardIndex !== undefined ? pcHoverTip.elementData.cardIndex + 1 : ''}`}
-              style={{ pointerEvents: 'auto', borderColor: hoverOnColor, color: hoverOnColor }}
+              style={{ pointerEvents: 'auto', borderColor: '#FFFFFF', color: '#FFFFFF' }}
             >
               +
             </button>
@@ -2701,15 +2646,13 @@ export default function Dashboard() {
           <div
             className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
             style={{
-              ...(typeof activeThemeColor === 'string' && activeThemeColor.includes('gradient')
-                ? { background: activeThemeColor }
-                : { backgroundColor: activeThemeColor }),
+              backgroundColor: '#1f2937', // Dark container color
               borderColor: hoverBorderColor,
               opacity: 1,
               borderTopLeftRadius: 0
             }}
           >
-            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>Change theme</span>
+            <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>Change theme</span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -2717,7 +2660,7 @@ export default function Dashboard() {
               }}
               className="w-6 h-6 rounded-full border flex items-center justify-center"
               title="Change theme"
-              style={{ pointerEvents: 'auto', borderColor: hoverOnColor, color: hoverOnColor }}
+              style={{ pointerEvents: 'auto', borderColor: '#FFFFFF', color: '#FFFFFF' }}
             >
               +
             </button>
@@ -2862,20 +2805,18 @@ export default function Dashboard() {
           <div
             className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
             style={{
-              ...(typeof activeThemeColor === 'string' && activeThemeColor.includes('gradient')
-                ? { background: activeThemeColor }
-                : { backgroundColor: activeThemeColor }),
+              backgroundColor: '#1f2937', // Dark container color
               borderColor: hoverBorderColor,
               opacity: 1,
               borderTopLeftRadius: 0
             }}
           >
-            <span className="text-xs font-bold" style={{ color: hoverOnColor }}>
+            <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>
               Edit content card {ccHoverTip.elementData?.cardIndex !== undefined ? ccHoverTip.elementData.cardIndex + 1 : ''}
             </span>
             <div
               className="w-6 h-6 rounded-full border flex items-center justify-center"
-              style={{ borderColor: hoverOnColor, color: hoverOnColor }}
+              style={{ borderColor: '#FFFFFF', color: '#FFFFFF' }}
             >
               +
             </div>

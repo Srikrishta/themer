@@ -616,25 +616,18 @@ export default function LandingPage() {
                       <button
                         className="absolute top-2 right-2 px-3 py-1 text-sm font-medium text-white transition-colors opacity-0 group-hover:opacity-100"
                         style={{ 
-                          backgroundColor: mockThemeColor,
+                          backgroundColor: '#1f2937', // Dark container color
                           borderTopLeftRadius: '0px', 
                           borderTopRightRadius: '9999px', 
                           borderBottomLeftRadius: '9999px', 
                           borderBottomRightRadius: '9999px' 
                         }}
                         onMouseEnter={(e) => {
-                          // Create a slightly darker version of the theme color for hover
-                          if (mockThemeColor.startsWith('#')) {
-                            const hex = mockThemeColor.slice(1);
-                            const r = parseInt(hex.substr(0, 2), 16);
-                            const g = parseInt(hex.substr(2, 2), 16);
-                            const b = parseInt(hex.substr(4, 2), 16);
-                            const darkerColor = `rgb(${Math.max(0, r - 40)}, ${Math.max(0, g - 40)}, ${Math.max(0, b - 40)})`;
-                            e.target.style.backgroundColor = darkerColor;
-                          }
+                          // Use a slightly lighter version of the dark container color for hover
+                          e.target.style.backgroundColor = '#374151'; // Slightly lighter dark gray
                         }}
                         onMouseLeave={(e) => {
-                          e.target.style.backgroundColor = mockThemeColor;
+                          e.target.style.backgroundColor = '#1f2937'; // Dark container color
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
