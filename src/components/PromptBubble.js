@@ -291,7 +291,7 @@ export default function PromptBubble({
   
   // Function to calculate required height based on text content
   const calculateRequiredHeight = (text, imageText) => {
-    if (elementType !== 'promo-card') return 'auto';
+    if (elementType !== 'promo-card' && elementType !== 'content-card') return 'auto';
     
     const maxWidth = bubbleWidth - 40; // Account for padding
     const lineHeight = 20; // Line height in pixels
@@ -363,11 +363,11 @@ export default function PromptBubble({
   
   // Initialize promo card state from existingText if available
   const initializePromoValues = () => {
-    if (elementType === 'promo-card') {
+    if (elementType === 'promo-card' || elementType === 'content-card') {
       console.log('=== INITIALIZING PROMO VALUES FROM EXISTING TEXT ===', { existingText, elementData });
       
-      // Check if this is a content card (passed as promo-card type)
-      if (elementData && elementData.cardType === 'content-card') {
+      // Check if this is a content card
+      if (elementType === 'content-card' || (elementData && elementData.cardType === 'content-card')) {
         // For content cards, use the existingText as the text content
         // Pre-populate image field with default values based on card index
         const cardIndex = elementData.cardIndex;
@@ -820,10 +820,34 @@ export default function PromptBubble({
       const viewportY = stickyPosition.y - scrollY;
       
       // Position bubble at the pointer with minimal clamping (no offsets for flight card prompts)
-      const minX = isFlightCardPrompt ? 0 : 4; // No left margin for flight card prompts
-      const minY = isFlightCardPrompt ? 0 : 4; // No top margin for flight card prompts
-      const finalX = Math.max(minX, Math.min(viewportX, window.innerWidth - (bubbleWidth + 10)));
-      const finalY = Math.max(minY, Math.min(viewportY, window.innerHeight - 200));
+      // For FJB clicks, position the bubble below the hover button
+      let finalX, finalY;
+      if (elementType === 'flight-journey-bar' || positionKey === 'fjb-demo' || positionKey === 'fjb-landing') {
+        // For FJB, position below the hover button
+        // The hover button is positioned 50px above the click point, so we position the bubble below the hover button
+        finalX = viewportX;
+        finalY = viewportY - 50 + 60; // 50px above click point (hover button) + 60px below hover button
+        
+        // Ensure the bubble doesn't go off-screen
+        if (finalY + 200 > window.innerHeight) {
+          // If bubble would go below viewport, position it above the hover button instead
+          finalY = viewportY - 50 - 200;
+        }
+        if (finalX + bubbleWidth > window.innerWidth) {
+          // If bubble would go off right edge, adjust X position
+          finalX = window.innerWidth - bubbleWidth - 10;
+        }
+        if (finalX < 0) {
+          // If bubble would go off left edge, adjust X position
+          finalX = 10;
+        }
+      } else {
+        // For other elements, apply minimal clamping
+        const minX = isFlightCardPrompt ? 0 : 4; // No left margin for flight card prompts
+        const minY = isFlightCardPrompt ? 0 : 4; // No top margin for flight card prompts
+        finalX = Math.max(minX, Math.min(viewportX, window.innerWidth - (bubbleWidth + 10)));
+        finalY = Math.max(minY, Math.min(viewportY, window.innerHeight - 200));
+      }
       
       console.log('=== PROMPT BUBBLE SCROLL POSITION ===', {
         stickyPosition,
@@ -1116,7 +1140,13 @@ export default function PromptBubble({
     }
   }, [isVisible, existingText, elementType, positionKey, onSubmit, elementData]);
 
-
+  // Update content height when text changes
+  useEffect(() => {
+    if (elementType === 'promo-card' || elementType === 'content-card') {
+      const newHeight = calculateRequiredHeight(promoTextValue, promoImageValue);
+      setContentHeight(newHeight);
+    }
+  }, [promoTextValue, promoImageValue, elementType]);
 
   // Notify parent component when loading state changes
   useEffect(() => {
@@ -1407,8 +1437,8 @@ export default function PromptBubble({
         borderBottomRightRadius: '24px',
         width: `${bubbleWidth}px`,
         maxWidth: `${bubbleWidth}px`,
-        height: elementType === 'promo-card' ? 'auto' : contentHeight,
-        minHeight: elementType === 'promo-card' ? '120px' : 'auto',
+        height: (elementType === 'promo-card' || elementType === 'content-card') ? 'auto' : contentHeight,
+        minHeight: (elementType === 'promo-card' || elementType === 'content-card') ? '120px' : 'auto',
         zIndex: 999999999 // DEBUG: Extra high z-index
       }}
     >
@@ -1425,12 +1455,10 @@ export default function PromptBubble({
                 case 'flight-icon':
                 case 'flight-phase-button':
                   return 'Select Flight Phase';
+                case 'content-card':
+                  return 'Edit Content Card';
                 case 'promo-card':
-                  // Check if this is a content card (passed as promo-card type)
-                  if (elementData && elementData.cardType === 'content-card') {
-                    return elementData?.cardIndex !== undefined ? `Edit Content Card ${elementData.cardIndex + 1}` : 'Edit Content Card';
-                  }
-                  return elementData?.cardIndex !== undefined ? `Edit Promo Card ${elementData.cardIndex + 1}` : 'Edit Promo Card';
+                  return 'Edit Promo Card';
 
                 default:
                   return 'Build theme';
@@ -1498,6 +1526,8 @@ export default function PromptBubble({
                     ? 'loading...'
                     : elementType === 'promo-card'
                     ? '' // No placeholder for promo card, we'll use custom overlay
+                    : elementType === 'content-card'
+                    ? '' // No placeholder for content card, we'll use custom overlay
                     : elementType === 'flight-journey-bar'
                     ? 'change theme or add animation'
 
@@ -1530,8 +1560,8 @@ export default function PromptBubble({
           </>
           )}
           
-          {/* Custom input interface for promo cards */}
-          {elementType === 'promo-card' && !isLoading && (
+          {/* Custom input interface for promo cards and content cards */}
+          {(elementType === 'promo-card' || elementType === 'content-card') && !isLoading && (
             <div 
               style={{
                 color: useLightText ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)',
@@ -2018,7 +2048,7 @@ export default function PromptBubble({
           </div>
         )}
 
-        {elementType === 'promo-card' && (
+        {(elementType === 'promo-card' || elementType === 'content-card') && (
           <div className="flex items-center gap-3 justify-between">
             {/* Character counter - only show when text field is focused */}
             {isPromoTextFocused && (

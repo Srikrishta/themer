@@ -415,7 +415,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
           // Open content card prompt bubble when clicking anywhere on the card
           if (isPromptMode && colorPromptSaved && onPromptClick) {
             e.stopPropagation();
-            onPromptClick('promo-card', { cardIndex: originalCardIndex, cardType: 'content-card' }, { x: e.clientX, y: e.clientY });
+            onPromptClick('content-card', { cardIndex: originalCardIndex, cardType: 'content-card' }, { x: e.clientX, y: e.clientY });
           }
         }}
       >
@@ -662,6 +662,11 @@ export default function Dashboard() {
   const [selectedSegment, setSelectedSegment] = useState(null);
   // NEW: State for current theme color
   const [currentThemeColor, setCurrentThemeColor] = useState('#1E72AE'); // Always Discover blue for flights view
+  // NEW: State to track fixed hover button position for FJB
+  const [fjbFixedPosition, setFjbFixedPosition] = useState(null);
+  // NEW: State to track fixed hover tip positions for promo cards and content cards
+  const [pcFixedPosition, setPcFixedPosition] = useState(null);
+  const [ccFixedPosition, setCcFixedPosition] = useState(null);
 
   // NEW: Per-flight-route theme tracking
   const [flightThemes, setFlightThemes] = useState({}); // { [flightKey]: themeColor }
@@ -1131,15 +1136,23 @@ export default function Dashboard() {
         setShowPlusIcon(false);
         setFjbHoverTip(prev => {
           if (!isHovering) return { visible: false, x: 0, y: 0 };
-          const dx = Math.abs(prev.x - position.x);
-          const dy = Math.abs(prev.y - position.y);
+          
+          // If we have a fixed position, use it instead of following mouse
+          // The fixed position is already the hover button position (50px above click)
+          const targetPosition = fjbFixedPosition || position;
+          
+          const dx = Math.abs(prev.x - targetPosition.x);
+          const dy = Math.abs(prev.y - targetPosition.y);
           if (!prev.visible || dx > 4 || dy > 4) {
-            return { visible: true, x: position.x, y: position.y };
+            return { visible: true, x: targetPosition.x, y: targetPosition.y };
           }
           return prev;
         });
       } else {
-        setFjbHoverTip({ visible: false, x: 0, y: 0 });
+        // When prompt bubble is open, keep hover tip visible at fixed position
+        if (fjbFixedPosition) {
+          setFjbHoverTip({ visible: true, x: fjbFixedPosition.x, y: fjbFixedPosition.y });
+        }
       }
       return;
     }
@@ -1163,18 +1176,31 @@ export default function Dashboard() {
     }
 
     if (elementType === 'promo-card') {
+      // Don't show promo card hover tips if there's a fixed flight journey bar hover tip
+      if (fjbFixedPosition) {
+        setPcHoverTip({ visible: false, x: 0, y: 0, elementData: null });
+        return;
+      }
+      
       if (!getCurrentRoutePromptBubble()) {
         setShowPlusIcon(false);
         setPcHoverTip(prev => {
           if (!isHovering) return { visible: false, x: 0, y: 0, elementData: null };
-          const dx = Math.abs(prev.x - position.x);
-          const dy = Math.abs(prev.y - position.y);
+          
+          // If we have a fixed position, use it instead of following mouse
+          const targetPosition = pcFixedPosition || position;
+          
+          const dx = Math.abs(prev.x - targetPosition.x);
+          const dy = Math.abs(prev.y - targetPosition.y);
           const changed = !prev.visible || dx > 4 || dy > 4;
-          if (changed) return { visible: true, x: position.x, y: position.y, elementData };
+          if (changed) return { visible: true, x: targetPosition.x, y: targetPosition.y, elementData };
           return prev;
         });
       } else {
-        setPcHoverTip({ visible: false, x: 0, y: 0, elementData: null });
+        // When prompt bubble is open, keep hover tip visible at fixed position
+        if (pcFixedPosition) {
+          setPcHoverTip({ visible: true, x: pcFixedPosition.x, y: pcFixedPosition.y, elementData });
+        }
       }
       return;
     }
@@ -1196,6 +1222,23 @@ export default function Dashboard() {
     // Clear the closed without save state when opening a new color prompt
     if (elementType === 'flight-journey-bar') {
       setColorPromptClosedWithoutSave(false);
+      // Set the fixed position for the hover button at the click position
+      setFjbFixedPosition({ x: position.x, y: position.y });
+      // Immediately show hover tip at fixed position
+      setFjbHoverTip({ visible: true, x: position.x, y: position.y });
+    }
+    
+    // Set fixed positions for promo cards and content cards
+    if (elementType === 'promo-card') {
+      setPcFixedPosition({ x: position.x, y: position.y });
+      // Immediately show hover tip at fixed position
+      setPcHoverTip({ visible: true, x: position.x, y: position.y, elementData });
+    }
+    
+    if (elementType === 'content-card') {
+      setCcFixedPosition({ x: position.x, y: position.y });
+      // Immediately show hover tip at fixed position
+      setCCHoverTip({ visible: true, x: position.x, y: position.y, elementData });
     }
     
     // Prevent promo card prompt bubble from showing until color has been saved at least once
@@ -1220,7 +1263,29 @@ export default function Dashboard() {
       
       // Get existing text for this position
       let existingText = '';
-      if (elementType === 'promo-card' && elementData?.cardIndex !== undefined) {
+      if (elementType === 'content-card' && elementData?.cardIndex !== undefined) {
+        // For content cards, get existing content from route-specific content cards
+        const routeContentCards = getRouteContentCards();
+        const contentCard = routeContentCards[elementData.cardIndex];
+        console.log('=== DEBUG ROUTE-SPECIFIC CONTENT CARD RETRIEVAL ===', {
+          elementType,
+          cardIndex: elementData.cardIndex,
+          routeKey: getCurrentRouteKey(),
+          routeContentCards,
+          contentCard
+        });
+        if (contentCard && contentCard.title) {
+          existingText = contentCard.title;
+          console.log('=== CONTENT CARD EXISTING TEXT ===', { existingText });
+        } else {
+          console.log('=== NO CONTENT CARD CONTENT FOUND ===', { 
+            hasContentCard: !!contentCard,
+            routeContentCards,
+            cardIndex: elementData.cardIndex,
+            routeKey: getCurrentRouteKey()
+          });
+        }
+      } else if (elementType === 'promo-card' && elementData?.cardIndex !== undefined) {
         // Check if this is a content card (passed as promo-card type)
         if (elementData.cardType === 'content-card') {
           // For content cards, get existing content from route-specific content cards
@@ -1322,19 +1387,32 @@ export default function Dashboard() {
           existingText
         });
       } else if (elementType === 'promo-card') {
-        // For promo-card, place exactly at pointer (Viewport -> document handled in PromptBubble)
+        // For promo-card, place below the hover tip (hover tip is typically 50px tall)
         setCurrentRoutePromptBubble({
           x: position.x,
-          y: position.y,
+          y: position.y + 60, // Position below hover tip with enough spacing to avoid overlap
+          elementType,
+          elementData,
+          positionKey,
+          existingText
+        });
+      } else if (elementType === 'content-card') {
+        // For content-card, place below the hover tip (hover tip is typically 50px tall)
+        setCurrentRoutePromptBubble({
+          x: position.x,
+          y: position.y + 60, // Position below hover tip with enough spacing to avoid overlap
           elementType,
           elementData,
           positionKey,
           existingText
         });
       } else {
+        // For flight-journey-bar and other elements, position below the hover tip
+        // FJB hover tip is now at click position, so add 8px to get 8px spacing
+        const offsetY = elementType === 'flight-journey-bar' ? 8 : 0; // 8px below hover tip
         setCurrentRoutePromptBubble({
           x: position.x,
-          y: position.y,
+          y: position.y + offsetY,
           elementType,
           elementData,
           positionKey,
@@ -1342,9 +1420,13 @@ export default function Dashboard() {
         });
       }
       setShowPlusIcon(false); // Hide plus icon when bubble appears
-      setFjbHoverTip({ visible: false, x: 0, y: 0 });
-      setFpsHoverTip({ visible: false, x: 0, y: 0, progress: 0 });
-      setPcHoverTip({ visible: false, x: 0, y: 0, elementData: null });
+      
+      // Ensure hover tips remain visible at fixed positions when prompt bubbles open
+      if (elementType === 'flight-journey-bar' && fjbFixedPosition) {
+        setFjbHoverTip({ visible: true, x: fjbFixedPosition.x, y: fjbFixedPosition.y });
+      } else if (elementType === 'promo-card' && pcFixedPosition) {
+        setPcHoverTip({ visible: true, x: pcFixedPosition.x, y: pcFixedPosition.y, elementData });
+      }
   
     }
   };
@@ -1384,13 +1466,22 @@ export default function Dashboard() {
     setActiveSegmentId(null);
     setCurrentRoutePromptBubble(null);
     setShowPlusIcon(false);
+    // Clear all fixed positions when exiting prompt mode
+    setFjbFixedPosition(null);
+    setPcFixedPosition(null);
+    setCcFixedPosition(null);
   };
 
   const handlePromptBubbleClose = () => {
     setCurrentRoutePromptBubble(null);
     setShowPlusIcon(false); // Ensure plus icon is hidden when bubble closes
     setFjbHoverTip({ visible: false, x: 0, y: 0 });
-
+    setPcHoverTip({ visible: false, x: 0, y: 0, elementData: null });
+    setCCHoverTip({ visible: false, x: 0, y: 0, elementData: null });
+    // Clear all fixed positions when prompt bubble closes
+    setFjbFixedPosition(null);
+    setPcFixedPosition(null);
+    setCcFixedPosition(null);
   };
 
   const handlePromptBubbleSubmit = (promptText, elementType, elementData, positionKey, options = {}) => {
@@ -1404,7 +1495,7 @@ export default function Dashboard() {
     });
     
         // Handle promo card and content card submissions
-    if (elementType === 'promo-card' && elementData && elementData.cardIndex !== undefined) {
+    if ((elementType === 'promo-card' || elementType === 'content-card') && elementData && elementData.cardIndex !== undefined) {
       console.log('=== DASHBOARD RECEIVED CARD SUBMISSION ===', { 
         promptText, 
         elementType, 
@@ -1414,7 +1505,7 @@ export default function Dashboard() {
       });
       
       // Check if this is a content card
-      if (elementData.cardType === 'content-card') {
+      if (elementType === 'content-card' || elementData.cardType === 'content-card') {
         // Handle content card submissions
         console.log('=== HANDLING CONTENT CARD SUBMISSION ===', { promptText, isRemix: options.isRemix });
         
@@ -1901,10 +1992,26 @@ export default function Dashboard() {
   
   // Add handler for content card hover
   const handleContentCardHover = (isHovering, x, y, elementData) => {
-    if (isHovering) {
-      setCCHoverTip({ visible: true, x, y, elementData });
-    } else {
+    // Don't show content card hover tips if there's a fixed flight journey bar hover tip
+    if (fjbFixedPosition) {
       setCCHoverTip({ visible: false, x: 0, y: 0, elementData: null });
+      return;
+    }
+    
+    if (isHovering) {
+      // If we have a fixed position, use it instead of following mouse
+      const targetPosition = ccFixedPosition || { x, y };
+      setCCHoverTip({ visible: true, x: targetPosition.x, y: targetPosition.y, elementData });
+    } else {
+      // Only hide if no prompt bubble is open
+      if (!getCurrentRoutePromptBubble()) {
+        setCCHoverTip({ visible: false, x: 0, y: 0, elementData: null });
+      } else {
+        // When prompt bubble is open, keep hover tip visible at fixed position
+        if (ccFixedPosition) {
+          setCCHoverTip({ visible: true, x: ccFixedPosition.x, y: ccFixedPosition.y, elementData });
+        }
+      }
     }
   };
 
@@ -2302,49 +2409,11 @@ export default function Dashboard() {
             setColorPromptClosedWithoutSave(false);
             setColorPromptSaved(true);
             
-            // Auto-trigger hover tip for the first promo card
-            setTimeout(() => {
-              // Calculate position for the first promo card (Component3Cards)
-              // Get the actual position of the Component3Cards container
-              const component3CardsElement = document.querySelector('[data-name="3-cards"]');
-              if (component3CardsElement) {
-                const containerRect = component3CardsElement.getBoundingClientRect();
-                
-                // Component3Cards has 3 cards with gap-8 (32px) between them
-                // Each card is 416px wide
-                const cardWidth = 416;
-                const gap = 32;
-                const totalCardsWidth = cardWidth * 3 + gap * 2; // 3 cards + 2 gaps
-                const startX = (1302 - totalCardsWidth) / 2; // Center the cards within 1302px container
-                
-                // Position of first card (index 0) relative to the Component3Cards container
-                const firstCardX = containerRect.left + startX;
-                const firstCardY = containerRect.top + 100; // Position near the top of the card
-                
-                // Set hover tip for first promo card
-                setPcHoverTip({
-                  visible: true,
-                  x: firstCardX + 50, // Offset from card edge
-                  y: firstCardY,
-                  elementData: { cardIndex: 0, cardType: 'shopping' }
-                });
-                
-                console.log('🎯 Auto-triggered hover tip for first promo card:', {
-                  containerRect: { left: containerRect.left, top: containerRect.top },
-                  firstCardX,
-                  firstCardY,
-                  cardIndex: 0
-                });
-              } else {
-                console.warn('🎯 Component3Cards element not found for hover tip positioning');
-              }
-              
-              // Auto-hide the hover tip after 3 seconds
-              setTimeout(() => {
-                setPcHoverTip({ visible: false, x: 0, y: 0, elementData: null });
-                console.log('🎯 Auto-hid hover tip for first promo card');
-              }, 3000);
-            }, 500); // Small delay to ensure state updates are complete
+            // Clear fixed position so hover tip follows cursor again
+            setFjbFixedPosition(null);
+            // Hide the hover tip immediately after saving
+            setFjbHoverTip({ visible: false, x: 0, y: 0 });
+            
             // Update selected theme chip and apply logo animation
             if (chipData && chipData.label) {
               setSelectedThemeChip(chipData);
@@ -2528,11 +2597,11 @@ export default function Dashboard() {
       {/* REMOVED: Dummy change theme button that was showing as overlay */}
 
       {/* FJB hover tip bubble: shows label and plus; click opens color PB */}
-      {isCurrentRouteModified() && isPromptMode && fjbHoverTip.visible && !getCurrentRoutePromptBubble() && (
+      {isCurrentRouteModified() && isPromptMode && fjbHoverTip.visible && (
         <div
           key={`fjb-hover-${activeThemeColor}`}
           className="fixed"
-          style={{ left: fjbHoverTip.x, top: fjbHoverTip.y, pointerEvents: 'none', zIndex: 999999999 }}
+          style={{ left: fjbHoverTip.x, top: fjbHoverTip.y - 50, pointerEvents: 'none', zIndex: 999999999 }}
         >
           <div
             className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
@@ -2547,7 +2616,9 @@ export default function Dashboard() {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handlePromptClick('flight-journey-bar', { themeColor: activeThemeColor }, { x: fjbHoverTip.x, y: fjbHoverTip.y });
+                // Use the hover button position (50px above the click point) for the prompt bubble
+                const hoverButtonPosition = { x: fjbHoverTip.x, y: fjbHoverTip.y - 50 };
+                handlePromptClick('flight-journey-bar', { themeColor: activeThemeColor }, hoverButtonPosition);
               }}
               className="w-6 h-6 rounded-full border flex items-center justify-center"
               title="Change theme"
@@ -2603,7 +2674,7 @@ export default function Dashboard() {
       )}
 
       {/* Promo Card hover tip bubble: shows label and plus; click opens PC PB */}
-      {isCurrentRouteModified() && isPromptMode && pcHoverTip.visible && !getCurrentRoutePromptBubble() && colorPromptSaved && (
+      {isCurrentRouteModified() && isPromptMode && pcHoverTip.visible && colorPromptSaved && (
         <div
           key={`pc-hover-edit-${activeThemeColor}`}
           className="fixed"
@@ -2618,16 +2689,16 @@ export default function Dashboard() {
               borderTopLeftRadius: 0
             }}
           >
-            <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>
-              Edit promo card {pcHoverTip.elementData?.cardIndex !== undefined ? pcHoverTip.elementData.cardIndex + 1 : ''}
-            </span>
+                          <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>
+                Edit promo card
+              </span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 handlePromptClick('promo-card', pcHoverTip.elementData, { x: pcHoverTip.x, y: pcHoverTip.y });
               }}
               className="w-6 h-6 rounded-full border flex items-center justify-center"
-              title={`Edit promo card ${pcHoverTip.elementData?.cardIndex !== undefined ? pcHoverTip.elementData.cardIndex + 1 : ''}`}
+                              title="Edit promo card"
               style={{ pointerEvents: 'auto', borderColor: '#FFFFFF', color: '#FFFFFF' }}
             >
               +
@@ -2637,7 +2708,7 @@ export default function Dashboard() {
       )}
 
       {/* Promo Card hover tip bubble when color not saved: shows "Change theme" */}
-      {isCurrentRouteModified() && isPromptMode && pcHoverTip.visible && !getCurrentRoutePromptBubble() && !colorPromptSaved && colorPromptClosedWithoutSave && (
+      {isCurrentRouteModified() && isPromptMode && pcHoverTip.visible && !colorPromptSaved && colorPromptClosedWithoutSave && (
         <div
           key={`pc-hover-change-${activeThemeColor}`}
           className="fixed"
@@ -2796,7 +2867,7 @@ export default function Dashboard() {
       )}
 
       {/* Content Card hover tip bubble */}
-      {isPromptMode && ccHoverTip.visible && !getCurrentRoutePromptBubble() && colorPromptSaved && (
+      {isPromptMode && ccHoverTip.visible && colorPromptSaved && (
         <div
           key={`cc-hover-${activeThemeColor}`}
           className="fixed"
@@ -2812,7 +2883,7 @@ export default function Dashboard() {
             }}
           >
             <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>
-              Edit content card {ccHoverTip.elementData?.cardIndex !== undefined ? ccHoverTip.elementData.cardIndex + 1 : ''}
+              Edit content card
             </span>
             <div
               className="w-6 h-6 rounded-full border flex items-center justify-center"

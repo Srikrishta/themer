@@ -42,7 +42,13 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
         id="node-77_5469"
         onMouseEnter={(e) => {
           if (isPromptMode && onPromptHover) {
-            onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+            // Only trigger hover for the flight journey bar itself, not areas below it
+            const rect = e.currentTarget.getBoundingClientRect();
+            const relativeY = e.clientY - rect.top;
+            // Only trigger if we're in the top portion of the flight journey bar (not below it)
+            if (relativeY <= rect.height * 0.8) { // Only top 80% of the bar
+              onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+            }
           }
         }}
         onMouseLeave={(e) => {
@@ -52,7 +58,15 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
         }}
         onMouseMove={(e) => {
           if (isPromptMode && onPromptHover) {
-            onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+            // Only trigger hover for the flight journey bar itself, not areas below it
+            const rect = e.currentTarget.getBoundingClientRect();
+            const relativeY = e.clientY - rect.top;
+            // Only trigger if we're in the top portion of the flight journey bar (not below it)
+            if (relativeY <= rect.height * 0.8) { // Only top 80% of the bar
+              onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+            } else {
+              onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+            }
           }
         }}
         onClick={(e) => {
@@ -65,7 +79,13 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               const withinBar = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
               if (withinBar) return;
             }
-            onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
+            // Only trigger click for the flight journey bar itself, not areas below it
+            const rect = e.currentTarget.getBoundingClientRect();
+            const relativeY = e.clientY - rect.top;
+            // Only trigger if we're in the top portion of the flight journey bar (not below it)
+            if (relativeY <= rect.height * 0.8) { // Only top 80% of the bar
+              onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
+            }
           }
         }}
       >
