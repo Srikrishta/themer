@@ -1631,9 +1631,29 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                       }
                       
                       // Trigger the change theme prompt bubble automatically
+                      // Position it at the center of the flight journey bar in IFE frame
                       if (typeof onTriggerPromptBubble === 'function') {
-                        const position = { x: window.innerWidth / 2, y: 400 };
-                        onTriggerPromptBubble('flight-journey-bar', { themeColor }, position);
+                        // Simulate a click at the center of the flight journey bar
+                        // This matches exactly how Dashboard.js handles FJB clicks
+                        const fjbElement = document.querySelector('[data-name="flight journey bar"]');
+                        if (fjbElement) {
+                          const fjbRect = fjbElement.getBoundingClientRect();
+                          const centerX = fjbRect.left + (fjbRect.width / 2);
+                          const centerY = fjbRect.top + (fjbRect.height / 2);
+                          
+                          // Create a synthetic mouse event at the center of FJB
+                          const syntheticEvent = {
+                            clientX: centerX,
+                            clientY: centerY,
+                            target: fjbElement
+                          };
+                          
+                          // Trigger the same logic as Dashboard.js line 513
+                          onTriggerPromptBubble('flight-journey-bar', { themeColor, origin: 'Origin', destination: 'Destination' }, { x: centerX, y: centerY });
+                        } else {
+                          // Fallback to screen center
+                          onTriggerPromptBubble('flight-journey-bar', { themeColor }, { x: window.innerWidth / 2, y: 400 });
+                        }
                       }
                     }}
                   >

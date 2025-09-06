@@ -535,6 +535,7 @@ export default function PromptBubble({
 
   // Determine background color - use theme color for change theme prompts, blue for other flight card prompts
   const isChangeThemePrompt = elementType === 'flight-journey-bar';
+  const isAnimationPrompt = elementType === 'flight-journey-bar-animation';
   const isFlightCardPrompt = (elementType === 'flight-phase-button') 
     && (positionKey && (positionKey.includes('inline-flight') || positionKey === 'fjb-dashboard' || positionKey === 'flight-phase-button-dashboard'));
   
@@ -703,7 +704,7 @@ export default function PromptBubble({
   };
 
   // Bubble width (wider for FJB to accommodate more chips)
-  const bubbleWidth = elementType === 'flight-journey-bar' ? 360 : 250;
+  const bubbleWidth = (elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation') ? 360 : 250;
   
   // Update content height when text changes
   useEffect(() => {
@@ -767,7 +768,7 @@ export default function PromptBubble({
       }
       // FPS prompt bubbles use flight progress bar container; position is relative to container
       containerSelector = '.flight-progress-bar-container';
-    } else if (elementType === 'flight-journey-bar' || positionKey === 'fjb-demo' || positionKey === 'fjb-landing') {
+    } else if (elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation' || positionKey === 'fjb-demo' || positionKey === 'fjb-landing') {
       // FJB: position is given in viewport coords; convert to document
       const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
       const scrollY = window.pageYOffset || document.documentElement.scrollTop;
@@ -823,16 +824,16 @@ export default function PromptBubble({
       // Position bubble at the pointer with minimal clamping (no offsets for flight card prompts)
       // For FJB clicks, position the bubble below the hover button
       let finalX, finalY;
-      if (elementType === 'flight-journey-bar' || positionKey === 'fjb-demo' || positionKey === 'fjb-landing') {
+      if (elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation' || positionKey === 'fjb-demo' || positionKey === 'fjb-landing') {
         // For FJB, position below the hover button
         // The hover button is positioned 50px above the click point, so we position the bubble below the hover button
         finalX = viewportX;
-        finalY = viewportY - 50 + 32; // 50px above click point (hover button) + 32px below hover button
+        finalY = viewportY - 50 + 60; // 50px above click point (hover button) + 60px below hover button for better spacing
         
         // Ensure the bubble doesn't go off-screen
         if (finalY + 200 > window.innerHeight) {
           // If bubble would go below viewport, position it above the hover button instead
-          finalY = viewportY - 50 - 200;
+          finalY = viewportY - 50 - 220;
         }
         if (finalX + bubbleWidth > window.innerWidth) {
           // If bubble would go off right edge, adjust X position
@@ -882,7 +883,7 @@ export default function PromptBubble({
 
   // Auto-typing effect for middle card landing page and FJB landing page
   useEffect(() => {
-    if (isVisible && ((positionKey === 'middle-card-landing' && elementType === 'promo-card') || (positionKey === 'fjb-landing' && elementType === 'flight-journey-bar')) && !autoTyping) {
+    if (isVisible && ((positionKey === 'middle-card-landing' && elementType === 'promo-card') || (positionKey === 'fjb-landing' && (elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation'))) && !autoTyping) {
       console.log('=== STARTING AUTO TYPING ===', { positionKey, elementType });
       setIsLoading(false); // Stop loading state
       setAutoTyping(true);
@@ -1087,11 +1088,15 @@ export default function PromptBubble({
           console.log('=== CALLING startTypingAnimation FOR MIDDLE CARD ===');
           startTypingAnimation('Croissants at 3€');
         }, 1000); // Increased delay to ensure DOM is ready
-      } else if (elementType === 'flight-journey-bar' && positionKey === 'fjb-demo') {
+      } else if ((elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation') && positionKey === 'fjb-demo') {
         // For FJB demo, start typing animation immediately without loading
         setIsLoading(false);
         setTimeout(() => {
-          startTypingAnimation('add eiffel tower animation');
+          if (elementType === 'flight-journey-bar-animation') {
+            startTypingAnimation('add parallax animation');
+          } else {
+            startTypingAnimation('add eiffel tower animation');
+          }
         }, 500); // Small delay before starting typing animation
       } else if (elementType === 'promo-card' && positionKey === 'middle-card-demo') {
         // Only demo card should auto type; dashboard promo cards should not
@@ -1168,9 +1173,22 @@ export default function PromptBubble({
     if (!isVisible) return;
 
     const handleClickOutside = (event) => {
-      if (bubbleRef.current && !bubbleRef.current.contains(event.target)) {
+      // Don't close if clicking on the hover tip
+      const isHoverTip = event.target.closest('[data-hover-tip]') || 
+                        event.target.closest('[class*="fjb-hover"]') ||
+                        event.target.getAttribute('key')?.includes('fjb-hover');
+      
+      console.log('=== CLICK OUTSIDE CHECK ===', {
+        isHoverTip,
+        target: event.target,
+        bubbleContains: bubbleRef.current?.contains(event.target),
+        elementType
+      });
+      
+      if (bubbleRef.current && !bubbleRef.current.contains(event.target) && !isHoverTip) {
+        console.log('=== CLOSING PROMPT BUBBLE ===');
         // If this is a color changing prompt, call onCloseWithoutSave (regardless of pending changes)
-        if (elementType === 'flight-journey-bar' && onCloseWithoutSave) {
+        if ((elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation') && onCloseWithoutSave) {
           onCloseWithoutSave();
         }
         onClose();
@@ -1186,8 +1204,8 @@ export default function PromptBubble({
     
     // Check if submission is valid based on element type and step
     let isValidSubmission;
-    if (elementType === 'flight-journey-bar') {
-      isValidSubmission = true; // No text input required for theme selection
+    if (elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation') {
+      isValidSubmission = true; // No text input required for theme selection or animation
     } else if (elementType === 'promo-card') {
       if (elementData && elementData.cardType === 'content-card') {
         // For content cards, only text is required
@@ -1258,7 +1276,7 @@ export default function PromptBubble({
   const handleKeyDown = (e) => {
     if (e.key === 'Escape') {
       // If this is a color changing prompt, call onCloseWithoutSave (regardless of pending changes)
-      if (elementType === 'flight-journey-bar' && onCloseWithoutSave) {
+      if ((elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation') && onCloseWithoutSave) {
         onCloseWithoutSave();
       }
       onClose();
@@ -1519,6 +1537,8 @@ export default function PromptBubble({
                     ? '' // No placeholder for content card, we'll use custom overlay
                     : elementType === 'flight-journey-bar'
                     ? 'change theme or add animation'
+                    : elementType === 'flight-journey-bar-animation'
+                    ? 'add animation to your experience'
 
                     : 'select flight phase'
                 }
@@ -1761,6 +1781,90 @@ export default function PromptBubble({
         </div>
         
         {/* Actions for promo cards and flight journey bar */}
+        {elementType === 'flight-journey-bar-animation' && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <div className="flex flex-wrap gap-2 flex-1">
+                {/* Dummy Animation Chips */}
+                {[
+                  { label: 'Parallax Scroll', color: '#FF6B6B', id: 'parallax' },
+                  { label: 'Fade In', color: '#4ECDC4', id: 'fade-in' },
+                  { label: 'Slide Up', color: '#45B7D1', id: 'slide-up' },
+                  { label: 'Bounce', color: '#96CEB4', id: 'bounce' },
+                  { label: 'Pulse', color: '#FECA57', id: 'pulse' },
+                  { label: 'Rotate', color: '#FF9FF3', id: 'rotate' },
+                  { label: 'Scale', color: '#A8E6CF', id: 'scale' },
+                  { label: 'Wobble', color: '#FFD93D', id: 'wobble' }
+                ].map((animation, idx) => {
+                  const isSelected = selectedChip === animation.id;
+                  return (
+                    <button
+                      key={animation.id}
+                      type="button"
+                      data-chip={animation.id}
+                      onClick={() => setSelectedChip(animation.id)}
+                      className={`inline-flex items-center px-3 py-2 rounded-full text-xs transition-all cursor-pointer border font-medium flex-shrink-0`}
+                      style={{
+                        backgroundColor: isSelected ? (useLightText ? 'white' : 'black') : `${animation.color}10`,
+                        borderColor: isSelected ? (useLightText ? '#000000' : '#FFFFFF') : `${animation.color}30`,
+                        color: isSelected ? (useLightText ? '#000000' : '#FFFFFF') : adaptiveTextColor
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.target.style.backgroundColor = `${animation.color}25`;
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.target.style.backgroundColor = `${animation.color}10`;
+                        }
+                      }}
+                    >
+                      {isSelected && <CheckIcon className="w-3 h-3 mr-1.5 flex-shrink-0" style={{ color: isSelected ? (useLightText ? '#000000' : '#FFFFFF') : 'inherit' }} />}
+                      {animation.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Save Button for Animation */}
+            <div className="flex items-center justify-between mt-2">
+              {/* Hint Text - left side */}
+              <span 
+                className="text-xs font-medium" 
+                style={{ color: adaptiveTextColor }}
+              >
+                Select animation style for your UI
+              </span>
+              
+              {/* Save Button - right side */}
+              <button
+                type="button"
+                disabled={!selectedChip || isLoading}
+                onClick={() => {
+                  if (selectedChip && onSubmit) {
+                    onSubmit(`Applied ${selectedChip} animation`, elementType, elementData, positionKey);
+                  }
+                }}
+                className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 border`}
+                style={{
+                  color: useLightText ? '#FFFFFF' : 'rgba(0, 0, 0, 0.7)',
+                  borderColor: useLightText ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
+                  backgroundColor: useLightText ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                  borderTopLeftRadius: '0px',
+                  borderTopRightRadius: '9999px',
+                  borderBottomLeftRadius: '9999px',
+                  borderBottomRightRadius: '9999px'
+                }}
+              >
+                <BookmarkIcon className="w-4 h-4" />
+                <span className="text-xs font-medium">Apply Animation</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {elementType === 'flight-journey-bar' && (
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">

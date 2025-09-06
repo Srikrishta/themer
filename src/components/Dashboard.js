@@ -1150,7 +1150,7 @@ export default function Dashboard() {
     }
     
     // For FJB: do NOT show the icon-only plus; show hover bubble with "+ add theme"
-    if (elementType === 'flight-journey-bar') {
+    if (elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation') {
       if (!getCurrentRoutePromptBubble()) {
         // Avoid flicker by only updating when moved enough pixels
         setShowPlusIcon(false);
@@ -1267,11 +1267,16 @@ export default function Dashboard() {
     }
     
     // If color prompt hasn't been saved, only allow flight-journey-bar clicks
-    if (!colorPromptSaved && elementType !== 'flight-journey-bar') {
+    if (!colorPromptSaved && elementType !== 'flight-journey-bar' && elementType !== 'flight-journey-bar-animation') {
       console.log('🎯 Prompt click ignored - color prompt not saved, only FJB allowed');
       return;
     }
     
+    // Ensure prompt mode is active before opening any prompt bubble
+    if (!isPromptMode) {
+      setIsPromptMode(true);
+    }
+
     console.log('=== PROMPT CLICK CALLED ===', { 
       elementType, 
       elementData, 
@@ -1282,7 +1287,7 @@ export default function Dashboard() {
     });
     
     // Clear the closed without save state when opening a new color prompt
-    if (elementType === 'flight-journey-bar') {
+    if (elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation') {
       setColorPromptClosedWithoutSave(false);
       // Set the fixed position for the hover button at the click position
       setFjbFixedPosition({ x: position.x, y: position.y });
@@ -1309,29 +1314,54 @@ export default function Dashboard() {
       return;
     }
     
-    if (isPromptMode) {
-      // Generate unique key for different element types
-      let positionKey;
-      if (elementType === 'flight-icon') {
-        positionKey = `fps-${Math.round(elementData.progress * 1000)}`; // Use progress as unique identifier
-      } else if (elementType === 'flight-phase-button') {
-        positionKey = 'flight-phase-button-dashboard'; // Single key for flight phase button
-      } else if (elementType === 'flight-journey-bar') {
-        positionKey = 'fjb-dashboard'; // Single key for FJB on dashboard
+    // Generate unique key for different element types
+    let positionKey;
+    if (elementType === 'flight-icon') {
+      positionKey = `fps-${Math.round(elementData.progress * 1000)}`; // Use progress as unique identifier
+    } else if (elementType === 'flight-phase-button') {
+      positionKey = 'flight-phase-button-dashboard'; // Single key for flight phase button
+    } else if (elementType === 'flight-journey-bar') {
+      positionKey = 'fjb-dashboard'; // Single key for FJB on dashboard
+    } else if (elementType === 'flight-journey-bar-animation') {
+      positionKey = 'fjb-animation-dashboard'; // Single key for FJB animation on dashboard
 
+    } else {
+      positionKey = `${elementType}-${elementData.cardIndex || 0}`;
+    }
+    
+    // Get existing text for this position
+    let existingText = '';
+    if (elementType === 'content-card' && elementData?.cardIndex !== undefined) {
+      // For content cards, get existing content from route-specific content cards
+      const routeContentCards = getRouteContentCards();
+      const contentCard = routeContentCards[elementData.cardIndex];
+      console.log('=== DEBUG ROUTE-SPECIFIC CONTENT CARD RETRIEVAL ===', {
+        elementType,
+        cardIndex: elementData.cardIndex,
+        routeKey: getCurrentRouteKey(),
+        routeContentCards,
+        contentCard
+      });
+      if (contentCard && contentCard.title) {
+        existingText = contentCard.title;
+        console.log('=== CONTENT CARD EXISTING TEXT ===', { existingText });
       } else {
-        positionKey = `${elementType}-${elementData.cardIndex || 0}`;
+        console.log('=== NO CONTENT CARD CONTENT FOUND ===', { 
+          hasContentCard: !!contentCard,
+          routeContentCards,
+          cardIndex: elementData.cardIndex,
+          routeKey: getCurrentRouteKey()
+        });
       }
-      
-      // Get existing text for this position
-      let existingText = '';
-      if (elementType === 'content-card' && elementData?.cardIndex !== undefined) {
+    } else if (elementType === 'promo-card' && elementData?.cardIndex !== undefined) {
+      // Check if this is a content card (passed as promo-card type)
+      if (elementData.cardType === 'content-card') {
         // For content cards, get existing content from route-specific content cards
         const routeContentCards = getRouteContentCards();
         const contentCard = routeContentCards[elementData.cardIndex];
         console.log('=== DEBUG ROUTE-SPECIFIC CONTENT CARD RETRIEVAL ===', {
-          elementType,
-          cardIndex: elementData.cardIndex,
+        elementType,
+        cardIndex: elementData.cardIndex,
           routeKey: getCurrentRouteKey(),
           routeContentCards,
           contentCard
@@ -1347,99 +1377,64 @@ export default function Dashboard() {
             routeKey: getCurrentRouteKey()
           });
         }
-      } else if (elementType === 'promo-card' && elementData?.cardIndex !== undefined) {
-        // Check if this is a content card (passed as promo-card type)
-        if (elementData.cardType === 'content-card') {
-          // For content cards, get existing content from route-specific content cards
-          const routeContentCards = getRouteContentCards();
-          const contentCard = routeContentCards[elementData.cardIndex];
-          console.log('=== DEBUG ROUTE-SPECIFIC CONTENT CARD RETRIEVAL ===', {
+      } else {
+        // For promo cards, get existing content from route-specific promoCardContents
+        const routeContents = getRoutePromoCardContents();
+        const cardContent = routeContents[elementData.cardIndex];
+        console.log('=== DEBUG ROUTE-SPECIFIC PROMO CARD RETRIEVAL ===', {
           elementType,
           cardIndex: elementData.cardIndex,
-            routeKey: getCurrentRouteKey(),
-            routeContentCards,
-            contentCard
-          });
-          if (contentCard && contentCard.title) {
-            existingText = contentCard.title;
-            console.log('=== CONTENT CARD EXISTING TEXT ===', { existingText });
-          } else {
-            console.log('=== NO CONTENT CARD CONTENT FOUND ===', { 
-              hasContentCard: !!contentCard,
-              routeContentCards,
-              cardIndex: elementData.cardIndex,
-              routeKey: getCurrentRouteKey()
-            });
-          }
-        } else {
-          // For promo cards, get existing content from route-specific promoCardContents
-          const routeContents = getRoutePromoCardContents();
-          const cardContent = routeContents[elementData.cardIndex];
-          console.log('=== DEBUG ROUTE-SPECIFIC PROMO CARD RETRIEVAL ===', {
-            elementType,
-            cardIndex: elementData.cardIndex,
-            routeKey: getCurrentRouteKey(),
-            routeContents,
-          cardContent,
-            hasUpdated: cardContent?.updated,
-            allRoutes: Object.keys(promoCardContents)
-        });
-        if (cardContent && cardContent.updated && !selectedFlightPhase) {
-          // Use existing content only if no flight phase is selected
-          existingText = `text:${cardContent.text || ''},image:${cardContent.image || ''}`;
-          console.log('=== FORMATTED EXISTING TEXT ===', { existingText });
-        } else {
-          console.log('=== NO EXISTING CONTENT FOUND OR FLIGHT PHASE SELECTED ===', { 
-            hasCardContent: !!cardContent,
-            hasUpdated: cardContent?.updated,
-              routeContents,
-            cardIndex: elementData.cardIndex,
-              routeKey: getCurrentRouteKey(),
-            selectedFlightPhase
-          });
-          
-          // If a flight phase is selected, provide phase-specific default content
-          if (selectedFlightPhase) {
-            const phaseContent = getPhaseSpecificContent(elementData.cardIndex);
-            const imageKeyword = getPhaseSpecificImageKeyword(elementData.cardIndex);
-            if (phaseContent) {
-              existingText = `text:${phaseContent.text || ''},image:${imageKeyword || ''}`;
-              console.log('=== PHASE-SPECIFIC DEFAULT CONTENT ===', { existingText, phase: selectedFlightPhase });
-            }
-          }
-        }
-        }
+          routeKey: getCurrentRouteKey(),
+          routeContents,
+        cardContent,
+          hasUpdated: cardContent?.updated,
+          allRoutes: Object.keys(promoCardContents)
+      });
+      if (cardContent && cardContent.updated && !selectedFlightPhase) {
+        // Use existing content only if no flight phase is selected
+        existingText = `text:${cardContent.text || ''},image:${cardContent.image || ''}`;
+        console.log('=== FORMATTED EXISTING TEXT ===', { existingText });
       } else {
-        existingText = fpsPrompts[positionKey] || '';
-      }
-      
-      // Positioning per element type: FPS relative to container, others at viewport point
-      if (elementType === 'flight-icon') {
-        const container = document.querySelector('.flight-progress-bar-container');
-        if (container) {
-          const rect = container.getBoundingClientRect();
-          const relX = Math.max(0, Math.min(position.x - rect.left + 2, rect.width));
-          const relY = Math.max(0, position.y - rect.top + 10);
-          setCurrentRoutePromptBubble({
-            x: relX,
-            y: relY,
-            elementType,
-            elementData,
-            positionKey,
-            existingText
-          });
-        } else {
-          setCurrentRoutePromptBubble({
-            x: position.x,
-            y: position.y,
-            elementType,
-            elementData,
-            positionKey,
-            existingText
-          });
+        console.log('=== NO EXISTING CONTENT FOUND OR FLIGHT PHASE SELECTED ===', { 
+          hasCardContent: !!cardContent,
+          hasUpdated: cardContent?.updated,
+            routeContents,
+          cardIndex: elementData.cardIndex,
+            routeKey: getCurrentRouteKey(),
+          selectedFlightPhase
+        });
+        
+        // If a flight phase is selected, provide phase-specific default content
+        if (selectedFlightPhase) {
+          const phaseContent = getPhaseSpecificContent(elementData.cardIndex);
+          const imageKeyword = getPhaseSpecificImageKeyword(elementData.cardIndex);
+          if (phaseContent) {
+            existingText = `text:${phaseContent.text || ''},image:${imageKeyword || ''}`;
+            console.log('=== PHASE-SPECIFIC DEFAULT CONTENT ===', { existingText, phase: selectedFlightPhase });
+          }
         }
-      } else if (elementType === 'flight-phase-button') {
-        // Flight phase button: position at the given point (viewport coordinates)
+      }
+      }
+    } else {
+      existingText = fpsPrompts[positionKey] || '';
+    }
+    
+    // Positioning per element type: FPS relative to container, others at viewport point
+    if (elementType === 'flight-icon') {
+      const container = document.querySelector('.flight-progress-bar-container');
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        const relX = Math.max(0, Math.min(position.x - rect.left + 2, rect.width));
+        const relY = Math.max(0, position.y - rect.top + 10);
+        setCurrentRoutePromptBubble({
+          x: relX,
+          y: relY,
+          elementType,
+          elementData,
+          positionKey,
+          existingText
+        });
+      } else {
         setCurrentRoutePromptBubble({
           x: position.x,
           y: position.y,
@@ -1448,49 +1443,58 @@ export default function Dashboard() {
           positionKey,
           existingText
         });
-      } else if (elementType === 'promo-card') {
-        // For promo-card, place below the hover tip (hover tip is typically 50px tall)
-        setCurrentRoutePromptBubble({
-          x: position.x,
-          y: position.y + 60, // Position below hover tip with enough spacing to avoid overlap
-          elementType,
-          elementData,
-          positionKey,
-          existingText
-        });
-      } else if (elementType === 'content-card') {
-        // For content-card, place below the hover tip (hover tip is typically 50px tall)
-        setCurrentRoutePromptBubble({
-          x: position.x,
-          y: position.y + 60, // Position below hover tip with enough spacing to avoid overlap
-          elementType,
-          elementData,
-          positionKey,
-          existingText
-        });
-      } else {
-        // For flight-journey-bar and other elements, position below the hover tip
-        // FJB hover tip is now at click position, so add 8px to get 8px spacing
-        const offsetY = elementType === 'flight-journey-bar' ? 8 : 0; // 8px below hover tip
-        setCurrentRoutePromptBubble({
-          x: position.x,
-          y: position.y + offsetY,
-          elementType,
-          elementData,
-          positionKey,
-          existingText
-        });
       }
-      setShowPlusIcon(false); // Hide plus icon when bubble appears
-      
-      // Ensure hover tips remain visible at fixed positions when prompt bubbles open
-      if (elementType === 'flight-journey-bar' && fjbFixedPosition) {
-        setFjbHoverTip({ visible: true, x: fjbFixedPosition.x, y: fjbFixedPosition.y });
-              } else if (elementType === 'promo-card' && pcFixedPosition) {
-          setPcHoverTip({ visible: true, x: pcFixedPosition.x, y: pcFixedPosition.y - 2, elementData });
-        }
-  
+    } else if (elementType === 'flight-phase-button') {
+      // Flight phase button: position at the given point (viewport coordinates)
+      setCurrentRoutePromptBubble({
+        x: position.x,
+        y: position.y,
+        elementType,
+        elementData,
+        positionKey,
+        existingText
+      });
+    } else if (elementType === 'promo-card') {
+      // For promo-card, place below the hover tip (hover tip is typically 50px tall)
+      setCurrentRoutePromptBubble({
+        x: position.x,
+        y: position.y + 60, // Position below hover tip with enough spacing to avoid overlap
+        elementType,
+        elementData,
+        positionKey,
+        existingText
+      });
+    } else if (elementType === 'content-card') {
+      // For content-card, place below the hover tip (hover tip is typically 50px tall)
+      setCurrentRoutePromptBubble({
+        x: position.x,
+        y: position.y + 60, // Position below hover tip with enough spacing to avoid overlap
+        elementType,
+        elementData,
+        positionKey,
+        existingText
+      });
+    } else {
+      // For flight-journey-bar and other elements, position below the hover tip
+      // FJB hover tip is now at click position, so add 8px to get 8px spacing
+      const offsetY = (elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation') ? 8 : 0; // 8px below hover tip
+      setCurrentRoutePromptBubble({
+        x: position.x,
+        y: position.y + offsetY,
+        elementType,
+        elementData,
+        positionKey,
+        existingText
+      });
     }
+    setShowPlusIcon(false); // Hide plus icon when bubble appears
+    
+    // Ensure hover tips remain visible at fixed positions when prompt bubbles open
+    if ((elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation') && fjbFixedPosition) {
+      setFjbHoverTip({ visible: true, x: fjbFixedPosition.x, y: fjbFixedPosition.y });
+            } else if (elementType === 'promo-card' && pcFixedPosition) {
+        setPcHoverTip({ visible: true, x: pcFixedPosition.x, y: pcFixedPosition.y - 2, elementData });
+      }
   };
 
   // Listen for prompt events from routes view (inline flight cards)
@@ -1537,6 +1541,7 @@ export default function Dashboard() {
   const handlePromptBubbleClose = () => {
     setCurrentRoutePromptBubble(null);
     setShowPlusIcon(false); // Ensure plus icon is hidden when bubble closes
+    // Only hide hover tips when prompt bubble is actually closed (not when switching between bubbles)
     setFjbHoverTip({ visible: false, x: 0, y: 0 });
     setPcHoverTip({ visible: false, x: 0, y: 0, elementData: null });
     setCCHoverTip({ visible: false, x: 0, y: 0, elementData: null });
@@ -2812,6 +2817,7 @@ export default function Dashboard() {
         <div
           key={`fjb-hover-${activeThemeColor}`}
           className="fixed"
+          data-hover-tip="true"
           style={{ left: fjbHoverTip.x, top: fjbHoverTip.y - 50, pointerEvents: 'none', zIndex: 999999999 }}
         >
           <div
@@ -2823,9 +2829,47 @@ export default function Dashboard() {
               borderTopLeftRadius: 0
             }}
           >
-            <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>Change theme</span>
+            <span 
+              className="text-xs font-bold cursor-pointer hover:bg-white/10 px-2 py-1 rounded"
+              style={{ 
+                color: '#FFFFFF', 
+                pointerEvents: 'auto',
+                backgroundColor: getCurrentRoutePromptBubble()?.elementType === 'flight-journey-bar' ? 'rgba(255, 255, 255, 0.2)' : 'transparent'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('=== ADD THEME CLICKED ===');
+                // Ensure hover tip stays visible when opening prompt bubble
+                if (fjbFixedPosition) {
+                  setFjbHoverTip({ visible: true, x: fjbFixedPosition.x, y: fjbFixedPosition.y });
+                }
+                // Use the original click coordinates for consistent positioning
+                handlePromptClick('flight-journey-bar', { themeColor: activeThemeColor }, { x: fjbHoverTip.x, y: fjbHoverTip.y });
+              }}
+            >
+              Add theme
+            </span>
             <div className="w-px h-4 bg-white/30"></div>
-            <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>Animation</span>
+            <span 
+              className="text-xs font-bold cursor-pointer hover:bg-white/10 px-2 py-1 rounded"
+              style={{ 
+                color: '#FFFFFF', 
+                pointerEvents: 'auto',
+                backgroundColor: getCurrentRoutePromptBubble()?.elementType === 'flight-journey-bar-animation' ? 'rgba(255, 255, 255, 0.2)' : 'transparent'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('=== ANIMATION CLICKED ===');
+                // Ensure hover tip stays visible when opening prompt bubble
+                if (fjbFixedPosition) {
+                  setFjbHoverTip({ visible: true, x: fjbFixedPosition.x, y: fjbFixedPosition.y });
+                }
+                // Use the original click coordinates for consistent positioning
+                handlePromptClick('flight-journey-bar-animation', { themeColor: activeThemeColor }, { x: fjbHoverTip.x, y: fjbHoverTip.y });
+              }}
+            >
+              Animation
+            </span>
             <div className="w-px h-4 bg-white/30"></div>
             <button
               onClick={(e) => {

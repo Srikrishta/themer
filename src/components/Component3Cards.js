@@ -650,9 +650,9 @@ export default function Component3Cards({
     // Fallback to default phase content
     const phaseContent = {
       'takeoff': [
-        { text: "croissants at 4€", bgColor: getLightThemeColor() },
-        { text: "autumn meal", bgColor: getLightThemeColor() },
-        { text: "add an autumn movie", bgColor: getLightThemeColor() }
+        { text: "Enjoy your welcome drink", bgColor: getLightThemeColor() },
+        { text: "Relax at your seat", bgColor: getLightThemeColor() },
+        { text: "Connect your device", bgColor: getLightThemeColor() }
       ],
       'climb': [
         { text: "Order food", bgColor: getLightThemeColor() },
@@ -767,9 +767,9 @@ export default function Component3Cards({
     
     // Default content when no flight phase is selected
     const defaultContent = [
-      { text: "croissants at 4€", bgColor: getLightThemeColor() },
-      { text: "autumn meal", bgColor: getLightThemeColor() },
-      { text: "add an autumn movie", bgColor: getLightThemeColor() }
+      { text: "Enjoy your welcome drink", bgColor: getLightThemeColor() },
+      { text: "Relax at your seat", bgColor: getLightThemeColor() },
+      { text: "Connect your device", bgColor: getLightThemeColor() }
     ];
     
     return defaultContent[cardIndex] || defaultContent[0];
