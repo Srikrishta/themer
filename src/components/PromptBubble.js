@@ -392,17 +392,9 @@ export default function PromptBubble({
           }
         }
         
-        // Fallback to default content card values
-        const defaultImageDescriptions = {
-          0: 'crocodile dundee movie poster',
-          1: 'Get your guide of Milan',
-          2: 'multiplayer game',
-          3: 'popular podcast'
-        };
-        const defaultImageDescription = defaultImageDescriptions[cardIndex] || '';
-        
-        console.log('=== INITIALIZING CONTENT CARD VALUES ===', { existingText, cardIndex, defaultImageDescription });
-        return { text: existingText || '', image: defaultImageDescription };
+        // Content cards now show empty values - no default text
+        console.log('=== INITIALIZING CONTENT CARD VALUES ===', { existingText, cardIndex });
+        return { text: existingText || '', image: '' };
       }
       
       // For regular promo cards, parse the existingText format

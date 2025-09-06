@@ -1284,67 +1284,67 @@ export const festivalContent = {
 export const defaultContent = {
   takeoff: {
     promo: [
-      { text: "croissants at 4€", image: "welcome drink" },
-      { text: "autumn meal", image: "Relax in economy class in flight" },
-      { text: "add an autumn movie", image: "phone in an aircraft" }
+      { text: "", image: "" },
+      { text: "", image: "" },
+      { text: "", image: "" }
     ],
     content: [
-      { text: "Crocodile Dundee", image: "crocodile dundee movie poster" },
-      { text: "Get your guide of Milan", image: "Get your guide of Milan" },
-      { text: "Multiplayer game", image: "multiplayer game" },
-      { text: "Popular podcast", image: "popular podcast" }
+      { text: "", image: "" },
+      { text: "", image: "" },
+      { text: "", image: "" },
+      { text: "", image: "" }
     ]
   },
   climb: {
     promo: [
-      { text: "Order food", image: "meal" },
-      { text: "Offers onboard", image: "offers" },
-      { text: "Latest entertainment", image: "movie" }
+      { text: "", image: "" },
+      { text: "", image: "" },
+      { text: "", image: "" }
     ],
     content: [
-      { text: "Latest Movies", image: "latest movies" },
-      { text: "Travel Guides", image: "travel guides" },
-      { text: "Flight Games", image: "flight games" },
-      { text: "Travel Podcasts", image: "travel podcasts" }
+      { text: "", image: "" },
+      { text: "", image: "" },
+      { text: "", image: "" },
+      { text: "", image: "" }
     ]
   },
   cruise: {
     promo: [
-      { text: "Popcorn with movie", image: "popcorn" },
-      { text: "Buy gifts", image: "gifts" },
-      { text: "Latest entertainment", image: "movie" }
+      { text: "", image: "" },
+      { text: "", image: "" },
+      { text: "", image: "" }
     ],
     content: [
-      { text: "In-Flight Movies", image: "in-flight movies" },
-      { text: "Destination Guides", image: "destination guides" },
-      { text: "Entertainment Games", image: "entertainment games" },
-      { text: "Travel Stories", image: "travel stories podcast" }
+      { text: "", image: "" },
+      { text: "", image: "" },
+      { text: "", image: "" },
+      { text: "", image: "" }
     ]
   },
   descent: {
     promo: [
-      { text: "Buy guides at discont", image: "get your guide" },
-      { text: "Buy gifts", image: "gifts" },
-      { text: "Save on your next flight", image: "flight ticket offer" }
+      { text: "", image: "" },
+      { text: "", image: "" },
+      { text: "", image: "" }
     ],
     content: [
-      { text: "Landing Movies", image: "landing movies" },
-      { text: "Local Guides", image: "local guides" },
-      { text: "Landing Games", image: "landing games" },
-      { text: "Local Stories", image: "local stories podcast" }
+      { text: "", image: "" },
+      { text: "", image: "" },
+      { text: "", image: "" },
+      { text: "", image: "" }
     ]
   },
   landing: {
     promo: [
-      { text: "Buy guides at discont", image: "get your guide" },
-      { text: "Buy gifts", image: "gifts" },
-      { text: "Save on your next flight", image: "flight ticket offer" }
+      { text: "", image: "" },
+      { text: "", image: "" },
+      { text: "", image: "" }
     ],
     content: [
-      { text: "Welcome Movies", image: "welcome movies" },
-      { text: "Welcome Guides", image: "welcome guides" },
-      { text: "Welcome Games", image: "welcome games" },
-      { text: "Welcome Stories", image: "welcome stories podcast" }
+      { text: "", image: "" },
+      { text: "", image: "" },
+      { text: "", image: "" },
+      { text: "", image: "" }
     ]
   }
 };
