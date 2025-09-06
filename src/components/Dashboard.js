@@ -160,7 +160,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, cardOrder, onCardReorder, contentCardOrder, onContentCardReorder, onContentCardHover, colorPromptClosedWithoutSave, colorPromptSaved, recommendedContentCards, contentCardImages, contentCardTextColors, setContentCardTextColors, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, handleContentCardHover, selectedDates = [] }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, cardOrder, onCardReorder, contentCardOrder, onContentCardReorder, onContentCardHover, colorPromptClosedWithoutSave, colorPromptSaved, recommendedContentCards, contentCardImages, contentCardTextColors, setContentCardTextColors, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, handleContentCardHover, selectedDates = [], routeSelectedFestival = {} }) {
   
   // Drag and drop state for content cards
   const [draggedContentCardIndex, setDraggedContentCardIndex] = useState(null);
@@ -560,6 +560,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         currentRouteKey={getCurrentRouteKey()}
         isModifyClicked={isCurrentRouteModified()}
         selectedDates={selectedDates}
+        selectedFestivalName={routeSelectedFestival[getCurrentRouteKey()] || null}
       />
       
       {/* Recommended for you section */}
@@ -721,6 +722,8 @@ export default function Dashboard() {
   const [flightCardProgress, setFlightCardProgress] = useState({});
   // Route-specific recommended content cards: { [routeKey]: contentCards }
   const [recommendedContentCards, setRecommendedContentCards] = useState({});
+  // Route-specific selected festival pinning: { [routeKey]: festivalName }
+  const [routeSelectedFestival, setRouteSelectedFestival] = useState({});
   // Route-specific content card images: { [routeKey]: { [cardIndex]: imageUrl } }
   const [contentCardImages, setContentCardImages] = useState({});
   // Route-specific text colors for content cards: { [routeKey]: { [cardIndex]: color } }
@@ -806,6 +809,13 @@ export default function Dashboard() {
       { id: 3, title: 'Add content', type: 'default' },
       { id: 4, title: 'Add content', type: 'default' }
     ];
+  };
+
+  // Helper to get pinned festival for current route
+  const getSelectedFestivalNameForCurrentRoute = () => {
+    const routeKey = getCurrentRouteKey();
+    if (!routeKey) return null;
+    return routeSelectedFestival[routeKey] || null;
   };
   
   // Helper function to set route-specific content cards
@@ -2450,6 +2460,7 @@ export default function Dashboard() {
               isCurrentRouteModified={isCurrentRouteModified}
               handleContentCardHover={handleContentCardHover}
               selectedDates={selectedDates}
+              routeSelectedFestival={routeSelectedFestival}
             />
           </div>
         </div>
@@ -2648,6 +2659,15 @@ export default function Dashboard() {
               generatePromoCardImages();
             }
             
+            // If a festival chip was selected, pin its festival name for this route
+            if (routeKey && chipData && chipData.isFestival) {
+              const selectedFestivalName = chipData.label;
+              setRouteSelectedFestival(prev => ({
+                ...prev,
+                [routeKey]: selectedFestivalName
+              }));
+            }
+
             // Update route-specific recommended content cards based on selected chip type
             if (routeKey) {
               setRecommendedContentCards(prev => {
@@ -2658,8 +2678,9 @@ export default function Dashboard() {
                 // If a festival chip was chosen, pull festival-based content. Otherwise, use defaults
                 if (chipData && chipData.isFestival) {
                   try {
-                    const festivalCards = getFestivalContent?.(getPrimaryFestival(segment, selectedDates, color)?.name, phase, 'content') || [];
-                    const fromUtils = getAllContentCardContent(segment, selectedDates, phase, color) || [];
+                    const selectedFestivalName = chipData.label;
+                    const festivalCards = getFestivalContent?.(selectedFestivalName, phase, 'content') || [];
+                    const fromUtils = getAllContentCardContent(segment, selectedDates, phase, color, selectedFestivalName) || [];
                     const source = festivalCards.length > 0 ? festivalCards : fromUtils;
                     computedCards = source.slice(0, 4).map((item, idx) => ({
                       id: idx + 1,

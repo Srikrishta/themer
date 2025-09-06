@@ -140,7 +140,7 @@ export const formatFestivalChips = (festivals) => {
 };
 
 // Function to get the primary festival for a flight segment (for content selection)
-export const getPrimaryFestival = (segment, selectedDates, themeColor = null) => {
+export const getPrimaryFestival = (segment, selectedDates, themeColor = null, selectedFestivalName = null) => {
   console.log('=== GET PRIMARY FESTIVAL ===', {
     segment,
     selectedDates,
@@ -157,6 +157,15 @@ export const getPrimaryFestival = (segment, selectedDates, themeColor = null) =>
     firstFestival: festivals.length > 0 ? festivals[0] : null
   });
   
+  // If a specific festival was selected, pin to it regardless of color tweaks
+  if (selectedFestivalName && festivals.length > 0) {
+    const pinned = festivals.find(f => f.name === selectedFestivalName);
+    if (pinned) {
+      console.log('=== USING PINNED FESTIVAL ===', { selectedFestivalName, pinned });
+      return pinned;
+    }
+  }
+
   // If a theme color is provided, try to find the matching festival
   if (themeColor && festivals.length > 0) {
     const matchingFestival = festivals.find(festival => festival.color === themeColor);
@@ -175,8 +184,8 @@ export const getPrimaryFestival = (segment, selectedDates, themeColor = null) =>
 };
 
 // Function to get promo card content based on festival and flight phase
-export const getPromoCardContent = (segment, selectedDates, flightPhase, cardIndex = 0, themeColor = null) => {
-  const primaryFestival = getPrimaryFestival(segment, selectedDates, themeColor);
+export const getPromoCardContent = (segment, selectedDates, flightPhase, cardIndex = 0, themeColor = null, selectedFestivalName = null) => {
+  const primaryFestival = getPrimaryFestival(segment, selectedDates, themeColor, selectedFestivalName);
   
   console.log('=== GET PROMO CARD CONTENT ===', {
     primaryFestival,
@@ -205,8 +214,8 @@ export const getPromoCardContent = (segment, selectedDates, flightPhase, cardInd
 };
 
 // Function to get content card content based on festival and flight phase
-export const getContentCardContent = (segment, selectedDates, flightPhase, cardIndex = 0, themeColor = null) => {
-  const primaryFestival = getPrimaryFestival(segment, selectedDates, themeColor);
+export const getContentCardContent = (segment, selectedDates, flightPhase, cardIndex = 0, themeColor = null, selectedFestivalName = null) => {
+  const primaryFestival = getPrimaryFestival(segment, selectedDates, themeColor, selectedFestivalName);
   
   if (primaryFestival) {
     const content = getFestivalCardContent(primaryFestival.name, flightPhase, 'content', cardIndex);
@@ -220,8 +229,8 @@ export const getContentCardContent = (segment, selectedDates, flightPhase, cardI
 };
 
 // Function to get all promo card content for a flight phase
-export const getAllPromoCardContent = (segment, selectedDates, flightPhase, themeColor = null) => {
-  const primaryFestival = getPrimaryFestival(segment, selectedDates, themeColor);
+export const getAllPromoCardContent = (segment, selectedDates, flightPhase, themeColor = null, selectedFestivalName = null) => {
+  const primaryFestival = getPrimaryFestival(segment, selectedDates, themeColor, selectedFestivalName);
   
   if (primaryFestival) {
     const content = getFestivalContent(primaryFestival.name, flightPhase, 'promo');
@@ -235,8 +244,8 @@ export const getAllPromoCardContent = (segment, selectedDates, flightPhase, them
 };
 
 // Function to get all content card content for a flight phase
-export const getAllContentCardContent = (segment, selectedDates, flightPhase, themeColor = null) => {
-  const primaryFestival = getPrimaryFestival(segment, selectedDates, themeColor);
+export const getAllContentCardContent = (segment, selectedDates, flightPhase, themeColor = null, selectedFestivalName = null) => {
+  const primaryFestival = getPrimaryFestival(segment, selectedDates, themeColor, selectedFestivalName);
   
   if (primaryFestival) {
     const content = getFestivalContent(primaryFestival.name, flightPhase, 'content');
@@ -250,7 +259,7 @@ export const getAllContentCardContent = (segment, selectedDates, flightPhase, th
 };
 
 // Function to check if festival content should be used
-export const shouldUseFestivalContent = (segment, selectedDates, themeColor = null) => {
+export const shouldUseFestivalContent = (segment, selectedDates, themeColor = null, selectedFestivalName = null) => {
   console.log('=== SHOULD USE FESTIVAL CONTENT ===', {
     segment,
     selectedDates,
@@ -259,7 +268,7 @@ export const shouldUseFestivalContent = (segment, selectedDates, themeColor = nu
     hasDates: !!selectedDates && selectedDates.length > 0
   });
   
-  const primaryFestival = getPrimaryFestival(segment, selectedDates, themeColor);
+  const primaryFestival = getPrimaryFestival(segment, selectedDates, themeColor, selectedFestivalName);
   
   console.log('=== PRIMARY FESTIVAL RESULT ===', {
     primaryFestival,

@@ -120,75 +120,11 @@ export default function Component3Cards({
   colorPromptSaved = false,
   isModifyClicked = false,
   currentRouteKey = null,
-  selectedDates = []
+  selectedDates = [],
+  selectedFestivalName = null
 }) {
-  // Helper function to check if current theme is a festival theme
-  const isFestivalThemeSelected = () => {
-    // Check if themeColor matches any festival color from festivals.json
-    const festivalColors = [
-      // January
-      '#3B82F6', // Amsterdam Light Festival
-      '#10B981', // Christmas in Rome
-      
-      // February
-      '#F59E0B', // Rome Carnival
-      '#14B8A6', // Carnevale Ambrosiano
-      '#EC4899', // Milan Fashion Week (Winter)
-      '#6366F1', // Paris Fashion Week (Winter)
-      
-      // March
-      '#6366F1', // Paris Fashion Week (Winter)
-      
-      // April
-      '#F43F5E', // Milan Furniture Fair
-      '#F59E0B', // Natale di Roma
-      '#F97316', // King's Day
-      '#059669', // Frühlingsfest
-      
-      // May
-      '#059669', // Frühlingsfest
-      '#F59E0B', // Cannes Film Festival
-      '#EF4444', // Amsterdam Dance Event
-      
-      // June
-      '#F59E0B', // Cannes Film Festival
-      '#EF4444', // Amsterdam Dance Event
-      '#10B981', // Festa di Sant'Ambrogio
-      
-      // July
-      '#F59E0B', // Cannes Film Festival
-      '#EF4444', // Amsterdam Dance Event
-      '#10B981', // Festa di Sant'Ambrogio
-      
-      // August
-      '#F59E0B', // Cannes Film Festival
-      '#EF4444', // Amsterdam Dance Event
-      '#10B981', // Festa di Sant'Ambrogio
-      
-      // September
-      '#F59E0B', // Oktoberfest
-      '#581C87', // Nuit Blanche
-      '#6366F1', // Paris Fashion Week (Autumn)
-      '#EC4899', // Milan Fashion Week (Autumn)
-      
-      // October
-      '#FCD34D', // Oktoberfest
-      '#EF4444', // Amsterdam Dance Event
-      '#8B5CF6', // Rome Film Festival
-      '#6366F1', // Paris Fashion Week (Autumn)
-      
-      // November
-      '#7C3AED', // Tollwood Festival (Winter)
-      '#EF4444', // Christmas Market
-      
-      // December
-      '#3B82F6', // Amsterdam Light Festival
-      '#F43F5E', // Christmas Market (Paris)
-      '#10B981', // Festa di Sant'Ambrogio
-      '#F59E0B'  // Christmas in Rome
-    ];
-    return festivalColors.includes(themeColor);
-  };
+  // Determine if festival content should be active for this segment/dates/color
+  const isFestivalActive = shouldUseFestivalContent({ origin, destination }, selectedDates, themeColor, selectedFestivalName);
 
   console.log('=== COMPONENT3CARDS RENDER ===', {
     selectedDates,
@@ -199,7 +135,7 @@ export default function Component3Cards({
     hasDestination: !!destination,
     hasDates: !!selectedDates && selectedDates.length > 0,
     themeColor,
-    isFestivalTheme: isFestivalThemeSelected(),
+    isFestivalTheme: isFestivalActive,
     routeStructure: {
       hasOrigin: !!origin,
       hasDestination: !!destination,
@@ -653,7 +589,7 @@ export default function Component3Cards({
       hasOrigin: !!origin,
       hasDestination: !!destination,
       themeColor,
-      isFestivalTheme: isFestivalThemeSelected()
+      isFestivalTheme: isFestivalActive
     });
     
     // Always attempt to resolve festival content based on theme and segment
@@ -662,7 +598,8 @@ export default function Component3Cards({
       selectedDates,
       selectedFlightPhase,
       cardIndex,
-      themeColor
+      themeColor,
+      selectedFestivalName
     );
     
     console.log('=== FESTIVAL CONTENT RESULT ===', {
@@ -679,7 +616,9 @@ export default function Component3Cards({
       // Generate or reuse background image for festival content
       let backgroundImage = null;
       if (festivalContent.image) {
-        const cacheKey = `festival-${selectedFlightPhase}-${cardIndex}-${festivalContent.text}`;
+        const routeKey = currentRouteKey || `${origin?.airport?.code || origin?.airport?.city || 'unknown'}-${destination?.airport?.code || destination?.airport?.city || 'unknown'}`;
+        const pinned = selectedFestivalName || 'none';
+        const cacheKey = `festival-${routeKey}-${pinned}-${selectedFlightPhase}-${cardIndex}-${festivalContent.text}`;
         const cached = sessionStorage.getItem(cacheKey);
         if (cached) {
           backgroundImage = cached;
@@ -891,16 +830,66 @@ export default function Component3Cards({
         currentRouteKey,
         isModifyClicked,
         themeColor,
-        isFestivalTheme: isFestivalThemeSelected()
+        isFestivalTheme: isFestivalActive
       });
       
-      // If a festival theme is selected, always prioritize festival content
-      if (selectedFlightPhase && isFestivalThemeSelected()) {
-        console.log('=== FESTIVAL THEME SELECTED, CHECKING FESTIVAL CONTENT FIRST ===', {
+      // Check for route-specific saved content first (highest priority)
+      if (currentRouteKey && promoCardContents[currentRouteKey] && promoCardContents[currentRouteKey][originalCardIndex]) {
+        const savedContent = promoCardContents[currentRouteKey][originalCardIndex];
+        console.log('=== FOUND ROUTE-SPECIFIC SAVED CONTENT ===', savedContent);
+        
+        // For remix operations, return existing content and let useEffect handle image generation
+        if (savedContent.remixCount > 0) {
+          console.log('=== REMIX OPERATION DETECTED ===', { remixCount: savedContent.remixCount });
+          
+          return {
+            text: savedContent.text,
+            backgroundImage: savedContent.backgroundImage, // Keep existing image for now
+            bgColor: getLightThemeColor()
+          };
+        }
+        
+        // For regular saved content, use existing image or generate new one
+        let backgroundImage = savedContent.backgroundImage;
+        if (!backgroundImage && savedContent.image) {
+          // Check if we have a cached image for this user content
+          const userCacheKey = `user-${currentRouteKey}-${originalCardIndex}-${savedContent.image}`;
+          const cachedUserImage = sessionStorage.getItem(userCacheKey);
+          
+          if (cachedUserImage) {
+            backgroundImage = cachedUserImage;
+          } else {
+            try {
+              backgroundImage = generateAIImageSync(savedContent.image);
+              sessionStorage.setItem(userCacheKey, backgroundImage);
+            } catch (error) {
+              backgroundImage = getUnsplashFallback(savedContent.image);
+              sessionStorage.setItem(userCacheKey, backgroundImage);
+            }
+          }
+        }
+        
+        if (backgroundImage) {
+          detectTextColorForImage(backgroundImage, originalCardIndex);
+        }
+        
+        return {
+          text: savedContent.text,
+          backgroundImage: backgroundImage,
+          bgColor: getLightThemeColor()
+        };
+      }
+      
+      // If no saved content, check for festival content (second priority)
+      // Gate on route modified flag so only the route where user saved shows festival content
+      if (selectedFlightPhase && isFestivalActive && isModifyClicked) {
+        console.log('=== FESTIVAL THEME ACTIVE, CHECKING FESTIVAL CONTENT ===', {
           cardIndex: originalCardIndex,
           themeColor,
           selectedFlightPhase,
-          isFestivalTheme: isFestivalThemeSelected()
+          isFestivalTheme: isFestivalActive,
+          currentRouteKey,
+          isModifyClicked
         });
         
         const festivalContent = getPhaseSpecificContent(originalCardIndex);
@@ -914,7 +903,7 @@ export default function Component3Cards({
         });
         
         if (festivalContent) {
-          console.log('=== USING FESTIVAL CONTENT (PRIORITY) ===', {
+          console.log('=== USING FESTIVAL CONTENT ===', {
             cardIndex: originalCardIndex,
             festivalContent,
             returningText: festivalContent.text,
@@ -928,155 +917,6 @@ export default function Component3Cards({
             selectedFlightPhase
           });
         }
-      }
-      
-      // Check for route-specific content first (this is where the saved content is stored)
-      if (currentRouteKey) {
-        const routeContents = promoCardContents[currentRouteKey];
-        console.log('=== CHECKING ROUTE CONTENTS ===', {
-          currentRouteKey,
-          routeContents,
-          cardIndex: originalCardIndex,
-          hasRouteContents: !!routeContents,
-          hasCardContent: routeContents && !!routeContents[originalCardIndex],
-          allPromoCardContents: promoCardContents,
-          allPromoCardContentsKeys: Object.keys(promoCardContents),
-          directContent: promoCardContents[originalCardIndex]
-        });
-        
-        if (routeContents && routeContents[originalCardIndex]) {
-          const savedContent = routeContents[originalCardIndex];
-          console.log('=== FOUND ROUTE-SPECIFIC CONTENT ===', savedContent);
-          
-          // For remix operations, return existing content and let useEffect handle image generation
-          if (savedContent.remixCount > 0) {
-            console.log('=== REMIX OPERATION DETECTED ===', { remixCount: savedContent.remixCount });
-            
-            return {
-              text: savedContent.text,
-              backgroundImage: savedContent.backgroundImage, // Keep existing image for now
-              bgColor: getLightThemeColor()
-            };
-          }
-          
-          // For regular content, use existing image or generate new one
-          let backgroundImage = savedContent.backgroundImage;
-          console.log('=== PROCESSING IMAGE FOR CONTENT ===', {
-            cardIndex: originalCardIndex,
-            savedContent,
-            hasBackgroundImage: !!savedContent.backgroundImage,
-            hasImage: !!savedContent.image,
-            backgroundImage: savedContent.backgroundImage,
-            image: savedContent.image
-          });
-          
-          if (!backgroundImage && savedContent.image) {
-            // Check if we have a cached image for this user content
-            const userCacheKey = `user-${originalCardIndex}-${savedContent.image}`;
-            const cachedUserImage = sessionStorage.getItem(userCacheKey);
-            
-            if (cachedUserImage) {
-              // Use cached image for faster loading
-              console.log('=== USING CACHED USER IMAGE ===', { userCacheKey, cachedUserImage });
-              backgroundImage = cachedUserImage;
-            } else {
-              // Generate new image and cache it
-              try {
-                console.log('=== GENERATING NEW AI IMAGE ===', { imagePrompt: savedContent.image });
-                backgroundImage = generateAIImageSync(savedContent.image);
-                // Cache the generated image
-                sessionStorage.setItem(userCacheKey, backgroundImage);
-                console.log('=== CACHED NEW USER IMAGE ===', { userCacheKey, backgroundImage });
-              } catch (error) {
-                console.error('=== SYNC IMAGE GENERATION FAILED ===', error);
-                backgroundImage = getUnsplashFallback(savedContent.image);
-                // Cache the fallback image
-                sessionStorage.setItem(userCacheKey, backgroundImage);
-                console.log('=== USING FALLBACK IMAGE ===', { fallbackImage: backgroundImage });
-              }
-            }
-          }
-          
-          // Detect text color for the background image
-          if (backgroundImage) {
-            detectTextColorForImage(backgroundImage, originalCardIndex);
-          }
-          
-          const finalContent = {
-            text: savedContent.text,
-            backgroundImage: backgroundImage,
-            bgColor: getLightThemeColor()
-          };
-          console.log('=== RETURNING FINAL CONTENT ===', {
-            cardIndex: originalCardIndex,
-            finalContent,
-            hasBackgroundImage: !!finalContent.backgroundImage
-          });
-          return finalContent;
-        }
-      }
-      
-      // Check for direct content if route-specific content is not found
-      if (promoCardContents[originalCardIndex]) {
-        const userContent = promoCardContents[originalCardIndex];
-        console.log('=== USING DIRECT CONTENT ===', userContent);
-        
-        // For remix operations, return existing content and let useEffect handle image generation
-        if (userContent.remixCount > 0) {
-          console.log('=== REMIX OPERATION DETECTED (DIRECT) ===', { remixCount: userContent.remixCount });
-          
-          return {
-            text: userContent.text,
-            backgroundImage: userContent.backgroundImage, // Keep existing image for now
-            bgColor: getLightThemeColor()
-          };
-        }
-        
-        // For regular content, use existing image or generate new one
-        let backgroundImage = userContent.backgroundImage;
-        if (!backgroundImage && userContent.image) {
-          // Check if we have a cached image for this user content
-          const userCacheKey = `user-${originalCardIndex}-${userContent.image}`;
-          const cachedUserImage = sessionStorage.getItem(userCacheKey);
-          
-          if (cachedUserImage) {
-            // Use cached image for faster loading
-            console.log('=== USING CACHED USER IMAGE (DIRECT) ===', { userCacheKey, cachedUserImage });
-            backgroundImage = cachedUserImage;
-          } else {
-            // Generate new image and cache it
-            try {
-              console.log('=== GENERATING NEW AI IMAGE (DIRECT) ===', { imagePrompt: userContent.image });
-              backgroundImage = generateAIImageSync(userContent.image);
-              // Cache the generated image
-              sessionStorage.setItem(userCacheKey, backgroundImage);
-              console.log('=== CACHED NEW USER IMAGE (DIRECT) ===', { userCacheKey, backgroundImage });
-            } catch (error) {
-              console.error('=== SYNC IMAGE GENERATION FAILED (DIRECT) ===', error);
-              backgroundImage = getUnsplashFallback(userContent.image);
-              // Cache the fallback image
-              sessionStorage.setItem(userCacheKey, backgroundImage);
-              console.log('=== USING FALLBACK IMAGE (DIRECT) ===', { fallbackImage: backgroundImage });
-            }
-          }
-        }
-        
-        // Detect text color for the background image
-        if (backgroundImage) {
-          detectTextColorForImage(backgroundImage, originalCardIndex);
-        }
-        
-        const finalContent = {
-          text: userContent.text,
-          backgroundImage: backgroundImage,
-          bgColor: getLightThemeColor()
-        };
-        console.log('=== RETURNING FINAL CONTENT (DIRECT) ===', {
-          cardIndex: originalCardIndex,
-          finalContent,
-          hasBackgroundImage: !!finalContent.backgroundImage
-        });
-        return finalContent;
       }
       
 
