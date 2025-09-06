@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { getReadableOnColor, getTextColorForImage } from '../utils/color';
-import { getFestivalsForFlightSegment, formatFestivalChips, getContentCardContent, shouldUseFestivalContent } from '../utils/festivalUtils';
+import { getFestivalsForFlightSegment, formatFestivalChips, getContentCardContent, shouldUseFestivalContent, getAllContentCardContent, getPrimaryFestival } from '../utils/festivalUtils';
+import { getFestivalContent } from '../data/festivalContent.js';
 import ThemeCreator from './ThemeCreator';
 import FlightJourneyBar from './FlightJourneyBar';
 import FlightProgress from './FlightProgress';
@@ -394,26 +395,22 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         onDragLeave={handleContentCardDragLeave}
         onDrop={(e) => handleContentCardDrop(e, displayPosition)}
         onMouseEnter={(e) => {
-          // Add content card hover tip
-          if (isPromptMode && colorPromptSaved) {
-            handleContentCardHover(true, e.clientX, e.clientY, { cardIndex: originalCardIndex, cardType: 'content-card' });
+          if (isPromptMode && onPromptHover) {
+            onPromptHover(true, 'content-card', { cardIndex: originalCardIndex, cardType: 'content-card' }, { x: e.clientX, y: e.clientY });
           }
         }}
         onMouseMove={(e) => {
-          // Update content card hover tip position
-          if (isPromptMode && colorPromptSaved) {
-            handleContentCardHover(true, e.clientX, e.clientY, { cardIndex: originalCardIndex, cardType: 'content-card' });
+          if (isPromptMode && onPromptHover) {
+            onPromptHover(true, 'content-card', { cardIndex: originalCardIndex, cardType: 'content-card' }, { x: e.clientX, y: e.clientY });
           }
         }}
-        onMouseLeave={() => {
-          // Hide content card hover tip
-          if (isPromptMode && colorPromptSaved) {
-            handleContentCardHover(false, 0, 0, null);
+        onMouseLeave={(e) => {
+          if (isPromptMode && onPromptHover) {
+            onPromptHover(false, 'content-card', { cardIndex: originalCardIndex, cardType: 'content-card' }, { x: e.clientX, y: e.clientY });
           }
         }}
         onClick={(e) => {
-          // Open content card prompt bubble when clicking anywhere on the card
-          if (isPromptMode && colorPromptSaved && onPromptClick) {
+          if (isPromptMode && onPromptClick) {
             e.stopPropagation();
             onPromptClick('content-card', { cardIndex: originalCardIndex, cardType: 'content-card' }, { x: e.clientX, y: e.clientY });
           }
@@ -639,7 +636,12 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
           ) : (
             // Show themed content when theme is built and routes are available - now with drag-and-drop
             contentCardOrder.map((originalCardIndex, displayPosition) => {
-              console.log('🎯 Rendering content card:', { originalCardIndex, displayPosition, routeContentCards: getRouteContentCards() });
+              console.log('🎯 Rendering content card:', { 
+                originalCardIndex, 
+                displayPosition, 
+                contentCardOrder,
+                routeContentCards: getRouteContentCards() 
+              });
               return renderContentCard(originalCardIndex, displayPosition);
             })
           )}
@@ -723,6 +725,8 @@ export default function Dashboard() {
   const [contentCardImages, setContentCardImages] = useState({});
   // Route-specific text colors for content cards: { [routeKey]: { [cardIndex]: color } }
   const [contentCardTextColors, setContentCardTextColors] = useState({});
+  // Modified chip colors for persistence across prompt bubble reopenings: { [chipKey]: color }
+  const [modifiedChipColors, setModifiedChipColors] = useState({});
   // Hover hint bubble for FPS ("Select flight phase")
   const [fpsHoverTip, setFpsHoverTip] = useState({ visible: false, x: 0, y: 0, progress: 0 });
   // Hover hint bubble for Promo Cards ("Edit promo card")
@@ -1123,6 +1127,12 @@ export default function Dashboard() {
     console.log('=== HANDLE PROMPT HOVER ===', { isHovering, elementType, isPromptMode, colorPromptClosedWithoutSave });
     if (!isPromptMode) return;
     
+    // If color prompt hasn't been saved, only allow flight-journey-bar hovers
+    if (!colorPromptSaved && elementType !== 'flight-journey-bar') {
+      console.log('🎯 Prompt hover ignored - color prompt not saved, only FJB allowed');
+      return;
+    }
+    
     // Prevent promo card hover from showing until color has been saved at least once
     if (elementType === 'promo-card' && !colorPromptSaved && colorPromptClosedWithoutSave) {
       console.log('=== BLOCKING PROMO CARD HOVER - COLOR NEVER SAVED ===');
@@ -1199,7 +1209,37 @@ export default function Dashboard() {
       } else {
         // When prompt bubble is open, keep hover tip visible at fixed position
         if (pcFixedPosition) {
-          setPcHoverTip({ visible: true, x: pcFixedPosition.x, y: pcFixedPosition.y, elementData });
+          setPcHoverTip({ visible: true, x: pcFixedPosition.x, y: pcFixedPosition.y - 2, elementData });
+        }
+      }
+      return;
+    }
+
+    if (elementType === 'content-card') {
+      // Don't show content card hover tips if there's a fixed flight journey bar hover tip
+      if (fjbFixedPosition) {
+        setCCHoverTip({ visible: false, x: 0, y: 0, elementData: null });
+        return;
+      }
+      
+      if (!getCurrentRoutePromptBubble()) {
+        setShowPlusIcon(false);
+        setCCHoverTip(prev => {
+          if (!isHovering) return { visible: false, x: 0, y: 0, elementData: null };
+          
+          // If we have a fixed position, use it instead of following mouse
+          const targetPosition = ccFixedPosition || position;
+          
+          const dx = Math.abs(prev.x - targetPosition.x);
+          const dy = Math.abs(prev.y - targetPosition.y);
+          const changed = !prev.visible || dx > 4 || dy > 4;
+          if (changed) return { visible: true, x: targetPosition.x, y: targetPosition.y, elementData };
+          return prev;
+        });
+      } else {
+        // When prompt bubble is open, keep hover tip visible at fixed position
+        if (ccFixedPosition) {
+          setCCHoverTip({ visible: true, x: ccFixedPosition.x, y: ccFixedPosition.y, elementData });
         }
       }
       return;
@@ -1210,6 +1250,18 @@ export default function Dashboard() {
   };
 
   const handlePromptClick = (elementType, elementData, position) => {
+    // Only allow prompt clicks if the current route has been modified (Add button clicked)
+    if (!isCurrentRouteModified()) {
+      console.log('🎯 Prompt click ignored - route not modified (Add button not clicked)');
+      return;
+    }
+    
+    // If color prompt hasn't been saved, only allow flight-journey-bar clicks
+    if (!colorPromptSaved && elementType !== 'flight-journey-bar') {
+      console.log('🎯 Prompt click ignored - color prompt not saved, only FJB allowed');
+      return;
+    }
+    
     console.log('=== PROMPT CLICK CALLED ===', { 
       elementType, 
       elementData, 
@@ -1231,8 +1283,8 @@ export default function Dashboard() {
     // Set fixed positions for promo cards and content cards
     if (elementType === 'promo-card') {
       setPcFixedPosition({ x: position.x, y: position.y });
-      // Immediately show hover tip at fixed position
-      setPcHoverTip({ visible: true, x: position.x, y: position.y, elementData });
+              // Immediately show hover tip at fixed position
+        setPcHoverTip({ visible: true, x: position.x, y: position.y - 2, elementData });
     }
     
     if (elementType === 'content-card') {
@@ -1424,9 +1476,9 @@ export default function Dashboard() {
       // Ensure hover tips remain visible at fixed positions when prompt bubbles open
       if (elementType === 'flight-journey-bar' && fjbFixedPosition) {
         setFjbHoverTip({ visible: true, x: fjbFixedPosition.x, y: fjbFixedPosition.y });
-      } else if (elementType === 'promo-card' && pcFixedPosition) {
-        setPcHoverTip({ visible: true, x: pcFixedPosition.x, y: pcFixedPosition.y, elementData });
-      }
+              } else if (elementType === 'promo-card' && pcFixedPosition) {
+          setPcHoverTip({ visible: true, x: pcFixedPosition.x, y: pcFixedPosition.y - 2, elementData });
+        }
   
     }
   };
@@ -1485,6 +1537,7 @@ export default function Dashboard() {
   };
 
   const handlePromptBubbleSubmit = (promptText, elementType, elementData, positionKey, options = {}) => {
+    console.log('🚀 === PROMPT BUBBLE SUBMIT START ===');
     console.log('=== PROMPT BUBBLE SUBMIT CALLED ===', {
       promptText, 
       elementType, 
@@ -1493,6 +1546,15 @@ export default function Dashboard() {
       options,
       currentPromoCardContents: promoCardContents
     });
+    
+    // Handle flight journey bar theme color submissions (don't reset card content)
+    if (elementType === 'flight-journey-bar') {
+      console.log('=== FLIGHT JOURNEY BAR SUBMISSION - NO CARD RESET ===');
+      // Theme color changes are handled by onThemeColorChange, not here
+      // Just close the prompt bubble
+      setCurrentRoutePromptBubble(null);
+      return;
+    }
     
         // Handle promo card and content card submissions
     if ((elementType === 'promo-card' || elementType === 'content-card') && elementData && elementData.cardIndex !== undefined) {
@@ -1751,6 +1813,7 @@ export default function Dashboard() {
     }
     // Optionally exit prompt mode after submission
     // handleExitPromptMode();
+    console.log('🚀 === PROMPT BUBBLE SUBMIT END ===');
   };
 
   const handleFilterChipSelect = (isSelected) => {
@@ -1855,6 +1918,8 @@ export default function Dashboard() {
 
   // NEW: Handle flight phase selection from FlightProgress
   const handleFlightPhaseSelect = (phase) => {
+    console.log('🚀 === FLIGHT PHASE SELECT START ===');
+    console.log('🎯 Flight phase selected:', { phase, currentPhase: selectedFlightPhase });
     setSelectedFlightPhase(phase);
     
     // Store the current content for the previous phase before switching
@@ -1873,9 +1938,10 @@ export default function Dashboard() {
         if (newState[`${routeKey}-${phase}`]) {
           newState[routeKey] = newState[`${routeKey}-${phase}`];
         } else {
-          // If no stored content for this phase, set phase-specific default content
-          const phaseSpecificContent = getPhaseSpecificDefaultContent(phase);
-          newState[routeKey] = phaseSpecificContent;
+                  // If no stored content for this phase, set phase-specific default content
+        const phaseSpecificContent = getPhaseSpecificDefaultContent(phase);
+        console.log('🚨 RESETTING PROMO CARDS TO PHASE-SPECIFIC DEFAULTS:', { phase, phaseSpecificContent });
+        newState[routeKey] = phaseSpecificContent;
         }
         
         return newState;
@@ -1883,6 +1949,7 @@ export default function Dashboard() {
     } else if (routeKey) {
       console.log('🎯 Skipping phase-specific content update - route not modified yet');
     }
+    console.log('🚀 === FLIGHT PHASE SELECT END ===');
   };
 
   // Helper function to get phase-specific default content
@@ -2258,17 +2325,58 @@ export default function Dashboard() {
           <div 
             style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', transform: 'scale(0.8)', transformOrigin: 'top center' }}
                           onMouseEnter={(e) => {
-                setIfeFrameHover({ isHovering: true, x: e.clientX, y: e.clientY });
+                // Check if hover is on promo or content card to avoid triggering hover effects
+                const target = e.target;
+                const isPromoOrContentCard = (
+                  target.closest('[data-promo-card]') || 
+                  target.closest('[data-content-card]') ||
+                  target.closest('.promo-card') ||
+                  target.closest('.content-card')
+                );
+                
+                if (!isPromoOrContentCard) {
+                  setIfeFrameHover({ isHovering: true, x: e.clientX, y: e.clientY });
+                }
               }}
               onMouseMove={(e) => {
-                setIfeFrameHover({ isHovering: true, x: e.clientX, y: e.clientY });
+                // Check if hover is on promo or content card to avoid triggering hover effects
+                const target = e.target;
+                const isPromoOrContentCard = (
+                  target.closest('[data-promo-card]') || 
+                  target.closest('[data-content-card]') ||
+                  target.closest('.promo-card') ||
+                  target.closest('.content-card')
+                );
+                
+                if (!isPromoOrContentCard) {
+                  setIfeFrameHover({ isHovering: true, x: e.clientX, y: e.clientY });
+                }
               }}
             onMouseLeave={() => {
               setIfeFrameHover({ isHovering: false, x: 0, y: 0 });
             }}
             onClick={(e) => {
-              // Global click delegation for "Change Theme" buttons in IFE frame
+              // Only allow IFE frame clicks if the current route has been modified (Add button clicked)
+              if (!isCurrentRouteModified()) {
+                console.log('🎯 IFE frame click ignored - route not modified (Add button not clicked)');
+                return;
+              }
+              
+              // Check if click is on promo or content card to avoid triggering color prompt
               const target = e.target;
+              const isPromoOrContentCard = (
+                target.closest('[data-promo-card]') || 
+                target.closest('[data-content-card]') ||
+                target.closest('.promo-card') ||
+                target.closest('.content-card')
+              );
+              
+              if (isPromoOrContentCard) {
+                console.log('🎯 IFE frame click ignored - click on promo/content card');
+                return;
+              }
+              
+              // Global click delegation for "Change Theme" buttons in IFE frame
               const isChangeThemeButton = (
                 target.textContent?.includes('Change theme') || 
                 target.textContent?.includes('Change Theme') ||
@@ -2280,6 +2388,7 @@ export default function Dashboard() {
                 console.log('🎯 Global IFE frame click delegation caught Change Theme button');
                 e.stopPropagation();
                 handlePromptClick('flight-journey-bar', { themeColor: ifeFrameThemeColor }, { x: e.clientX, y: e.clientY });
+                return;
               }
               
               // If color prompt was closed without save, clicking anywhere in IFE frame should open color prompt
@@ -2386,6 +2495,7 @@ export default function Dashboard() {
         fpsPrompts={fpsPrompts}
         onThemeColorChange={(color, chipData) => {
           if (typeof color === 'string' && color.length > 0) {
+            console.log('🚀 === THEME COLOR CHANGE START ===');
             console.log('🎯 onThemeColorChange called with:', { color, chipData, isThemeBuildStarted });
             
             // Store theme for the current flight route
@@ -2425,32 +2535,50 @@ export default function Dashboard() {
             }
             
             // Auto-select takeoff flight phase
+            console.log('🚨 ABOUT TO CALL setSelectedFlightPhase("takeoff") - THIS MIGHT TRIGGER CARD RESET');
             setSelectedFlightPhase('takeoff');
             console.log('🎯 Auto-selected takeoff flight phase');
             
             // Mark the route as modified when theme is saved
             markCurrentRouteAsModified();
             
-            // Update route-specific promo card contents
+            // Update route-specific promo card contents (preserve existing custom content)
             const routeKey = getCurrentRouteKey();
             if (routeKey) {
               setPromoCardContents(prev => {
+                const existingContent = prev[routeKey] || {};
+                const defaultContent = {
+                  0: { text: 'Enjoy your welcome drink', image: 'welcome drink', updated: false, backgroundImage: null },
+                  1: { text: 'Feel at home', image: 'Settle in', updated: false, backgroundImage: null },
+                  2: { text: 'Connect your device', image: 'phone in an aircraft', updated: false, backgroundImage: null }
+                };
+                
+                // Preserve existing custom content, only use defaults for cards that haven't been customized
+                const preservedContent = {};
+                for (let i = 0; i < 3; i++) {
+                  if (existingContent[i] && existingContent[i].updated) {
+                    // Keep existing custom content
+                    preservedContent[i] = existingContent[i];
+                  } else {
+                    // Use default content for uncustomized cards
+                    preservedContent[i] = defaultContent[i];
+                  }
+                }
+                
                 const newState = {
                   ...prev,
-                  [routeKey]: {
-                    0: { text: 'Enjoy your welcome drink', image: 'welcome drink', updated: true, backgroundImage: null },
-                    1: { text: 'Feel at home', image: 'Settle in', updated: true, backgroundImage: null },
-                    2: { text: 'Connect your device', image: 'phone in an aircraft', updated: true, backgroundImage: null }
-                  }
+                  [routeKey]: preservedContent
                 };
-                console.log('🎯 Updated route-specific promo card contents for takeoff phase (route modified):', {
+                console.log('🎯 Updated route-specific promo card contents (preserving custom content):', {
                   routeKey,
+                  existingContent,
+                  preservedContent,
                   allRoutes: Object.keys(newState)
                 });
                 return newState;
               });
               
-              // Generate images for promo cards immediately after updating contents
+              // Generate images for promo cards (only for cards without existing images)
               const generatePromoCardImages = async () => {
                 const imagePrompts = [
                   'welcome drink',
@@ -2463,13 +2591,22 @@ export default function Dashboard() {
                 // Generate images one by one to avoid overwhelming the API
                 for (let index = 0; index < imagePrompts.length; index++) {
                   const prompt = imagePrompts[index];
-                  try {
-                    // Use the sync version for immediate URL generation
-                    const aiImageUrl = generateAIImageSync(prompt);
-                    promoCardImages[index] = aiImageUrl;
+                  
+                  // Check if this card already has a custom image
+                  setPromoCardContents(prev => {
+                    const currentCard = prev[routeKey]?.[index];
+                    if (currentCard && currentCard.backgroundImage) {
+                      // Card already has a custom image, skip generation
+                      console.log('🎯 Skipping image generation for promo card (already has custom image):', { index, existingImage: currentCard.backgroundImage });
+                      return prev;
+                    }
                     
-                    // Update each card individually as images are generated
-                    setPromoCardContents(prev => {
+                    // Generate new image for this card
+                    try {
+                      const aiImageUrl = generateAIImageSync(prompt);
+                      promoCardImages[index] = aiImageUrl;
+                      
+                      // Update the card with the new image
                       const updatedState = { ...prev };
                       if (updatedState[routeKey] && updatedState[routeKey][index]) {
                         updatedState[routeKey][index] = {
@@ -2477,17 +2614,15 @@ export default function Dashboard() {
                           backgroundImage: aiImageUrl
                         };
                       }
+                      
+                      console.log('🎯 Generated image for promo card:', { index, prompt, aiImageUrl });
                       return updatedState;
-                    });
-                    
-                    console.log('🎯 Generated image for promo card:', { index, prompt, aiImageUrl });
-                  } catch (error) {
-                    console.error('=== AI IMAGE GENERATION FAILED FOR PROMO CARD ===', { error, prompt });
-                    const fallbackUrl = getUnsplashFallback(prompt);
-                    promoCardImages[index] = fallbackUrl;
-                    
-                    // Update with fallback image
-                    setPromoCardContents(prev => {
+                    } catch (error) {
+                      console.error('=== AI IMAGE GENERATION FAILED FOR PROMO CARD ===', { error, prompt });
+                      const fallbackUrl = getUnsplashFallback(prompt);
+                      promoCardImages[index] = fallbackUrl;
+                      
+                      // Update with fallback image
                       const updatedState = { ...prev };
                       if (updatedState[routeKey] && updatedState[routeKey][index]) {
                         updatedState[routeKey][index] = {
@@ -2496,14 +2631,14 @@ export default function Dashboard() {
                         };
                       }
                       return updatedState;
-                    });
-                  }
+                    }
+                  });
                   
                   // Small delay between requests to avoid rate limiting
                   await new Promise(resolve => setTimeout(resolve, 200));
                 }
                 
-                console.log('🎯 Completed generating images for promo cards:', {
+                console.log('🎯 Completed generating images for promo cards (preserving existing images):', {
                   routeKey,
                   promoCardImages
                 });
@@ -2513,46 +2648,99 @@ export default function Dashboard() {
               generatePromoCardImages();
             }
             
-            // Update route-specific recommended content cards
-            const newRecommendedContentCards = [
-              { id: 1, title: 'Crocodile Dundee Movie', type: 'movie' },
-              { id: 2, title: 'Get Your Guide', type: 'guide' },
-              { id: 3, title: 'Game Poster', type: 'game' },
-              { id: 4, title: 'A Podcast', type: 'podcast' }
-            ];
-            setRouteContentCards(newRecommendedContentCards);
-            
-            // Generate AI images for content cards
-            const currentRouteKey = getCurrentRouteKey();
-            if (currentRouteKey) {
-              const newContentCardImages = {};
-              newRecommendedContentCards.forEach((card, index) => {
-                try {
-                  const aiImageUrl = generateAIImageSync(card.title);
-                  newContentCardImages[index] = aiImageUrl;
-                } catch (error) {
-                  console.error('=== AI IMAGE GENERATION FAILED FOR CONTENT CARD ===', { error, cardTitle: card.title });
-                  // Fallback to Unsplash image
-                  const fallbackUrl = getUnsplashFallback(card.title);
-                  newContentCardImages[index] = fallbackUrl;
+            // Update route-specific recommended content cards based on selected chip type
+            if (routeKey) {
+              setRecommendedContentCards(prev => {
+                const segment = { origin, destination };
+                const phase = selectedFlightPhase || 'takeoff';
+                let computedCards = [];
+                
+                // If a festival chip was chosen, pull festival-based content. Otherwise, use defaults
+                if (chipData && chipData.isFestival) {
+                  try {
+                    const festivalCards = getFestivalContent?.(getPrimaryFestival(segment, selectedDates, color)?.name, phase, 'content') || [];
+                    const fromUtils = getAllContentCardContent(segment, selectedDates, phase, color) || [];
+                    const source = festivalCards.length > 0 ? festivalCards : fromUtils;
+                    computedCards = source.slice(0, 4).map((item, idx) => ({
+                      id: idx + 1,
+                      title: item?.title || item?.text || 'Add content',
+                      type: item?.type || 'default'
+                    }));
+                  } catch (err) {
+                    console.warn('Could not build festival content cards, falling back to defaults', err);
+                  }
                 }
-              });
-              
-              setContentCardImages(prev => ({
-                ...prev,
-                [currentRouteKey]: newContentCardImages
-              }));
-              
-              console.log('🎯 Generated AI images for content cards:', {
-                routeKey: currentRouteKey,
-                contentCardImages: newContentCardImages
+                
+                if (computedCards.length === 0) {
+                  // Defaults for non-festival chips (Airline Brand, City, Gradient)
+                  computedCards = [
+                    { id: 1, title: 'Crocodile Dundee Movie', type: 'movie' },
+                    { id: 2, title: 'Get Your Guide', type: 'guide' },
+                    { id: 3, title: 'Game Poster', type: 'game' },
+                    { id: 4, title: 'A Podcast', type: 'podcast' }
+                  ];
+                }
+                
+                const newState = {
+                  ...prev,
+                  [routeKey]: computedCards
+                };
+                console.log('🎯 Updated route-specific content cards (chip-aware):', {
+                  routeKey,
+                  chipData,
+                  phase,
+                  computedCards
+                });
+                return newState;
               });
             }
             
-            console.log('🎯 Setting route-specific recommended content cards:', {
-              routeKey: getCurrentRouteKey(),
-              contentCards: newRecommendedContentCards
-            });
+            // Generate AI images for content cards (only for cards without existing images)
+            const currentRouteKey = getCurrentRouteKey();
+            if (currentRouteKey) {
+              setRecommendedContentCards(prev => {
+                const currentContentCards = prev[currentRouteKey] || [];
+                const isFestivalChip = !!(chipData && chipData.isFestival);
+                const existingImages = contentCardImages[currentRouteKey] || {};
+                
+                // If switching away from festival to default (airline/city/gradient/custom),
+                // reset images so they regenerate to match the new titles
+                // Always regenerate images to match the newly selected theme titles (festival or default)
+                // This avoids stale images when switching between festival and non-festival chips
+                const baseImages = {};
+                const newContentCardImages = { ...baseImages };
+                
+                currentContentCards.forEach((card, index) => {
+                  if (!newContentCardImages[index] && card.title && card.title !== 'Add content') {
+                    try {
+                      const aiImageUrl = generateAIImageSync(card.title);
+                      newContentCardImages[index] = aiImageUrl;
+                    } catch (error) {
+                      console.error('=== AI IMAGE GENERATION FAILED FOR CONTENT CARD ===', { error, cardTitle: card.title });
+                      const fallbackUrl = getUnsplashFallback(card.title);
+                      newContentCardImages[index] = fallbackUrl;
+                    }
+                  }
+                });
+                
+                // Overwrite images for this route (reset when not festival)
+                setContentCardImages(prevImages => ({
+                  ...prevImages,
+                  [currentRouteKey]: newContentCardImages
+                }));
+                
+                console.log('🎯 Generated AI images for content cards (reset-aware):', {
+                  routeKey: currentRouteKey,
+                  isFestivalChip,
+                  newContentCardImages
+                });
+                
+                return prev; // Return unchanged state since we're only updating images
+              });
+            }
+            
+            console.log('🎯 Completed theme save with preserved card content');
+            console.log('🚀 === THEME COLOR CHANGE END ===');
             
             // Close the prompt bubble after saving the color
             setCurrentRoutePromptBubble(null);
@@ -2591,6 +2779,8 @@ export default function Dashboard() {
         onFlightPhaseSelect={handleFlightPhaseSelect}
         selectedFlightSegment={selectedFlightSegment}
         selectedDates={selectedDates}
+        modifiedChipColors={modifiedChipColors}
+        setModifiedChipColors={setModifiedChipColors}
       />
 
       {/* Change Theme Button - Shows when hovering IFE frame after color prompt was closed without save */}
@@ -2613,18 +2803,21 @@ export default function Dashboard() {
             }}
           >
             <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>Change theme</span>
+            <div className="w-px h-4 bg-white/30"></div>
+            <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>Animation</span>
+            <div className="w-px h-4 bg-white/30"></div>
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                // Use the hover button position (50px above the click point) for the prompt bubble
-                const hoverButtonPosition = { x: fjbHoverTip.x, y: fjbHoverTip.y - 50 };
-                handlePromptClick('flight-journey-bar', { themeColor: activeThemeColor }, hoverButtonPosition);
+                // Close the prompt bubble if it's open
+                setRoutePromptBubbles({});
+                setIsPromptMode(false);
               }}
-              className="w-6 h-6 rounded-full border flex items-center justify-center"
-              title="Change theme"
-              style={{ pointerEvents: 'auto', borderColor: '#FFFFFF', color: '#FFFFFF' }}
+              className="w-4 h-4 flex items-center justify-center ml-1"
+              style={{ pointerEvents: 'auto', color: '#FFFFFF' }}
+              title="Close"
             >
-              +
+              ×
             </button>
           </div>
         </div>
@@ -2673,7 +2866,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Promo Card hover tip bubble: shows label and plus; click opens PC PB */}
+      {/* Promo Card hover tip bubble when color saved: shows "Edit promo card" */}
       {isCurrentRouteModified() && isPromptMode && pcHoverTip.visible && colorPromptSaved && (
         <div
           key={`pc-hover-edit-${activeThemeColor}`}
@@ -2689,19 +2882,25 @@ export default function Dashboard() {
               borderTopLeftRadius: 0
             }}
           >
-                          <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>
-                Edit promo card
-              </span>
+            <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>
+              Content
+            </span>
+            <div className="w-px h-4 bg-white/30"></div>
+            <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>
+              Analytics
+            </span>
+            <div className="w-px h-4 bg-white/30"></div>
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handlePromptClick('promo-card', pcHoverTip.elementData, { x: pcHoverTip.x, y: pcHoverTip.y });
+                setRoutePromptBubbles({});
+                setIsPromptMode(false);
               }}
-              className="w-6 h-6 rounded-full border flex items-center justify-center"
-                              title="Edit promo card"
-              style={{ pointerEvents: 'auto', borderColor: '#FFFFFF', color: '#FFFFFF' }}
+              className="w-4 h-4 flex items-center justify-center ml-1"
+              style={{ pointerEvents: 'auto', color: '#FFFFFF' }}
+              title="Close"
             >
-              +
+              ×
             </button>
           </div>
         </div>
@@ -2867,7 +3066,7 @@ export default function Dashboard() {
       )}
 
       {/* Content Card hover tip bubble */}
-      {isPromptMode && ccHoverTip.visible && colorPromptSaved && (
+      {isCurrentRouteModified() && isPromptMode && ccHoverTip.visible && colorPromptSaved && (
         <div
           key={`cc-hover-${activeThemeColor}`}
           className="fixed"
@@ -2883,14 +3082,25 @@ export default function Dashboard() {
             }}
           >
             <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>
-              Edit content card
+              Content
             </span>
-            <div
-              className="w-6 h-6 rounded-full border flex items-center justify-center"
-              style={{ borderColor: '#FFFFFF', color: '#FFFFFF' }}
+            <div className="w-px h-4 bg-white/30"></div>
+            <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>
+              Analytics
+            </span>
+            <div className="w-px h-4 bg-white/30"></div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setRoutePromptBubbles({});
+                setIsPromptMode(false);
+              }}
+              className="w-4 h-4 flex items-center justify-center ml-1"
+              style={{ pointerEvents: 'auto', color: '#FFFFFF' }}
+              title="Close"
             >
-              +
-            </div>
+              ×
+            </button>
           </div>
         </div>
       )}

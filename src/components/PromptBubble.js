@@ -207,7 +207,7 @@ const blinkingCSS = `
           rows={1}
         />
                   {/* Remix button next to the image input */}
-          {(textValue.trim() || imageValue.trim() || (elementData && elementData.cardType === 'content-card')) && (
+          {(textValue.trim() || imageValue.trim()) && (
           <button
             type="button"
             onClick={() => {
@@ -265,7 +265,9 @@ export default function PromptBubble({
     onFlightPhaseSelect,
     onCloseWithoutSave,
     selectedFlightSegment = null,
-    selectedDates = []
+    selectedDates = [],
+    modifiedChipColors = {},
+    setModifiedChipColors
 }) {
   console.log('=== PROMPT BUBBLE RENDER ===', {
     isVisible,
@@ -498,7 +500,6 @@ export default function PromptBubble({
     return themeColor;
   });
   const [pendingColor, setPendingColor] = useState(null); // Track color selection before save
-  const [modifiedChipColors, setModifiedChipColors] = useState({}); // Track modified colors for chips
   const bubbleRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -772,8 +773,8 @@ export default function PromptBubble({
       const scrollY = window.pageYOffset || document.documentElement.scrollTop;
       setStickyPosition({ x: position.x + scrollX, y: position.y + scrollY });
       return;
-    } else if (elementType === 'promo-card' || elementType === 'flight-phase-button' || positionKey === 'middle-card-demo' || positionKey === 'middle-card-landing') {
-      // Promo-card/flight-phase-button: viewport -> document
+    } else if (elementType === 'promo-card' || elementType === 'content-card' || elementType === 'flight-phase-button' || positionKey === 'middle-card-demo' || positionKey === 'middle-card-landing') {
+      // Promo-card/content-card/flight-phase-button: viewport -> document
       const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
       const scrollY = window.pageYOffset || document.documentElement.scrollTop;
       setStickyPosition({ x: position.x + scrollX, y: position.y + scrollY });
@@ -826,7 +827,7 @@ export default function PromptBubble({
         // For FJB, position below the hover button
         // The hover button is positioned 50px above the click point, so we position the bubble below the hover button
         finalX = viewportX;
-        finalY = viewportY - 50 + 60; // 50px above click point (hover button) + 60px below hover button
+        finalY = viewportY - 50 + 32; // 50px above click point (hover button) + 32px below hover button
         
         // Ensure the bubble doesn't go off-screen
         if (finalY + 200 > window.innerHeight) {
@@ -1451,14 +1452,14 @@ export default function PromptBubble({
             {(() => {
               switch (elementType) {
                 case 'flight-journey-bar':
-                  return 'Change Theme';
+                  return '';
                 case 'flight-icon':
                 case 'flight-phase-button':
                   return 'Select Flight Phase';
                 case 'content-card':
-                  return 'Edit Content Card';
+                  return '';
                 case 'promo-card':
-                  return 'Edit Promo Card';
+                  return '';
 
                 default:
                   return 'Build theme';
@@ -1467,18 +1468,6 @@ export default function PromptBubble({
           </span>
 
         </div>
-        <button
-          onClick={() => {
-            // If this is a color changing prompt, call onCloseWithoutSave (regardless of pending changes)
-            if (elementType === 'flight-journey-bar' && onCloseWithoutSave) {
-              onCloseWithoutSave();
-            }
-            onClose();
-          }}
-          className={`${useLightText ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'} transition-colors p-1`}
-        >
-          <XMarkIcon className="w-4 h-4" />
-        </button>
       </div>
 
 
@@ -1514,7 +1503,7 @@ export default function PromptBubble({
         )}
         <div className="relative flex-1">
           <style>{blinkingCSS}</style>
-          {elementType !== 'flight-journey-bar' && elementType !== 'flight-icon' && elementType !== 'flight-phase-button' && elementType !== 'promo-card' && (
+          {elementType !== 'flight-journey-bar' && elementType !== 'flight-icon' && elementType !== 'flight-phase-button' && elementType !== 'promo-card' && elementType !== 'content-card' && (
             <>
               <textarea
                 ref={inputRef}
@@ -1560,7 +1549,7 @@ export default function PromptBubble({
           </>
           )}
           
-          {/* Custom input interface for promo cards and content cards */}
+          {/* Use PromoCardPlaceholder for both promo and content cards */}
           {(elementType === 'promo-card' || elementType === 'content-card') && !isLoading && (
             <div 
               style={{
@@ -1691,7 +1680,6 @@ export default function PromptBubble({
                     >
                                                                      {isSelected && <CheckIcon className="w-3 h-3 mr-1.5 flex-shrink-0" style={{ color: (selectedFlightPhase === chip.id || selectedChip === chip.id) ? (useLightText ? '#000000' : '#FFFFFF') : 'inherit' }} />}
                         {chip.label}
-                        {!isSelected && <PlusIcon className="w-3 h-3 ml-1.5 flex-shrink-0" style={{ color: (selectedFlightPhase === chip.id || selectedChip === chip.id) ? (useLightText ? '#000000' : '#FFFFFF') : 'inherit' }} />}
                     </button>
                   );
                 })}
@@ -2428,7 +2416,7 @@ export default function PromptBubble({
         )}
         
         {/* Save Button for Flight Phase Selection (FPS) */}
-        {elementType !== 'promo-card' && elementType !== 'flight-journey-bar' && (
+        {elementType !== 'promo-card' && elementType !== 'flight-journey-bar' && elementType !== 'content-card' && (
           <button
             type="submit"
             disabled={!promptText.trim() || isLoading}
