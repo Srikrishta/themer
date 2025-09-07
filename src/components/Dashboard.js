@@ -2010,30 +2010,13 @@ export default function Dashboard() {
           isRouteModified={isCurrentRouteModified()}
         />
       </div>
-      
-      {/* Theme preview label */}
-      <div 
-        className="w-full flex justify-center"
-        style={{
-          marginTop: 20,
-          marginBottom: 20
-        }}
-      >
-        <h1 
-          className="text-6xl font-extrabold tracking-tight text-gray-900"
-          style={{
-            opacity: 0.1
-          }}
-        >
-          Theme preview
-        </h1>
-      </div>
-      
       {/* Route Map */}
-      <RouteMap 
-        routes={routes} 
-        themeColor={activeThemeColor}
-      />
+      {!showInFlightPreview && (
+        <RouteMap 
+          routes={routes} 
+          themeColor={activeThemeColor}
+        />
+      )}
       
       {/* In-flight preview label */}
       {showInFlightPreview && (
