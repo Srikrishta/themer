@@ -442,7 +442,7 @@ export default function LandingPage() {
                         className="bg-black overflow-clip relative shrink-0 flex items-center justify-center cursor-move hover:opacity-80 transition-opacity group"
                         style={{ 
                           width: '100%', 
-                          height: '184px',
+                          height: '160px',
                           background: getLightThemeColor(0.1),
                           borderTopLeftRadius: '8px',
                           borderTopRightRadius: '8px',

@@ -1280,74 +1280,77 @@ export const festivalContent = {
   // Continue with more festivals...
 };
 
-// Default content for when no festival is selected
-export const defaultContent = {
+// Non-festive content for airline, city, and origin-destination themes
+export const nonFestiveContent = {
   takeoff: {
     promo: [
-      { text: "", image: "" },
-      { text: "", image: "" },
-      { text: "", image: "" }
+      { text: "Enjoy your welcome drink", image: "welcome drinks" },
+      { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
+      { text: "Connect your device", image: "phone in an aircraft" }
     ],
     content: [
-      { text: "", image: "" },
-      { text: "", image: "" },
-      { text: "", image: "" },
-      { text: "", image: "" }
+      { text: "Welcome Aboard Guide", image: "aircraft welcome guide" },
+      { text: "In-Flight Entertainment", image: "aircraft entertainment system" },
+      { text: "Safety Instructions", image: "aircraft safety demonstration" },
+      { text: "Flight Information", image: "aircraft flight details" }
     ]
   },
   climb: {
     promo: [
-      { text: "", image: "" },
-      { text: "", image: "" },
-      { text: "", image: "" }
+      { text: "Order food", image: "meal" },
+      { text: "Offers onboard", image: "offers" },
+      { text: "Latest entertainment", image: "movie" }
     ],
     content: [
-      { text: "", image: "" },
-      { text: "", image: "" },
-      { text: "", image: "" },
-      { text: "", image: "" }
+      { text: "Menu Selection", image: "aircraft meal menu" },
+      { text: "Special Offers", image: "aircraft shopping offers" },
+      { text: "Entertainment Library", image: "aircraft movie selection" },
+      { text: "Flight Services", image: "aircraft service options" }
     ]
   },
   cruise: {
     promo: [
-      { text: "", image: "" },
-      { text: "", image: "" },
-      { text: "", image: "" }
+      { text: "Popcorn with movie", image: "popcorn" },
+      { text: "Buy gifts", image: "gifts" },
+      { text: "Latest entertainment", image: "movie" }
     ],
     content: [
-      { text: "", image: "" },
-      { text: "", image: "" },
-      { text: "", image: "" },
-      { text: "", image: "" }
+      { text: "Movie Snacks", image: "aircraft popcorn and snacks" },
+      { text: "Duty-Free Shopping", image: "aircraft gift shop" },
+      { text: "Entertainment Options", image: "aircraft movie theater" },
+      { text: "Relaxation Services", image: "aircraft comfort amenities" }
     ]
   },
   descent: {
     promo: [
-      { text: "", image: "" },
-      { text: "", image: "" },
-      { text: "", image: "" }
+      { text: "Buy guides at discount", image: "get your guide" },
+      { text: "Buy gifts", image: "gifts" },
+      { text: "Save on your next flight", image: "flight ticket offer" }
     ],
     content: [
-      { text: "", image: "" },
-      { text: "", image: "" },
-      { text: "", image: "" },
-      { text: "", image: "" }
+      { text: "Destination Guides", image: "travel guide books" },
+      { text: "Last-Minute Shopping", image: "aircraft final shopping" },
+      { text: "Future Flight Deals", image: "airline booking offers" },
+      { text: "Loyalty Program", image: "airline frequent flyer" }
     ]
   },
   landing: {
     promo: [
-      { text: "", image: "" },
-      { text: "", image: "" },
-      { text: "", image: "" }
+      { text: "Thank you for flying with us", image: "Thank you and airline crew" },
+      { text: "Save on your next flight", image: "flight booking" },
+      { text: "Shop duty free", image: "duty free shop in airport" }
     ],
     content: [
-      { text: "", image: "" },
-      { text: "", image: "" },
-      { text: "", image: "" },
-      { text: "", image: "" }
+      { text: "Thank You Message", image: "airline crew appreciation" },
+      { text: "Next Flight Booking", image: "airline reservation system" },
+      { text: "Airport Duty-Free", image: "airport shopping mall" },
+      { text: "Arrival Information", image: "airport arrival details" }
     ]
   }
 };
+
+// Default content for when no festival is selected (now uses non-festive content)
+export const defaultContent = nonFestiveContent;
 
 // Helper function to get festival content based on festival name and flight phase
 export const getFestivalContent = (festivalName, flightPhase, contentType = 'promo') => {
@@ -1361,6 +1364,39 @@ export const getFestivalContent = (festivalName, flightPhase, contentType = 'pro
   }
   
   return festival[flightPhase]?.[contentType] || defaultContent[flightPhase]?.[contentType] || [];
+};
+
+// Helper function to get non-festive content for airline, city, and origin-destination themes
+export const getNonFestiveContent = (flightPhase, contentType = 'promo') => {
+  if (!flightPhase) {
+    return [];
+  }
+  
+  return nonFestiveContent[flightPhase]?.[contentType] || [];
+};
+
+// Helper function to get specific non-festive card content
+export const getNonFestiveCardContent = (flightPhase, contentType = 'promo', cardIndex = 0) => {
+  console.log('=== GET NON-FESTIVE CARD CONTENT DEBUG ===', {
+    flightPhase,
+    contentType,
+    cardIndex,
+    hasNonFestiveContent: !!nonFestiveContent[flightPhase],
+    phaseData: nonFestiveContent[flightPhase],
+    hasContentType: !!nonFestiveContent[flightPhase]?.[contentType],
+    contentTypeData: nonFestiveContent[flightPhase]?.[contentType]
+  });
+  
+  const content = getNonFestiveContent(flightPhase, contentType);
+  console.log('=== GET NON-FESTIVE CONTENT RESULT ===', {
+    content,
+    contentLength: content.length,
+    requestedIndex: cardIndex,
+    requestedItem: content[cardIndex],
+    hasRequestedItem: !!content[cardIndex]
+  });
+  
+  return content[cardIndex] || null;
 };
 
 // Helper function to get specific card content

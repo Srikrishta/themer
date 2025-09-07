@@ -1,6 +1,7 @@
 import { getReadableOnColor } from '../utils/color';
 import { useState, useEffect, useCallback } from 'react';
 import { getPromoCardContent, shouldUseFestivalContent } from '../utils/festivalUtils';
+import { getNonFestiveCardContent } from '../data/festivalContent';
 import { getPollinationsImage } from '../utils/unsplash';
 
 
@@ -138,7 +139,31 @@ export default function Component3Cards({
       });
     }
     
-    // Fallback to default content for non-festive themes or when theme not saved
+    // For non-festive themes or when theme is saved but not festive, use non-festive content
+    if (colorPromptSaved && selectedFlightPhase) {
+      console.log('=== GETTING NON-FESTIVE CONTENT FOR PROMO CARD ===', {
+        selectedFlightPhase,
+        cardIndex,
+        colorPromptSaved
+      });
+      
+      const nonFestiveContent = getNonFestiveCardContent(selectedFlightPhase, 'promo', cardIndex);
+      console.log('=== NON-FESTIVE CONTENT RESULT ===', {
+        nonFestiveContent,
+        hasText: !!nonFestiveContent?.text,
+        hasImage: !!nonFestiveContent?.image
+      });
+      
+      if (nonFestiveContent && nonFestiveContent.text) {
+        return { 
+          text: nonFestiveContent.text, 
+          image: nonFestiveContent.image || '', 
+          bgColor: getLightThemeColor() 
+        };
+      }
+    }
+    
+    // Final fallback for unsaved themes
     return { text: "Add experience", bgColor: getLightThemeColor() };
   };
 

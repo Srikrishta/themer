@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { getReadableOnColor } from '../utils/color';
 import { getContentCardContent } from '../utils/festivalUtils';
+import { getNonFestiveCardContent } from '../data/festivalContent';
 import { getPollinationsImage } from '../utils/unsplash';
 import ThemeCreator from './ThemeCreator';
 import FlightJourneyBar from './FlightJourneyBar';
@@ -148,7 +149,27 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
       });
     }
     
-    // Fallback to default content for non-festive themes or when theme not saved
+    // For non-festive themes or when theme is saved but not festive, use non-festive content
+    if (getRouteColorPromptSaved() && selectedFlightPhase) {
+      console.log('=== GETTING NON-FESTIVE CONTENT FOR CONTENT CARD ===', {
+        selectedFlightPhase,
+        cardIndex,
+        colorPromptSaved: getRouteColorPromptSaved()
+      });
+      
+      const nonFestiveContent = getNonFestiveCardContent(selectedFlightPhase, 'content', cardIndex);
+      console.log('=== NON-FESTIVE CONTENT RESULT ===', {
+        nonFestiveContent,
+        hasText: !!nonFestiveContent?.text,
+        hasImage: !!nonFestiveContent?.image
+      });
+      
+      if (nonFestiveContent && nonFestiveContent.text) {
+        return { text: nonFestiveContent.text, image: nonFestiveContent.image || '' };
+      }
+    }
+    
+    // Final fallback for unsaved themes
     return { text: 'Add content', image: '' };
   };
 
@@ -181,7 +202,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
   const renderContentCard = (originalCardIndex, displayPosition) => {
     const cardStyle = {
       width: '100%',
-      height: '184px',
+      height: '160px',
       background: getCardBackgroundColor(themeColor),
       borderTopLeftRadius: '8px',
       borderTopRightRadius: '8px',
@@ -220,7 +241,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         <div 
           className="absolute left-0 right-0 z-10 p-2 backdrop-blur-md backdrop-filter shadow-none"
           style={{ 
-            bottom: '1px',
+            bottom: '0px',
             backgroundColor: getReadableOnColor(themeColor) + 'CC',
             minHeight: '40px',
             display: 'flex',
@@ -401,7 +422,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                 className="overflow-clip relative shrink-0 flex items-center justify-center"
                 style={{
                   width: '100%',
-                  height: '184px',
+                  height: '160px',
                   borderTopLeftRadius: '8px',
                   borderTopRightRadius: '8px',
                   borderBottomLeftRadius: '8px',
@@ -415,7 +436,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                 className="overflow-clip relative shrink-0 flex items-center justify-center"
                 style={{
                   width: '100%',
-                  height: '184px',
+                  height: '160px',
                   borderTopLeftRadius: '8px',
                   borderTopRightRadius: '8px',
                   borderBottomLeftRadius: '8px',
@@ -429,7 +450,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                 className="overflow-clip relative shrink-0 flex items-center justify-center"
                 style={{
                   width: '100%',
-                  height: '184px',
+                  height: '160px',
                   borderTopLeftRadius: '8px',
                   borderTopRightRadius: '8px',
                   borderBottomLeftRadius: '8px',
@@ -443,7 +464,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                 className="overflow-clip relative shrink-0 flex items-center justify-center"
                 style={{
                   width: '100%',
-                  height: '184px',
+                  height: '160px',
                   borderTopLeftRadius: '8px',
                   borderTopRightRadius: '8px',
                   borderBottomLeftRadius: '8px',

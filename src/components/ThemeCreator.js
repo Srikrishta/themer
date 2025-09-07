@@ -680,6 +680,11 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
               background-size: 200% 200%;
               animation: gradientRotate 3s ease infinite;
               z-index: -1;
+              mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+              mask-composite: xor;
+              -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+              -webkit-mask-composite: xor;
+              padding: 1px;
             }
           `}</style>
         )}
