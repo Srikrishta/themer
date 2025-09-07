@@ -10,9 +10,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Amsterdam Light Festival Documentary", image: "amsterdam light festival film" },
-        { text: "Amsterdam Light Festival Tour", image: "amsterdam light festival guide" },
-        { text: "Light Festival Puzzle", image: "amsterdam light festival game" },
-        { text: "Amsterdam Light Festival Stories", image: "amsterdam light festival podcast" }
+        { text: "The Batman", image: "the batman movie" },
+        { text: "Light Festival Audio Guide", image: "amsterdam light festival podcast" },
+        { text: "Cyberpunk 2077", image: "cyberpunk 2077 game" }
       ]
     },
     climb: {
@@ -23,9 +23,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Amsterdam Light Art Films", image: "amsterdam light art cinema" },
-        { text: "Amsterdam Light Festival Experience", image: "amsterdam light festival experience" },
-        { text: "Light Festival Adventure", image: "amsterdam light festival adventure game" },
-        { text: "Amsterdam Light Festival Culture", image: "amsterdam light festival culture podcast" }
+        { text: "Dune", image: "dune movie" },
+        { text: "Light Festival Stories", image: "amsterdam light festival podcast" },
+        { text: "The Witcher 3", image: "the witcher 3 game" }
       ]
     },
     cruise: {
@@ -36,9 +36,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Amsterdam Light Festival Highlights", image: "amsterdam light festival highlights" },
-        { text: "Amsterdam Light Festival Discovery", image: "amsterdam light festival discovery" },
-        { text: "Light Festival Quest", image: "amsterdam light festival quest game" },
-        { text: "Amsterdam Light Festival Magic", image: "amsterdam light festival magic podcast" }
+        { text: "Interstellar", image: "interstellar movie" },
+        { text: "Light Festival Magic", image: "amsterdam light festival podcast" },
+        { text: "Minecraft", image: "minecraft game" }
       ]
     },
     descent: {
@@ -49,9 +49,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Amsterdam Light Festival Arrival", image: "amsterdam light festival arrival film" },
-        { text: "Amsterdam Light Festival Welcome", image: "amsterdam light festival welcome guide" },
-        { text: "Light Festival Landing", image: "amsterdam light festival landing game" },
-        { text: "Amsterdam Light Festival Greeting", image: "amsterdam light festival greeting podcast" }
+        { text: "Blade Runner 2049", image: "blade runner 2049 movie" },
+        { text: "Light Festival Greeting", image: "amsterdam light festival podcast" },
+        { text: "Portal 2", image: "portal 2 game" }
       ]
     },
     landing: {
@@ -62,31 +62,31 @@ export const festivalContent = {
       ],
       content: [
         { text: "Amsterdam Light Festival Celebration", image: "amsterdam light festival celebration film" },
-        { text: "Amsterdam Light Festival Spirit", image: "amsterdam light festival spirit guide" },
-        { text: "Light Festival Joy", image: "amsterdam light festival joy game" },
-        { text: "Amsterdam Light Festival Welcome", image: "amsterdam light festival welcome podcast" }
+        { text: "The Matrix", image: "the matrix movie" },
+        { text: "Light Festival Welcome", image: "amsterdam light festival podcast" },
+        { text: "Half-Life 2", image: "half life 2 game" }
       ]
     }
   },
   "Christmas in Rome": {
     takeoff: {
       promo: [
-        { text: "Christmas magic in Rome", image: "rome christmas nativity scene" },
-        { text: "Holiday spirit", image: "rome christmas decorations" },
-        { text: "Festive takeoff", image: "rome christmas tree" }
+        { text: "Enjoy your welcome drink", image: "christmas mulled wine" },
+        { text: "Check goodies in seat", image: "earphones and snacks" },
+        { text: "Connect your device", image: "phone device" }
       ],
       content: [
         { text: "Christmas in Rome Documentary", image: "rome christmas film" },
-        { text: "Christmas in Rome Tour", image: "rome christmas guide" },
-        { text: "Christmas in Rome Puzzle", image: "rome christmas game" },
-        { text: "Christmas in Rome Stories", image: "rome christmas podcast" }
+        { text: "Home Alone", image: "home alone movie" },
+        { text: "Christmas in Rome Stories", image: "rome christmas podcast" },
+        { text: "The Sims 4", image: "the sims 4 game" }
       ]
     },
     climb: {
       promo: [
-        { text: "Roman Christmas joy", image: "rome christmas market" },
-        { text: "Holiday climb", image: "rome christmas lights" },
-        { text: "Festive ascent", image: "rome christmas celebration" }
+        { text: "Order food", image: "christmas panettone" },
+        { text: "Offers onboard", image: "christmas offers" },
+        { text: "Latest entertainment", image: "movie" }
       ],
       content: [
         { text: "Roman Christmas Traditions", image: "rome christmas traditions film" },
@@ -97,9 +97,9 @@ export const festivalContent = {
     },
     cruise: {
       promo: [
-        { text: "Christmas cruise", image: "rome christmas piazza" },
-        { text: "Holiday magic", image: "rome christmas traditions" },
-        { text: "Festive journey", image: "rome christmas atmosphere" }
+        { text: "Popcorn with movie", image: "christmas cookies" },
+        { text: "Buy gifts", image: "christmas gifts" },
+        { text: "Latest entertainment", image: "movie" }
       ],
       content: [
         { text: "Christmas in Rome Highlights", image: "rome christmas highlights" },
@@ -110,9 +110,9 @@ export const festivalContent = {
     },
     descent: {
       promo: [
-        { text: "Land in Christmas", image: "rome christmas arrival" },
-        { text: "Holiday landing", image: "rome christmas welcome" },
-        { text: "Festive descent", image: "rome christmas greeting" }
+        { text: "Buy guides at discount", image: "rome christmas guide" },
+        { text: "Buy gifts", image: "christmas gifts" },
+        { text: "Save on your next flight", image: "flight booking" }
       ],
       content: [
         { text: "Christmas in Rome Arrival", image: "rome christmas arrival film" },
@@ -123,15 +123,15 @@ export const festivalContent = {
     },
     landing: {
       promo: [
-        { text: "Christmas welcome", image: "rome christmas terminal" },
-        { text: "Holiday arrival", image: "rome christmas celebration" },
-        { text: "Festive landing", image: "rome christmas spirit" }
+        { text: "Thank you for flying with us", image: "thank you" },
+        { text: "Save on your next flight", image: "flight booking" },
+        { text: "Shop duty free", image: "duty free shop" }
       ],
       content: [
         { text: "Christmas in Rome Celebration", image: "rome christmas celebration film" },
-        { text: "Christmas in Rome Spirit", image: "rome christmas spirit guide" },
-        { text: "Christmas in Rome Joy", image: "rome christmas joy game" },
-        { text: "Christmas in Rome Welcome", image: "rome christmas welcome podcast" }
+        { text: "A Christmas Story", image: "a christmas story movie" },
+        { text: "Christmas in Rome Welcome", image: "rome christmas podcast" },
+        { text: "Hollow Knight", image: "hollow knight game" }
       ]
     }
   },
@@ -145,9 +145,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Rome Carnival Documentary", image: "rome carnival film" },
-        { text: "Rome Carnival Tour", image: "rome carnival guide" },
-        { text: "Rome Carnival Puzzle", image: "rome carnival game" },
-        { text: "Rome Carnival Stories", image: "rome carnival podcast" }
+        { text: "The Mask", image: "the mask movie" },
+        { text: "Rome Carnival Stories", image: "rome carnival podcast" },
+        { text: "Among Us", image: "among us game" }
       ]
     },
     climb: {
@@ -158,9 +158,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Roman Carnival Traditions", image: "rome carnival traditions film" },
-        { text: "Rome Carnival Experience", image: "rome carnival experience" },
-        { text: "Rome Carnival Adventure", image: "rome carnival adventure game" },
-        { text: "Rome Carnival Culture", image: "rome carnival culture podcast" }
+        { text: "Moulin Rouge", image: "moulin rouge movie" },
+        { text: "Rome Carnival Culture", image: "rome carnival podcast" },
+        { text: "Fall Guys", image: "fall guys game" }
       ]
     },
     cruise: {
@@ -171,9 +171,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Rome Carnival Highlights", image: "rome carnival highlights" },
-        { text: "Rome Carnival Discovery", image: "rome carnival discovery" },
-        { text: "Rome Carnival Quest", image: "rome carnival quest game" },
-        { text: "Rome Carnival Magic", image: "rome carnival magic podcast" }
+        { text: "The Greatest Showman", image: "the greatest showman movie" },
+        { text: "Rome Carnival Magic", image: "rome carnival podcast" },
+        { text: "Minecraft", image: "minecraft game" }
       ]
     },
     descent: {
@@ -184,9 +184,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Rome Carnival Arrival", image: "rome carnival arrival film" },
-        { text: "Rome Carnival Welcome", image: "rome carnival welcome guide" },
-        { text: "Rome Carnival Landing", image: "rome carnival landing game" },
-        { text: "Rome Carnival Greeting", image: "rome carnival greeting podcast" }
+        { text: "La La Land", image: "la la land movie" },
+        { text: "Rome Carnival Greeting", image: "rome carnival podcast" },
+        { text: "Portal 2", image: "portal 2 game" }
       ]
     },
     landing: {
@@ -197,9 +197,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Rome Carnival Celebration", image: "rome carnival celebration film" },
-        { text: "Rome Carnival Spirit", image: "rome carnival spirit guide" },
-        { text: "Rome Carnival Joy", image: "rome carnival joy game" },
-        { text: "Rome Carnival Welcome", image: "rome carnival welcome podcast" }
+        { text: "Chicago", image: "chicago movie" },
+        { text: "Rome Carnival Welcome", image: "rome carnival podcast" },
+        { text: "Half-Life 2", image: "half life 2 game" }
       ]
     }
   },
@@ -212,9 +212,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Milan Carnevale Documentary", image: "milan carnevale film" },
-        { text: "Milan Carnevale Tour", image: "milan carnevale guide" },
-        { text: "Milan Carnevale Puzzle", image: "milan carnevale game" },
-        { text: "Milan Carnevale Stories", image: "milan carnevale podcast" }
+        { text: "The Mask", image: "the mask movie" },
+        { text: "Milan Carnevale Stories", image: "milan carnevale podcast" },
+        { text: "Among Us", image: "among us game" }
       ]
     },
     climb: {
@@ -225,9 +225,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Milan Carnival Traditions", image: "milan carnevale traditions film" },
-        { text: "Milan Carnevale Experience", image: "milan carnevale experience" },
-        { text: "Milan Carnevale Adventure", image: "milan carnevale adventure game" },
-        { text: "Milan Carnevale Culture", image: "milan carnevale culture podcast" }
+        { text: "Moulin Rouge", image: "moulin rouge movie" },
+        { text: "Milan Carnevale Culture", image: "milan carnevale podcast" },
+        { text: "Fall Guys", image: "fall guys game" }
       ]
     },
     cruise: {
@@ -238,9 +238,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Milan Carnevale Highlights", image: "milan carnevale highlights" },
-        { text: "Milan Carnevale Discovery", image: "milan carnevale discovery" },
-        { text: "Milan Carnevale Quest", image: "milan carnevale quest game" },
-        { text: "Milan Carnevale Magic", image: "milan carnevale magic podcast" }
+        { text: "The Greatest Showman", image: "the greatest showman movie" },
+        { text: "Milan Carnevale Magic", image: "milan carnevale podcast" },
+        { text: "Minecraft", image: "minecraft game" }
       ]
     },
     descent: {
@@ -251,9 +251,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Milan Carnevale Arrival", image: "milan carnevale arrival film" },
-        { text: "Milan Carnevale Welcome", image: "milan carnevale welcome guide" },
-        { text: "Milan Carnevale Landing", image: "milan carnevale landing game" },
-        { text: "Milan Carnevale Greeting", image: "milan carnevale greeting podcast" }
+        { text: "La La Land", image: "la la land movie" },
+        { text: "Milan Carnevale Greeting", image: "milan carnevale podcast" },
+        { text: "Portal 2", image: "portal 2 game" }
       ]
     },
     landing: {
@@ -264,9 +264,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Milan Carnevale Celebration", image: "milan carnevale celebration film" },
-        { text: "Milan Carnevale Spirit", image: "milan carnevale spirit guide" },
-        { text: "Milan Carnevale Joy", image: "milan carnevale joy game" },
-        { text: "Milan Carnevale Welcome", image: "milan carnevale welcome podcast" }
+        { text: "Chicago", image: "chicago movie" },
+        { text: "Milan Carnevale Welcome", image: "milan carnevale podcast" },
+        { text: "Half-Life 2", image: "half life 2 game" }
       ]
     }
   },
@@ -279,9 +279,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Milan Fashion Week Documentary", image: "milan fashion week film" },
-        { text: "Milan Fashion Week Tour", image: "milan fashion week guide" },
-        { text: "Milan Fashion Week Puzzle", image: "milan fashion week game" },
-        { text: "Milan Fashion Week Stories", image: "milan fashion week podcast" }
+        { text: "The Devil Wears Prada", image: "the devil wears prada movie" },
+        { text: "Milan Fashion Week Stories", image: "milan fashion week podcast" },
+        { text: "The Sims 4", image: "the sims 4 game" }
       ]
     },
     climb: {
@@ -292,9 +292,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Milan Fashion Traditions", image: "milan fashion traditions film" },
-        { text: "Milan Fashion Week Experience", image: "milan fashion week experience" },
-        { text: "Milan Fashion Week Adventure", image: "milan fashion week adventure game" },
-        { text: "Milan Fashion Week Culture", image: "milan fashion week culture podcast" }
+        { text: "Zoolander", image: "zoolander movie" },
+        { text: "Milan Fashion Week Culture", image: "milan fashion week podcast" },
+        { text: "Animal Crossing", image: "animal crossing game" }
       ]
     },
     cruise: {
@@ -305,9 +305,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Milan Fashion Week Highlights", image: "milan fashion week highlights" },
-        { text: "Milan Fashion Week Discovery", image: "milan fashion week discovery" },
-        { text: "Milan Fashion Week Quest", image: "milan fashion week quest game" },
-        { text: "Milan Fashion Week Magic", image: "milan fashion week magic podcast" }
+        { text: "Crazy Rich Asians", image: "crazy rich asians movie" },
+        { text: "Milan Fashion Week Magic", image: "milan fashion week podcast" },
+        { text: "Stardew Valley", image: "stardew valley game" }
       ]
     },
     descent: {
@@ -318,9 +318,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Milan Fashion Week Arrival", image: "milan fashion week arrival film" },
-        { text: "Milan Fashion Week Welcome", image: "milan fashion week welcome guide" },
-        { text: "Milan Fashion Week Landing", image: "milan fashion week landing game" },
-        { text: "Milan Fashion Week Greeting", image: "milan fashion week greeting podcast" }
+        { text: "Clueless", image: "clueless movie" },
+        { text: "Milan Fashion Week Greeting", image: "milan fashion week podcast" },
+        { text: "Celeste", image: "celeste game" }
       ]
     },
     landing: {
@@ -331,9 +331,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Milan Fashion Week Celebration", image: "milan fashion week celebration film" },
-        { text: "Milan Fashion Week Spirit", image: "milan fashion week spirit guide" },
-        { text: "Milan Fashion Week Joy", image: "milan fashion week joy game" },
-        { text: "Milan Fashion Week Welcome", image: "milan fashion week welcome podcast" }
+        { text: "Legally Blonde", image: "legally blonde movie" },
+        { text: "Milan Fashion Week Welcome", image: "milan fashion week podcast" },
+        { text: "Hollow Knight", image: "hollow knight game" }
       ]
     }
   },
@@ -346,9 +346,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Milan Autumn Fashion Documentary", image: "milan fashion week autumn film" },
-        { text: "Milan Autumn Fashion Tour", image: "milan fashion week autumn guide" },
-        { text: "Milan Autumn Fashion Puzzle", image: "milan fashion week autumn game" },
-        { text: "Milan Autumn Fashion Stories", image: "milan fashion week autumn podcast" }
+        { text: "The Devil Wears Prada", image: "the devil wears prada movie" },
+        { text: "Milan Autumn Fashion Stories", image: "milan fashion week autumn podcast" },
+        { text: "The Sims 4", image: "the sims 4 game" }
       ]
     },
     climb: {
@@ -359,9 +359,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Milan Autumn Fashion Traditions", image: "milan fashion week autumn traditions film" },
-        { text: "Milan Autumn Fashion Experience", image: "milan fashion week autumn experience" },
-        { text: "Milan Autumn Fashion Adventure", image: "milan fashion week autumn adventure game" },
-        { text: "Milan Autumn Fashion Culture", image: "milan fashion week autumn culture podcast" }
+        { text: "Zoolander", image: "zoolander movie" },
+        { text: "Milan Autumn Fashion Culture", image: "milan fashion week autumn podcast" },
+        { text: "Animal Crossing", image: "animal crossing game" }
       ]
     },
     cruise: {
@@ -372,9 +372,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Milan Autumn Fashion Highlights", image: "milan fashion week autumn highlights" },
-        { text: "Milan Autumn Fashion Discovery", image: "milan fashion week autumn discovery" },
-        { text: "Milan Autumn Fashion Quest", image: "milan fashion week autumn quest game" },
-        { text: "Milan Autumn Fashion Magic", image: "milan fashion week autumn magic podcast" }
+        { text: "Crazy Rich Asians", image: "crazy rich asians movie" },
+        { text: "Milan Autumn Fashion Magic", image: "milan fashion week autumn podcast" },
+        { text: "Stardew Valley", image: "stardew valley game" }
       ]
     },
     descent: {
@@ -385,9 +385,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Milan Autumn Fashion Arrival", image: "milan fashion week autumn arrival film" },
-        { text: "Milan Autumn Fashion Welcome", image: "milan fashion week autumn welcome guide" },
-        { text: "Milan Autumn Fashion Landing", image: "milan fashion week autumn landing game" },
-        { text: "Milan Autumn Fashion Greeting", image: "milan fashion week autumn greeting podcast" }
+        { text: "Clueless", image: "clueless movie" },
+        { text: "Milan Autumn Fashion Greeting", image: "milan fashion week autumn podcast" },
+        { text: "Celeste", image: "celeste game" }
       ]
     },
     landing: {
@@ -398,9 +398,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Milan Autumn Fashion Celebration", image: "milan fashion week autumn celebration film" },
-        { text: "Milan Autumn Fashion Spirit", image: "milan fashion week autumn spirit guide" },
-        { text: "Milan Autumn Fashion Joy", image: "milan fashion week autumn joy game" },
-        { text: "Milan Autumn Fashion Welcome", image: "milan fashion week autumn welcome podcast" }
+        { text: "Legally Blonde", image: "legally blonde movie" },
+        { text: "Milan Autumn Fashion Welcome", image: "milan fashion week autumn podcast" },
+        { text: "Hollow Knight", image: "hollow knight game" }
       ]
     }
   },
@@ -413,9 +413,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Paris Fashion Week Documentary", image: "paris fashion week film" },
-        { text: "Paris Fashion Week Tour", image: "paris fashion week guide" },
-        { text: "Paris Fashion Week Puzzle", image: "paris fashion week game" },
-        { text: "Paris Fashion Week Stories", image: "paris fashion week podcast" }
+        { text: "The Devil Wears Prada", image: "the devil wears prada movie" },
+        { text: "Paris Fashion Week Stories", image: "paris fashion week podcast" },
+        { text: "The Sims 4", image: "the sims 4 game" }
       ]
     },
     climb: {
@@ -538,74 +538,6 @@ export const festivalContent = {
       ]
     }
   },
-  // March Festivals
-  "Paris Fashion Week (Winter)": {
-    takeoff: {
-      promo: [
-        { text: "Paris fashion takeoff", image: "paris fashion week runway" },
-        { text: "French style ascent", image: "paris fashion week models" },
-        { text: "Parisian magic", image: "paris fashion week couture" }
-      ],
-      content: [
-        { text: "Paris Fashion Week Documentary", image: "paris fashion week film" },
-        { text: "Paris Fashion Week Tour", image: "paris fashion week guide" },
-        { text: "Paris Fashion Week Puzzle", image: "paris fashion week game" },
-        { text: "Paris Fashion Week Stories", image: "paris fashion week podcast" }
-      ]
-    },
-    climb: {
-      promo: [
-        { text: "Fashion climb", image: "paris fashion week show" },
-        { text: "Style journey", image: "paris fashion week collection" },
-        { text: "Parisian spirit", image: "paris fashion week glamour" }
-      ],
-      content: [
-        { text: "Paris Fashion Traditions", image: "paris fashion traditions film" },
-        { text: "Paris Fashion Week Experience", image: "paris fashion week experience" },
-        { text: "Paris Fashion Week Adventure", image: "paris fashion week adventure game" },
-        { text: "Paris Fashion Week Culture", image: "paris fashion week culture podcast" }
-      ]
-    },
-    cruise: {
-      promo: [
-        { text: "Fashion cruise", image: "paris fashion week elegance" },
-        { text: "Style magic", image: "paris fashion week luxury" },
-        { text: "Parisian journey", image: "paris fashion week sophistication" }
-      ],
-      content: [
-        { text: "Paris Fashion Week Highlights", image: "paris fashion week highlights" },
-        { text: "Paris Fashion Week Discovery", image: "paris fashion week discovery" },
-        { text: "Paris Fashion Week Quest", image: "paris fashion week quest game" },
-        { text: "Paris Fashion Week Magic", image: "paris fashion week magic podcast" }
-      ]
-    },
-    descent: {
-      promo: [
-        { text: "Fashion landing", image: "paris fashion week arrival" },
-        { text: "Style descent", image: "paris fashion week welcome" },
-        { text: "Parisian greeting", image: "paris fashion week celebration" }
-      ],
-      content: [
-        { text: "Paris Fashion Week Arrival", image: "paris fashion week arrival film" },
-        { text: "Paris Fashion Week Welcome", image: "paris fashion week welcome guide" },
-        { text: "Paris Fashion Week Landing", image: "paris fashion week landing game" },
-        { text: "Paris Fashion Week Greeting", image: "paris fashion week greeting podcast" }
-      ]
-    },
-    landing: {
-      promo: [
-        { text: "Fashion welcome", image: "paris fashion week terminal" },
-        { text: "Style arrival", image: "paris fashion week spirit" },
-        { text: "Parisian celebration", image: "paris fashion week joy" }
-      ],
-      content: [
-        { text: "Paris Fashion Week Celebration", image: "paris fashion week celebration film" },
-        { text: "Paris Fashion Week Spirit", image: "paris fashion week spirit guide" },
-        { text: "Paris Fashion Week Joy", image: "paris fashion week joy game" },
-        { text: "Paris Fashion Week Welcome", image: "paris fashion week welcome podcast" }
-      ]
-    }
-  },
   // April Festivals
   "Milan Furniture Fair": {
     takeoff: {
@@ -616,9 +548,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Milan Furniture Fair Documentary", image: "milan furniture fair film" },
-        { text: "Milan Furniture Fair Tour", image: "milan furniture fair guide" },
-        { text: "Milan Furniture Fair Puzzle", image: "milan furniture fair game" },
-        { text: "Milan Furniture Fair Stories", image: "milan furniture fair podcast" }
+        { text: "The Grand Budapest Hotel", image: "the grand budapest hotel movie" },
+        { text: "Milan Furniture Fair Stories", image: "milan furniture fair podcast" },
+        { text: "The Sims 4", image: "the sims 4 game" }
       ]
     },
     climb: {
@@ -683,9 +615,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Rome Birthday Documentary", image: "rome birthday film" },
-        { text: "Rome Birthday Tour", image: "rome birthday guide" },
-        { text: "Rome Birthday Puzzle", image: "rome birthday game" },
-        { text: "Rome Birthday Stories", image: "rome birthday podcast" }
+        { text: "Gladiator", image: "gladiator movie" },
+        { text: "Rome Birthday Stories", image: "rome birthday podcast" },
+        { text: "Among Us", image: "among us game" }
       ]
     },
     climb: {
@@ -750,9 +682,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "King's Day Documentary", image: "amsterdam kings day film" },
-        { text: "King's Day Tour", image: "amsterdam kings day guide" },
-        { text: "King's Day Puzzle", image: "amsterdam kings day game" },
-        { text: "King's Day Stories", image: "amsterdam kings day podcast" }
+        { text: "The Lion King", image: "the lion king movie" },
+        { text: "King's Day Stories", image: "amsterdam kings day podcast" },
+        { text: "Among Us", image: "among us game" }
       ]
     },
     climb: {
@@ -763,9 +695,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Dutch King's Day Traditions", image: "amsterdam kings day traditions film" },
-        { text: "King's Day Experience", image: "amsterdam kings day experience" },
-        { text: "King's Day Adventure", image: "amsterdam kings day adventure game" },
-        { text: "King's Day Culture", image: "amsterdam kings day culture podcast" }
+        { text: "The Crown", image: "the crown movie" },
+        { text: "King's Day Culture", image: "amsterdam kings day podcast" },
+        { text: "Fall Guys", image: "fall guys game" }
       ]
     },
     cruise: {
@@ -776,9 +708,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "King's Day Highlights", image: "amsterdam kings day highlights" },
-        { text: "King's Day Discovery", image: "amsterdam kings day discovery" },
-        { text: "King's Day Quest", image: "amsterdam kings day quest game" },
-        { text: "King's Day Magic", image: "amsterdam kings day magic podcast" }
+        { text: "Game of Thrones", image: "game of thrones movie" },
+        { text: "King's Day Magic", image: "amsterdam kings day podcast" },
+        { text: "Minecraft", image: "minecraft game" }
       ]
     },
     descent: {
@@ -789,9 +721,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "King's Day Arrival", image: "amsterdam kings day arrival film" },
-        { text: "King's Day Welcome", image: "amsterdam kings day welcome guide" },
-        { text: "King's Day Landing", image: "amsterdam kings day landing game" },
-        { text: "King's Day Greeting", image: "amsterdam kings day greeting podcast" }
+        { text: "The Princess Diaries", image: "the princess diaries movie" },
+        { text: "King's Day Greeting", image: "amsterdam kings day podcast" },
+        { text: "Portal 2", image: "portal 2 game" }
       ]
     },
     landing: {
@@ -802,9 +734,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "King's Day Celebration", image: "amsterdam kings day celebration film" },
-        { text: "King's Day Spirit", image: "amsterdam kings day spirit guide" },
-        { text: "King's Day Joy", image: "amsterdam kings day joy game" },
-        { text: "King's Day Welcome", image: "amsterdam kings day welcome podcast" }
+        { text: "The King's Speech", image: "the kings speech movie" },
+        { text: "King's Day Welcome", image: "amsterdam kings day podcast" },
+        { text: "Half-Life 2", image: "half life 2 game" }
       ]
     }
   },
@@ -817,9 +749,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Frühlingsfest Documentary", image: "munich frühlingsfest film" },
-        { text: "Frühlingsfest Tour", image: "munich frühlingsfest guide" },
-        { text: "Frühlingsfest Puzzle", image: "munich frühlingsfest game" },
-        { text: "Frühlingsfest Stories", image: "munich frühlingsfest podcast" }
+        { text: "Beerfest", image: "beerfest movie" },
+        { text: "Frühlingsfest Stories", image: "munich frühlingsfest podcast" },
+        { text: "Fall Guys", image: "fall guys game" }
       ]
     },
     climb: {
@@ -878,67 +810,67 @@ export const festivalContent = {
   "Oktoberfest": {
     takeoff: {
       promo: [
-        { text: "Beer garden takeoff", image: "munich oktoberfest beer garden" },
-        { text: "Bavarian welcome", image: "munich oktoberfest traditional dress" },
-        { text: "Festival spirit", image: "munich oktoberfest celebration" }
+        { text: "Enjoy your welcome drink", image: "traditional german beer stein with foam" },
+        { text: "Check goodies in seat", image: "wireless headphones and potato chips" },
+        { text: "Connect your device", image: "modern smartphone on wooden table" }
       ],
       content: [
         { text: "Oktoberfest Documentary", image: "munich oktoberfest film" },
-        { text: "Oktoberfest Tour", image: "munich oktoberfest guide" },
-        { text: "Oktoberfest Puzzle", image: "munich oktoberfest game" },
-        { text: "Oktoberfest Stories", image: "munich oktoberfest podcast" }
+        { text: "Beerfest", image: "beerfest movie" },
+        { text: "Oktoberfest Stories", image: "munich oktoberfest podcast" },
+        { text: "Fall Guys", image: "fall guys game" }
       ]
     },
     climb: {
       promo: [
-        { text: "Beer climb", image: "munich oktoberfest beer steins" },
-        { text: "Bavarian ascent", image: "munich oktoberfest music" },
-        { text: "Festival journey", image: "munich oktoberfest atmosphere" }
+        { text: "Order food", image: "golden crispy german schnitzel on plate" },
+        { text: "Offers onboard", image: "oktoberfest festival discount banner" },
+        { text: "Latest entertainment", image: "movie theater cinema screen" }
       ],
       content: [
         { text: "Bavarian Traditions", image: "munich oktoberfest traditions film" },
-        { text: "Oktoberfest Experience", image: "munich oktoberfest experience" },
-        { text: "Oktoberfest Adventure", image: "munich oktoberfest adventure game" },
-        { text: "Oktoberfest Culture", image: "munich oktoberfest culture podcast" }
+        { text: "The Hangover", image: "the hangover movie" },
+        { text: "Oktoberfest Culture", image: "munich oktoberfest podcast" },
+        { text: "Among Us", image: "among us game" }
       ]
     },
     cruise: {
       promo: [
-        { text: "Beer cruise", image: "munich oktoberfest tents" },
-        { text: "Bavarian magic", image: "munich oktoberfest food" },
-        { text: "Festival journey", image: "munich oktoberfest entertainment" }
+        { text: "Popcorn with movie", image: "large soft german pretzel with salt" },
+        { text: "Buy gifts", image: "oktoberfest lederhosen and dirndl souvenirs" },
+        { text: "Latest entertainment", image: "movie theater popcorn and screen" }
       ],
       content: [
         { text: "Oktoberfest Highlights", image: "munich oktoberfest highlights" },
-        { text: "Oktoberfest Discovery", image: "munich oktoberfest discovery" },
-        { text: "Oktoberfest Quest", image: "munich oktoberfest quest game" },
-        { text: "Oktoberfest Magic", image: "munich oktoberfest magic podcast" }
+        { text: "Beerfest", image: "beerfest movie" },
+        { text: "Oktoberfest Magic", image: "munich oktoberfest podcast" },
+        { text: "Fall Guys", image: "fall guys game" }
       ]
     },
     descent: {
       promo: [
-        { text: "Beer landing", image: "munich oktoberfest arrival" },
-        { text: "Bavarian descent", image: "munich oktoberfest welcome" },
-        { text: "Festival greeting", image: "munich oktoberfest celebration" }
+        { text: "Buy guides at discount", image: "munich city travel guide book" },
+        { text: "Buy gifts", image: "oktoberfest beer stein souvenir" },
+        { text: "Save on your next flight", image: "airline booking confirmation ticket" }
       ],
       content: [
         { text: "Oktoberfest Arrival", image: "munich oktoberfest arrival film" },
-        { text: "Oktoberfest Welcome", image: "munich oktoberfest welcome guide" },
-        { text: "Oktoberfest Landing", image: "munich oktoberfest landing game" },
-        { text: "Oktoberfest Greeting", image: "munich oktoberfest greeting podcast" }
+        { text: "The Hangover", image: "the hangover movie" },
+        { text: "Oktoberfest Greeting", image: "munich oktoberfest podcast" },
+        { text: "Celeste", image: "celeste game" }
       ]
     },
     landing: {
       promo: [
-        { text: "Beer welcome", image: "munich oktoberfest terminal" },
-        { text: "Bavarian arrival", image: "munich oktoberfest spirit" },
-        { text: "Festival celebration", image: "munich oktoberfest joy" }
+        { text: "Thank you for flying with us", image: "thank you greeting card message" },
+        { text: "Save on your next flight", image: "airline booking confirmation ticket" },
+        { text: "Shop duty free", image: "duty free shopping bags and products" }
       ],
       content: [
         { text: "Oktoberfest Celebration", image: "munich oktoberfest celebration film" },
-        { text: "Oktoberfest Spirit", image: "munich oktoberfest spirit guide" },
-        { text: "Oktoberfest Joy", image: "munich oktoberfest joy game" },
-        { text: "Oktoberfest Welcome", image: "munich oktoberfest welcome podcast" }
+        { text: "Superbad", image: "superbad movie" },
+        { text: "Oktoberfest Welcome", image: "munich oktoberfest podcast" },
+        { text: "Hollow Knight", image: "hollow knight game" }
       ]
     }
   },
@@ -951,9 +883,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Nuit Blanche Documentary", image: "paris nuit blanche film" },
-        { text: "Nuit Blanche Tour", image: "paris nuit blanche guide" },
-        { text: "Nuit Blanche Puzzle", image: "paris nuit blanche game" },
-        { text: "Nuit Blanche Stories", image: "paris nuit blanche podcast" }
+        { text: "Midnight in Paris", image: "midnight in paris movie" },
+        { text: "Nuit Blanche Stories", image: "paris nuit blanche podcast" },
+        { text: "The Sims 4", image: "the sims 4 game" }
       ]
     },
     climb: {
@@ -1018,9 +950,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Amsterdam Dance Event Documentary", image: "amsterdam dance event film" },
-        { text: "Amsterdam Dance Event Tour", image: "amsterdam dance event guide" },
-        { text: "Amsterdam Dance Event Puzzle", image: "amsterdam dance event game" },
-        { text: "Amsterdam Dance Event Stories", image: "amsterdam dance event podcast" }
+        { text: "Tron: Legacy", image: "tron legacy movie" },
+        { text: "Amsterdam Dance Event Stories", image: "amsterdam dance event podcast" },
+        { text: "Beat Saber", image: "beat saber game" }
       ]
     },
     climb: {
@@ -1031,9 +963,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Dutch Music Traditions", image: "amsterdam dance event traditions film" },
-        { text: "Amsterdam Dance Event Experience", image: "amsterdam dance event experience" },
-        { text: "Amsterdam Dance Event Adventure", image: "amsterdam dance event adventure game" },
-        { text: "Amsterdam Dance Event Culture", image: "amsterdam dance event culture podcast" }
+        { text: "Blade Runner", image: "blade runner movie" },
+        { text: "Amsterdam Dance Event Culture", image: "amsterdam dance event podcast" },
+        { text: "Dance Dance Revolution", image: "dance dance revolution game" }
       ]
     },
     cruise: {
@@ -1044,9 +976,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Amsterdam Dance Event Highlights", image: "amsterdam dance event highlights" },
-        { text: "Amsterdam Dance Event Discovery", image: "amsterdam dance event discovery" },
-        { text: "Amsterdam Dance Event Quest", image: "amsterdam dance event quest game" },
-        { text: "Amsterdam Dance Event Magic", image: "amsterdam dance event magic podcast" }
+        { text: "The Matrix", image: "the matrix movie" },
+        { text: "Amsterdam Dance Event Magic", image: "amsterdam dance event podcast" },
+        { text: "Just Dance", image: "just dance game" }
       ]
     },
     descent: {
@@ -1057,9 +989,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Amsterdam Dance Event Arrival", image: "amsterdam dance event arrival film" },
-        { text: "Amsterdam Dance Event Welcome", image: "amsterdam dance event welcome guide" },
-        { text: "Amsterdam Dance Event Landing", image: "amsterdam dance event landing game" },
-        { text: "Amsterdam Dance Event Greeting", image: "amsterdam dance event greeting podcast" }
+        { text: "Inception", image: "inception movie" },
+        { text: "Amsterdam Dance Event Greeting", image: "amsterdam dance event podcast" },
+        { text: "Guitar Hero", image: "guitar hero game" }
       ]
     },
     landing: {
@@ -1070,9 +1002,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Amsterdam Dance Event Celebration", image: "amsterdam dance event celebration film" },
-        { text: "Amsterdam Dance Event Spirit", image: "amsterdam dance event spirit guide" },
-        { text: "Amsterdam Dance Event Joy", image: "amsterdam dance event joy game" },
-        { text: "Amsterdam Dance Event Welcome", image: "amsterdam dance event welcome podcast" }
+        { text: "Interstellar", image: "interstellar movie" },
+        { text: "Amsterdam Dance Event Welcome", image: "amsterdam dance event podcast" },
+        { text: "Rock Band", image: "rock band game" }
       ]
     }
   },
@@ -1085,9 +1017,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Rome Film Festival Documentary", image: "rome film festival film" },
-        { text: "Rome Film Festival Tour", image: "rome film festival guide" },
-        { text: "Rome Film Festival Puzzle", image: "rome film festival game" },
-        { text: "Rome Film Festival Stories", image: "rome film festival podcast" }
+        { text: "La La Land", image: "la la land movie" },
+        { text: "Rome Film Festival Stories", image: "rome film festival podcast" },
+        { text: "Among Us", image: "among us game" }
       ]
     },
     climb: {
@@ -1152,9 +1084,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Tollwood Festival Documentary", image: "munich tollwood film" },
-        { text: "Tollwood Festival Tour", image: "munich tollwood guide" },
-        { text: "Tollwood Festival Puzzle", image: "munich tollwood game" },
-        { text: "Tollwood Festival Stories", image: "munich tollwood podcast" }
+        { text: "Frozen", image: "frozen movie" },
+        { text: "Tollwood Festival Stories", image: "munich tollwood podcast" },
+        { text: "The Sims 4", image: "the sims 4 game" }
       ]
     },
     climb: {
@@ -1165,9 +1097,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Bavarian Winter Traditions", image: "munich tollwood traditions film" },
-        { text: "Tollwood Festival Experience", image: "munich tollwood experience" },
-        { text: "Tollwood Festival Adventure", image: "munich tollwood adventure game" },
-        { text: "Tollwood Festival Culture", image: "munich tollwood culture podcast" }
+        { text: "The Lion King", image: "the lion king movie" },
+        { text: "Tollwood Festival Culture", image: "munich tollwood podcast" },
+        { text: "Animal Crossing", image: "animal crossing game" }
       ]
     },
     cruise: {
@@ -1178,9 +1110,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Tollwood Festival Highlights", image: "munich tollwood highlights" },
-        { text: "Tollwood Festival Discovery", image: "munich tollwood discovery" },
-        { text: "Tollwood Festival Quest", image: "munich tollwood quest game" },
-        { text: "Tollwood Festival Magic", image: "munich tollwood magic podcast" }
+        { text: "Moana", image: "moana movie" },
+        { text: "Tollwood Festival Magic", image: "munich tollwood podcast" },
+        { text: "Stardew Valley", image: "stardew valley game" }
       ]
     },
     descent: {
@@ -1191,9 +1123,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Tollwood Festival Arrival", image: "munich tollwood arrival film" },
-        { text: "Tollwood Festival Welcome", image: "munich tollwood welcome guide" },
-        { text: "Tollwood Festival Landing", image: "munich tollwood landing game" },
-        { text: "Tollwood Festival Greeting", image: "munich tollwood greeting podcast" }
+        { text: "Coco", image: "coco movie" },
+        { text: "Tollwood Festival Greeting", image: "munich tollwood podcast" },
+        { text: "Celeste", image: "celeste game" }
       ]
     },
     landing: {
@@ -1204,9 +1136,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Tollwood Festival Celebration", image: "munich tollwood celebration film" },
-        { text: "Tollwood Festival Spirit", image: "munich tollwood spirit guide" },
-        { text: "Tollwood Festival Joy", image: "munich tollwood joy game" },
-        { text: "Tollwood Festival Welcome", image: "munich tollwood welcome podcast" }
+        { text: "Encanto", image: "encanto movie" },
+        { text: "Tollwood Festival Welcome", image: "munich tollwood podcast" },
+        { text: "Hollow Knight", image: "hollow knight game" }
       ]
     }
   },
@@ -1219,9 +1151,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Christmas Market Documentary", image: "christmas market film" },
-        { text: "Christmas Market Tour", image: "christmas market guide" },
-        { text: "Christmas Market Puzzle", image: "christmas market game" },
-        { text: "Christmas Market Stories", image: "christmas market podcast" }
+        { text: "Home Alone", image: "home alone movie" },
+        { text: "Christmas Market Stories", image: "christmas market podcast" },
+        { text: "The Sims 4", image: "the sims 4 game" }
       ]
     },
     climb: {
@@ -1232,9 +1164,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Christmas Traditions", image: "christmas market traditions film" },
-        { text: "Christmas Market Experience", image: "christmas market experience" },
-        { text: "Christmas Market Adventure", image: "christmas market adventure game" },
-        { text: "Christmas Market Culture", image: "christmas market culture podcast" }
+        { text: "Elf", image: "elf movie" },
+        { text: "Christmas Market Culture", image: "christmas market podcast" },
+        { text: "Animal Crossing", image: "animal crossing game" }
       ]
     },
     cruise: {
@@ -1245,9 +1177,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Christmas Market Highlights", image: "christmas market highlights" },
-        { text: "Christmas Market Discovery", image: "christmas market discovery" },
-        { text: "Christmas Market Quest", image: "christmas market quest game" },
-        { text: "Christmas Market Magic", image: "christmas market magic podcast" }
+        { text: "The Grinch", image: "the grinch movie" },
+        { text: "Christmas Market Magic", image: "christmas market podcast" },
+        { text: "Stardew Valley", image: "stardew valley game" }
       ]
     },
     descent: {
@@ -1258,9 +1190,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Christmas Market Arrival", image: "christmas market arrival film" },
-        { text: "Christmas Market Welcome", image: "christmas market welcome guide" },
-        { text: "Christmas Market Landing", image: "christmas market landing game" },
-        { text: "Christmas Market Greeting", image: "christmas market greeting podcast" }
+        { text: "A Christmas Story", image: "a christmas story movie" },
+        { text: "Christmas Market Greeting", image: "christmas market podcast" },
+        { text: "Celeste", image: "celeste game" }
       ]
     },
     landing: {
@@ -1271,9 +1203,9 @@ export const festivalContent = {
       ],
       content: [
         { text: "Christmas Market Celebration", image: "christmas market celebration film" },
-        { text: "Christmas Market Spirit", image: "christmas market spirit guide" },
-        { text: "Christmas Market Joy", image: "christmas market joy game" },
-        { text: "Christmas Market Welcome", image: "christmas market welcome podcast" }
+        { text: "It's a Wonderful Life", image: "its a wonderful life movie" },
+        { text: "Christmas Market Welcome", image: "christmas market podcast" },
+        { text: "Hollow Knight", image: "hollow knight game" }
       ]
     }
   }
@@ -1284,9 +1216,9 @@ export const festivalContent = {
 export const nonFestiveContent = {
   takeoff: {
     promo: [
-      { text: "Enjoy your welcome drink", image: "welcome drinks" },
-      { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
-      { text: "Connect your device", image: "phone in an aircraft" }
+      { text: "Enjoy your welcome drink", image: "refreshing welcome drinks on table" },
+      { text: "Check goodies in seat", image: "wireless headphones and snack bags" },
+      { text: "Connect your device", image: "modern smartphone on wooden desk" }
     ],
     content: [
       { text: "Top Gun: Maverick", image: "top gun maverick movie poster" },
@@ -1297,9 +1229,9 @@ export const nonFestiveContent = {
   },
   climb: {
     promo: [
-      { text: "Order food", image: "meal" },
-      { text: "Offers onboard", image: "offers" },
-      { text: "Latest entertainment", image: "movie" }
+      { text: "Order food", image: "delicious meal on restaurant plate" },
+      { text: "Offers onboard", image: "special discount offers banner" },
+      { text: "Latest entertainment", image: "movie theater cinema screen" }
     ],
     content: [
       { text: "Spider-Man: No Way Home", image: "spiderman no way home movie" },
@@ -1310,9 +1242,9 @@ export const nonFestiveContent = {
   },
   cruise: {
     promo: [
-      { text: "Popcorn with movie", image: "popcorn" },
-      { text: "Buy gifts", image: "gifts" },
-      { text: "Latest entertainment", image: "movie" }
+      { text: "Popcorn with movie", image: "movie theater popcorn in bucket" },
+      { text: "Buy gifts", image: "travel souvenir gifts on table" },
+      { text: "Latest entertainment", image: "movie theater cinema screen" }
     ],
     content: [
       { text: "Avatar: The Way of Water", image: "avatar way of water movie" },
@@ -1323,9 +1255,9 @@ export const nonFestiveContent = {
   },
   descent: {
     promo: [
-      { text: "Buy guides at discount", image: "get your guide" },
-      { text: "Buy gifts", image: "gifts" },
-      { text: "Save on your next flight", image: "flight ticket offer" }
+      { text: "Buy guides at discount", image: "travel guide book on table" },
+      { text: "Buy gifts", image: "travel souvenir gifts on table" },
+      { text: "Save on your next flight", image: "airline booking confirmation ticket" }
     ],
     content: [
       { text: "Black Panther: Wakanda Forever", image: "black panther wakanda forever movie" },
@@ -1336,9 +1268,9 @@ export const nonFestiveContent = {
   },
   landing: {
     promo: [
-      { text: "Thank you for flying with us", image: "Thank you and airline crew" },
-      { text: "Save on your next flight", image: "flight booking" },
-      { text: "Shop duty free", image: "duty free shop in airport" }
+      { text: "Thank you for flying with us", image: "thank you greeting card message" },
+      { text: "Save on your next flight", image: "airline booking confirmation ticket" },
+      { text: "Shop duty free", image: "duty free shopping bags and products" }
     ],
     content: [
       { text: "Everything Everywhere All at Once", image: "everything everywhere all at once movie" },
