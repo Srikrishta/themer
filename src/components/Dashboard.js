@@ -41,7 +41,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, onContentCardHover, colorPromptClosedWithoutSave, colorPromptSaved, recommendedContentCards, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, handleContentCardHover, selectedDates = [] }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, onContentCardHover, colorPromptClosedWithoutSave, getRouteColorPromptSaved, recommendedContentCards, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, handleContentCardHover, selectedDates = [] }) {
 
   // Helper function to get route-specific content cards
   const getRouteContentCards = () => {
@@ -99,9 +99,9 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
   // Helper function to get content text and image - uses festival content when theme is saved
   const getContentData = (cardIndex) => {
     // If theme is saved, try to get festival content
-    if (colorPromptSaved && selectedFlightPhase && origin && destination) {
+    if (getRouteColorPromptSaved() && selectedFlightPhase && origin && destination) {
       console.log('=== GETTING FESTIVAL CONTENT FOR CONTENT CARD ===', {
-        colorPromptSaved,
+        colorPromptSaved: getRouteColorPromptSaved(),
         selectedFlightPhase,
         origin,
         destination,
@@ -241,7 +241,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
       <style>{gradientAnimationCSS}</style>
       <div style={{ position: 'relative', zIndex: 10001, width: 1302, margin: '92px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
       <div
-        className={`fjb-fps-container ${isCurrentRouteModified() && !colorPromptSaved ? 'border-4 border-gradient-to-r from-blue-500 via-purple-500 to-pink-500' : ''}`}
+        className={`fjb-fps-container ${isCurrentRouteModified() && !getRouteColorPromptSaved() ? 'border-4 border-gradient-to-r from-blue-500 via-purple-500 to-pink-500' : ''}`}
         style={{ 
           width: 1336, 
           maxWidth: 1336, 
@@ -261,7 +261,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
           marginTop: 4, 
           position: 'relative', 
           zIndex: 1,
-          ...(isCurrentRouteModified() && !colorPromptSaved && {
+          ...(isCurrentRouteModified() && !getRouteColorPromptSaved() && {
             border: '4px solid',
             borderImage: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, #10b981 100%) 1',
             borderRadius: '4px 4px 16px 16px',
@@ -361,7 +361,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         selectedFlightPhase={selectedFlightPhase}
         promoCardContents={promoCardContents}
         colorPromptClosedWithoutSave={colorPromptClosedWithoutSave}
-        colorPromptSaved={colorPromptSaved}
+        colorPromptSaved={getRouteColorPromptSaved()}
         currentRouteKey={getCurrentRouteKey()}
         isModifyClicked={isCurrentRouteModified()}
         selectedDates={selectedDates}
@@ -488,7 +488,7 @@ export default function Dashboard() {
   const [activeSegmentId, setActiveSegmentId] = useState(null); // Track which segment is in prompt mode
   const [routePromptBubbles, setRoutePromptBubbles] = useState({}); // { routeKey: { x, y, elementType, elementData } }
   const [colorPromptClosedWithoutSave, setColorPromptClosedWithoutSave] = useState(false); // Track if color PB was closed without saving
-  const [colorPromptSaved, setColorPromptSaved] = useState(false); // Track if color PB was saved
+  const [routeColorPromptSaved, setRouteColorPromptSaved] = useState({}); // Track if color PB was saved per route: { routeKey: boolean }
   const [selectedLogo, setSelectedLogo] = useState(null); // { id, src }
   const [ifeFrameThemeColor, setIfeFrameThemeColor] = useState('#1E1E1E'); // Preserve airline theme for IFE frame
   const [showPlusIcon, setShowPlusIcon] = useState(false);
@@ -648,6 +648,20 @@ export default function Dashboard() {
   // Helper function to get current route key
   const getCurrentRouteKey = () => {
     return getFlightKey(origin, destination);
+  };
+
+  // Helper functions for route-specific colorPromptSaved
+  const getRouteColorPromptSaved = () => {
+    const routeKey = getCurrentRouteKey();
+    return routeColorPromptSaved[routeKey] || false;
+  };
+
+  const setRouteColorPromptSavedValue = (value) => {
+    const routeKey = getCurrentRouteKey();
+    setRouteColorPromptSaved(prev => ({
+      ...prev,
+      [routeKey]: value
+    }));
   };
   
   // Helper function to get route-specific promo card contents
@@ -866,10 +880,11 @@ export default function Dashboard() {
   // Use the current flight's theme instead of global theme
   const activeThemeColor = getCurrentFlightTheme();
 
-  // Debug when colorPromptSaved changes
+  // Debug when routeColorPromptSaved changes
   useEffect(() => {
-    console.log('=== DASHBOARD COLORPROMPTSAVED CHANGED ===', {
-      colorPromptSaved,
+    console.log('=== DASHBOARD ROUTE COLORPROMPTSAVED CHANGED ===', {
+      routeColorPromptSaved,
+      currentRouteSaved: getRouteColorPromptSaved(),
       selectedFlightPhase,
       origin,
       destination,
@@ -880,7 +895,7 @@ export default function Dashboard() {
       hasSelectedFlightPhase: !!selectedFlightPhase,
       hasSelectedDates: !!selectedDates && selectedDates.length > 0
     });
-  }, [colorPromptSaved, selectedFlightPhase, origin, destination, activeThemeColor, selectedDates]);
+  }, [routeColorPromptSaved, selectedFlightPhase, origin, destination, activeThemeColor, selectedDates]);
 
   // Compute contrasting border color for hover tip PBs (same logic as main PB)
   const isGradientTheme = typeof activeThemeColor === 'string' && activeThemeColor.includes('gradient');
@@ -1033,19 +1048,19 @@ export default function Dashboard() {
       elementType,
       elementData,
       position,
-      colorPromptSaved,
+      colorPromptSaved: getRouteColorPromptSaved(),
       colorPromptClosedWithoutSave,
       isPromptMode
     });
     
     // If color prompt hasn't been saved, only allow flight-journey-bar hovers
-    if (!colorPromptSaved && elementType !== 'flight-journey-bar') {
+    if (!getRouteColorPromptSaved() && elementType !== 'flight-journey-bar') {
       console.log('🎯 Prompt hover ignored - color prompt not saved, only FJB allowed');
       return;
     }
     
     // Prevent promo card hover from showing until color has been saved at least once
-    if (elementType === 'promo-card' && !colorPromptSaved && colorPromptClosedWithoutSave) {
+    if (elementType === 'promo-card' && !getRouteColorPromptSaved() && colorPromptClosedWithoutSave) {
       console.log('=== BLOCKING PROMO CARD HOVER - COLOR NEVER SAVED ===');
       return;
     }
@@ -1116,7 +1131,7 @@ export default function Dashboard() {
       elementData,
       position,
       isCurrentRouteModified: isCurrentRouteModified(),
-      colorPromptSaved,
+      colorPromptSaved: getRouteColorPromptSaved(),
       colorPromptClosedWithoutSave,
       isPromptMode
     });
@@ -1134,7 +1149,7 @@ export default function Dashboard() {
     }
     
     // If color prompt hasn't been saved, only allow flight-journey-bar clicks
-    if (!colorPromptSaved && elementType !== 'flight-journey-bar' && elementType !== 'flight-journey-bar-animation') {
+    if (!getRouteColorPromptSaved() && elementType !== 'flight-journey-bar' && elementType !== 'flight-journey-bar-animation') {
       console.log('🎯 Prompt click ignored - color prompt not saved, only FJB allowed');
       return;
     }
@@ -1176,7 +1191,7 @@ export default function Dashboard() {
     }
     
     // Prevent promo card prompt bubble from showing until color has been saved at least once
-    if (elementType === 'promo-card' && !colorPromptSaved && colorPromptClosedWithoutSave) {
+    if (elementType === 'promo-card' && !getRouteColorPromptSaved() && colorPromptClosedWithoutSave) {
       console.log('=== BLOCKING PROMO CARD PROMPT - COLOR NEVER SAVED ===');
       return;
     }
@@ -1406,22 +1421,6 @@ export default function Dashboard() {
       currentPromoCardContents: promoCardContents
     });
     
-    // Handle flight journey bar theme color submissions
-    if (elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation') {
-      console.log('=== FLIGHT JOURNEY BAR SUBMISSION - UPDATING CARDS ===');
-      
-      // Set colorPromptSaved to true to trigger card updates
-      setColorPromptSaved(true);
-      
-      // Clear the closed without save state since the user saved
-      setColorPromptClosedWithoutSave(false);
-      
-      // Close the prompt bubble
-      setCurrentRoutePromptBubble(null);
-      
-      console.log('=== CARDS SHOULD NOW UPDATE WITH FESTIVAL CONTENT ===');
-      return;
-    }
     
         // Handle promo card and content card submissions
     if ((elementType === 'promo-card' || elementType === 'content-card') && elementData && elementData.cardIndex !== undefined) {
@@ -2112,7 +2111,7 @@ export default function Dashboard() {
                 setContentCardHover({ isHovering, x, y });
               }}
               colorPromptClosedWithoutSave={colorPromptClosedWithoutSave}
-              colorPromptSaved={colorPromptSaved}
+              getRouteColorPromptSaved={getRouteColorPromptSaved}
               getCurrentRouteKey={getCurrentRouteKey}
               isModifyClicked={isCurrentRouteModified()}
               isCurrentRouteModified={isCurrentRouteModified}
@@ -2194,7 +2193,7 @@ export default function Dashboard() {
             
             // Clear the closed without save state since the user saved
             setColorPromptClosedWithoutSave(false);
-            setColorPromptSaved(true);
+            setRouteColorPromptSavedValue(true);
             
             // Clear fixed position so hover tip follows cursor again
             setFjbFixedPosition(null);
