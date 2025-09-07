@@ -203,7 +203,8 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
       borderTopRightRadius: '8px',
       borderBottomLeftRadius: '8px',
       borderBottomRightRadius: '8px',
-      border: 'none'
+      border: 'none',
+      marginTop: '1px'
     };
 
     const contentData = getContentData(originalCardIndex);
@@ -257,7 +258,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         <div 
           className="absolute left-0 right-0 z-10 p-2 backdrop-blur-md backdrop-filter shadow-none"
           style={{ 
-            bottom: '1px',
+            bottom: '0px',
             backgroundColor: getReadableOnColor(themeColor) + 'CC',
             minHeight: '40px',
             display: 'flex',
