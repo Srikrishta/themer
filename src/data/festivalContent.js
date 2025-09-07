@@ -1289,10 +1289,10 @@ export const nonFestiveContent = {
       { text: "Connect your device", image: "phone in an aircraft" }
     ],
     content: [
-      { text: "Welcome Aboard Guide", image: "aircraft welcome guide" },
-      { text: "In-Flight Entertainment", image: "aircraft entertainment system" },
-      { text: "Safety Instructions", image: "aircraft safety demonstration" },
-      { text: "Flight Information", image: "aircraft flight details" }
+      { text: "Top Gun: Maverick", image: "top gun maverick movie poster" },
+      { text: "Candy Crush Saga", image: "candy crush mobile game" },
+      { text: "The Joe Rogan Experience", image: "joe rogan podcast" },
+      { text: "Stranger Things Season 4", image: "stranger things netflix series" }
     ]
   },
   climb: {
@@ -1302,10 +1302,10 @@ export const nonFestiveContent = {
       { text: "Latest entertainment", image: "movie" }
     ],
     content: [
-      { text: "Menu Selection", image: "aircraft meal menu" },
-      { text: "Special Offers", image: "aircraft shopping offers" },
-      { text: "Entertainment Library", image: "aircraft movie selection" },
-      { text: "Flight Services", image: "aircraft service options" }
+      { text: "Spider-Man: No Way Home", image: "spiderman no way home movie" },
+      { text: "Among Us", image: "among us multiplayer game" },
+      { text: "Serial Podcast", image: "serial podcast audio" },
+      { text: "The Crown Season 5", image: "the crown netflix series" }
     ]
   },
   cruise: {
@@ -1315,10 +1315,10 @@ export const nonFestiveContent = {
       { text: "Latest entertainment", image: "movie" }
     ],
     content: [
-      { text: "Movie Snacks", image: "aircraft popcorn and snacks" },
-      { text: "Duty-Free Shopping", image: "aircraft gift shop" },
-      { text: "Entertainment Options", image: "aircraft movie theater" },
-      { text: "Relaxation Services", image: "aircraft comfort amenities" }
+      { text: "Avatar: The Way of Water", image: "avatar way of water movie" },
+      { text: "Wordle", image: "wordle puzzle game" },
+      { text: "This American Life", image: "this american life podcast" },
+      { text: "Wednesday", image: "wednesday netflix series" }
     ]
   },
   descent: {
@@ -1328,10 +1328,10 @@ export const nonFestiveContent = {
       { text: "Save on your next flight", image: "flight ticket offer" }
     ],
     content: [
-      { text: "Destination Guides", image: "travel guide books" },
-      { text: "Last-Minute Shopping", image: "aircraft final shopping" },
-      { text: "Future Flight Deals", image: "airline booking offers" },
-      { text: "Loyalty Program", image: "airline frequent flyer" }
+      { text: "Black Panther: Wakanda Forever", image: "black panther wakanda forever movie" },
+      { text: "Tetris", image: "tetris classic puzzle game" },
+      { text: "Radiolab", image: "radiolab podcast" },
+      { text: "The Last of Us", image: "the last of us hbo series" }
     ]
   },
   landing: {
@@ -1341,10 +1341,10 @@ export const nonFestiveContent = {
       { text: "Shop duty free", image: "duty free shop in airport" }
     ],
     content: [
-      { text: "Thank You Message", image: "airline crew appreciation" },
-      { text: "Next Flight Booking", image: "airline reservation system" },
-      { text: "Airport Duty-Free", image: "airport shopping mall" },
-      { text: "Arrival Information", image: "airport arrival details" }
+      { text: "Everything Everywhere All at Once", image: "everything everywhere all at once movie" },
+      { text: "Sudoku", image: "sudoku number puzzle game" },
+      { text: "The Daily", image: "the daily podcast" },
+      { text: "House of the Dragon", image: "house of the dragon hbo series" }
     ]
   }
 };
