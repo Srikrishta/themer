@@ -21,13 +21,13 @@ const progressBarCSS = `
 `;
 
 // Airport data
-const AIRPORTS = [
+export const AIRPORTS = [
   // European Airports
-  { code: 'CDG', name: 'Paris Charles de Gaulle Airport', city: 'Paris', country: 'France' },
-  { code: 'MXP', name: 'Milan Malpensa Airport', city: 'Milan', country: 'Italy' },
-  { code: 'MUC', name: 'Munich Airport', city: 'Munich', country: 'Germany' },
-  { code: 'AMS', name: 'Amsterdam Airport Schiphol', city: 'Amsterdam', country: 'Netherlands' },
-  { code: 'FCO', name: 'Leonardo da Vinci International Airport', city: 'Rome', country: 'Italy' }
+  { code: 'CDG', name: 'Paris Charles de Gaulle Airport', city: 'Paris', country: 'France', lat: 49.0097, lng: 2.5479 },
+  { code: 'MXP', name: 'Milan Malpensa Airport', city: 'Milan', country: 'Italy', lat: 45.6306, lng: 8.7281 },
+  { code: 'MUC', name: 'Munich Airport', city: 'Munich', country: 'Germany', lat: 48.3538, lng: 11.7861 },
+  { code: 'AMS', name: 'Amsterdam Airport Schiphol', city: 'Amsterdam', country: 'Netherlands', lat: 52.3105, lng: 4.7683 },
+  { code: 'FCO', name: 'Leonardo da Vinci International Airport', city: 'Rome', country: 'Italy', lat: 41.8003, lng: 12.2389 }
 ];
 
 const ITEM_TYPE = 'ROUTE_CARD';

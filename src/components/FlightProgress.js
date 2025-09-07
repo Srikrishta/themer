@@ -1,6 +1,5 @@
 import './FlightProgress.css';
 import { useEffect, useRef, useState } from 'react';
-import PromptBubble from './PromptBubble';
 import { getReadableOnColor } from '../utils/color';
 
 function parseTime(str) {
@@ -1151,59 +1150,6 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
         </>
       )}
       
-      {/* Prompt Bubble */}
-      <PromptBubble
-        isVisible={showPromptBubble && showMovingIcon && hasReachedTarget}
-        position={promptBubblePosition}
-        elementType="flight-icon"
-        elementData={{ progress, minutesLeft: displayMinutes }}
-        onClose={handlePromptBubbleClose}
-        onSubmit={handlePromptBubbleSubmit}
-        themeColor={themeColor}
-        existingText={promptBubbleLoading ? "loading..." : ""}
-        positionKey="landing-demo"
-        fpsPrompts={{}}
-      />
-      
-
-
-      {/* Prompt Bubble at FJB */}
-      <PromptBubble
-        isVisible={showPromptBubbleAtFJB && showMovingIcon}
-        position={promptBubbleFJBPosition}
-        elementType="flight-journey-bar"
-        elementData={{ barWidth, themeColor }}
-        onClose={() => {
-          setShowPromptBubbleAtFJB(false);
-        }}
-        onSubmit={(promptText, elementType, elementData, positionKey) => {
-          console.log('=== FJB PROMPT SUBMIT ===', {
-            promptText, 
-            elementType, 
-            elementData, 
-            positionKey 
-          });
-          setShowPromptBubbleAtFJB(false);
-          
-          // Update theme color to gradient green for FJB landing page
-          console.log('=== THEME COLOR CHANGE DEBUG ===', {
-            positionKey, 
-            isFJBLanding: positionKey === 'fjb-landing' 
-          });
-          if (positionKey === 'fjb-landing') {
-            if (onThemeColorChange) {
-              onThemeColorChange('linear-gradient(120deg, #d4fc79 0%, #96e6a1 100%)');
-            } else {
-            }
-          } else {
-          }
-        }}
-        themeColor={themeColor}
-        existingText=""
-        positionKey="fjb-landing"
-        fpsPrompts={{}}
-        onThemeColorChange={onThemeColorChange}
-      />
       
       {/* Display ALL prompts at their FIXED positions */}
       {Object.entries(fpsPrompts).map(([positionKey, promptText]) => {

@@ -8,9 +8,11 @@ import FlightJourneyBar from './FlightJourneyBar';
 import FlightProgress from './FlightProgress';
 import Component3Cards from './Component3Cards';
 import PlusIconCursor from './PlusIconCursor';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import PromptBubble from './PromptBubble';
 import AnalyticsBubble from './AnalyticsBubble';
 import MousePointer from './MousePointer';
+import RouteMap from './RouteMap';
 import { useLocation } from 'react-router-dom';
 import { mapThemeChipToAnimation } from '../utils/themeAnimationMapper';
 import { PhotoIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
@@ -43,6 +45,21 @@ function formatTime(minutes) {
 }
 
 function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, onContentCardHover, colorPromptClosedWithoutSave, getRouteColorPromptSaved, recommendedContentCards, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, handleContentCardHover, selectedDates = [], isCurrentThemeFestive, getRouteSelectedThemeChip }) {
+
+  // State for tracking content card image loading
+  const [contentImageLoadingStates, setContentImageLoadingStates] = useState({});
+
+  // Helper functions for content card image loading state management
+  const setContentImageLoading = (cardIndex, isLoading) => {
+    setContentImageLoadingStates(prev => ({
+      ...prev,
+      [cardIndex]: isLoading
+    }));
+  };
+
+  const isContentImageLoading = (cardIndex) => {
+    return contentImageLoadingStates[cardIndex] || false;
+  };
 
   // Helper function to get route-specific content cards
   const getRouteContentCards = () => {
@@ -201,14 +218,35 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         {/* Image area - show image if available */}
         {contentData.image && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-full h-full">
+            <div className="w-full h-full relative">
+              {/* Loading spinner */}
+              {isContentImageLoading(originalCardIndex) && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
+                  <div className="flex flex-col items-center space-y-2">
+                    <ArrowPathIcon className="w-6 h-6 animate-spin text-gray-600" />
+                    <span className="text-xs text-gray-600">Loading image...</span>
+                  </div>
+                </div>
+              )}
+              
+              {/* Image */}
               <img 
                 src={getPollinationsImage(contentData.image, themeColor)}
                 alt={contentData.image}
                 className="w-full h-full object-cover rounded-lg"
+                style={{ display: isContentImageLoading(originalCardIndex) ? 'none' : 'block' }}
+                onLoad={() => {
+                  console.log('=== POLLINATIONS CONTENT CARD IMAGE LOADED ===', { cardIndex: originalCardIndex, alt: contentData.image });
+                  setContentImageLoading(originalCardIndex, false);
+                }}
                 onError={(e) => {
                   console.log('=== POLLINATIONS CONTENT CARD IMAGE LOAD ERROR ===', { src: e.target.src, alt: contentData.image });
+                  setContentImageLoading(originalCardIndex, false);
                   e.target.style.display = 'none';
+                }}
+                onLoadStart={() => {
+                  console.log('=== POLLINATIONS CONTENT CARD IMAGE LOAD START ===', { cardIndex: originalCardIndex, alt: contentData.image });
+                  setContentImageLoading(originalCardIndex, true);
                 }}
               />
             </div>
@@ -1990,6 +2028,12 @@ export default function Dashboard() {
           Theme preview
         </h1>
       </div>
+      
+      {/* Route Map */}
+      <RouteMap 
+        routes={routes} 
+        themeColor={activeThemeColor}
+      />
       
       {/* In-flight preview label */}
       {showInFlightPreview && (

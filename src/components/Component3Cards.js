@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { getPromoCardContent, shouldUseFestivalContent } from '../utils/festivalUtils';
 import { getNonFestiveCardContent } from '../data/festivalContent';
 import { getPollinationsImage } from '../utils/unsplash';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
 
 
 export default function Component3Cards({ 
@@ -28,6 +29,20 @@ export default function Component3Cards({
   isCurrentThemeFestive,
   getRouteSelectedThemeChip
 }) {
+  // State for tracking image loading
+  const [imageLoadingStates, setImageLoadingStates] = useState({});
+
+  // Helper functions for image loading state management
+  const setImageLoading = (cardIndex, isLoading) => {
+    setImageLoadingStates(prev => ({
+      ...prev,
+      [cardIndex]: isLoading
+    }));
+  };
+
+  const isImageLoading = (cardIndex) => {
+    return imageLoadingStates[cardIndex] || false;
+  };
 
   // Force re-render when colorPromptSaved changes
   useEffect(() => {
@@ -194,14 +209,35 @@ export default function Component3Cards({
             {/* Image area - show image if available */}
             {cardContent.image && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-full h-full">
+                <div className="w-full h-full relative">
+                  {/* Loading spinner */}
+                  {isImageLoading(originalCardIndex) && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
+                      <div className="flex flex-col items-center space-y-2">
+                        <ArrowPathIcon className="w-6 h-6 animate-spin text-gray-600" />
+                        <span className="text-xs text-gray-600">Loading image...</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Image */}
                   <img 
                     src={getPollinationsImage(cardContent.image, themeColor)}
                     alt={cardContent.image}
                     className="w-full h-full object-cover rounded-lg"
+                    style={{ display: isImageLoading(originalCardIndex) ? 'none' : 'block' }}
+                    onLoad={() => {
+                      console.log('=== POLLINATIONS IMAGE LOADED ===', { cardIndex: originalCardIndex, alt: cardContent.image });
+                      setImageLoading(originalCardIndex, false);
+                    }}
                     onError={(e) => {
                       console.log('=== POLLINATIONS IMAGE LOAD ERROR ===', { src: e.target.src, alt: cardContent.image });
+                      setImageLoading(originalCardIndex, false);
                       e.target.style.display = 'none';
+                    }}
+                    onLoadStart={() => {
+                      console.log('=== POLLINATIONS IMAGE LOAD START ===', { cardIndex: originalCardIndex, alt: cardContent.image });
+                      setImageLoading(originalCardIndex, true);
                     }}
                   />
                 </div>

@@ -4,7 +4,6 @@ import { getReadableOnColor } from '../utils/color';
 import FlightJourneyBar from './FlightJourneyBar';
 import FlightProgress from './FlightProgress';
 import Component3Cards from './Component3Cards';
-import PromptBubble from './PromptBubble';
 
 // Helper function to generate AI images for content cards
 
@@ -518,37 +517,6 @@ export default function LandingPage() {
         </div>
       </main>
 
-      {/* Middle Card Prompt Bubble */}
-      {showMiddleCardPrompt && (
-        <PromptBubble
-          isVisible={showMiddleCardPrompt}
-          position={middleCardPromptPosition}
-          elementType="promo-card"
-          elementData={{ cardIndex: 1, cardType: 'middle' }}
-          onClose={handleMiddleCardPromptBubbleClose}
-          onSubmit={handleMiddleCardPromptSubmit}
-          themeColor={mockThemeColor}
-          existingText=""
-          positionKey="middle-card-landing"
-          fpsPrompts={{}}
-        />
-      )}
-
-      {/* FJB Prompt Bubble */}
-      {showFJBPrompt && (
-        <PromptBubble
-          isVisible={showFJBPrompt}
-          position={fJBPromptPosition}
-          elementType="flight-journey-bar"
-          elementData={{ themeColor: mockThemeColor }}
-          onClose={handleFJBPromptBubbleClose}
-          onSubmit={handleFJBPromptSubmit}
-          themeColor={mockThemeColor}
-          existingText=""
-          positionKey="fjb-landing"
-          fpsPrompts={{}}
-        />
-      )}
     </div>
   );
 } 
