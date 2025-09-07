@@ -10,7 +10,7 @@ export const getPollinationsImage = (description) => {
     .trim();
   
   // Create a more detailed prompt for better image generation
-  const enhancedPrompt = `high quality, professional, ${cleanDescription}, festival theme, travel, airline, in-flight entertainment, modern, clean, vibrant colors, 4k resolution`;
+  const enhancedPrompt = `high quality, professional, ${cleanDescription}, modern, clean, 4k resolution`;
   
   // Pollinations AI API endpoint
   const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=416&height=200&nologo=true&seed=${Math.abs(description.split('').reduce((a, b) => a + b.charCodeAt(0), 0))}`;
