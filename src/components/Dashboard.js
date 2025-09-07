@@ -41,7 +41,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, onContentCardHover, colorPromptClosedWithoutSave, getRouteColorPromptSaved, recommendedContentCards, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, handleContentCardHover, selectedDates = [] }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, onContentCardHover, colorPromptClosedWithoutSave, getRouteColorPromptSaved, recommendedContentCards, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, handleContentCardHover, selectedDates = [], isCurrentThemeFestive, getRouteSelectedThemeChip }) {
 
   // Helper function to get route-specific content cards
   const getRouteContentCards = () => {
@@ -98,10 +98,15 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
 
   // Helper function to get content text and image - uses festival content when theme is saved
   const getContentData = (cardIndex) => {
-    // If theme is saved, try to get festival content
-    if (getRouteColorPromptSaved() && selectedFlightPhase && origin && destination) {
+    // Only generate festival content if:
+    // 1. Theme is saved for this route
+    // 2. Current theme is actually festive (not non-festive like Lufthansa)
+    // 3. Required data is available
+    if (getRouteColorPromptSaved() && isCurrentThemeFestive() && selectedFlightPhase && origin && destination) {
       console.log('=== GETTING FESTIVAL CONTENT FOR CONTENT CARD ===', {
         colorPromptSaved: getRouteColorPromptSaved(),
+        isFestive: isCurrentThemeFestive(),
+        selectedThemeChip: getRouteSelectedThemeChip(),
         selectedFlightPhase,
         origin,
         destination,
@@ -132,9 +137,18 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
       if (festivalContent && festivalContent.text) {
         return { text: festivalContent.text, image: festivalContent.image || '' };
       }
+    } else {
+      console.log('=== SKIPPING FESTIVAL CONTENT GENERATION ===', {
+        colorPromptSaved: getRouteColorPromptSaved(),
+        isFestive: isCurrentThemeFestive(),
+        selectedThemeChip: getRouteSelectedThemeChip(),
+        reason: !getRouteColorPromptSaved() ? 'theme not saved' : 
+                !isCurrentThemeFestive() ? 'theme not festive' : 
+                'missing required data'
+      });
     }
     
-    // Fallback to default content
+    // Fallback to default content for non-festive themes or when theme not saved
     return { text: 'Add content', image: '' };
   };
 
@@ -365,6 +379,8 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         currentRouteKey={getCurrentRouteKey()}
         isModifyClicked={isCurrentRouteModified()}
         selectedDates={selectedDates}
+        isCurrentThemeFestive={isCurrentThemeFestive}
+        getRouteSelectedThemeChip={getRouteSelectedThemeChip}
       />
       
       {/* Recommended for you section */}
@@ -489,6 +505,7 @@ export default function Dashboard() {
   const [routePromptBubbles, setRoutePromptBubbles] = useState({}); // { routeKey: { x, y, elementType, elementData } }
   const [colorPromptClosedWithoutSave, setColorPromptClosedWithoutSave] = useState(false); // Track if color PB was closed without saving
   const [routeColorPromptSaved, setRouteColorPromptSaved] = useState({}); // Track if color PB was saved per route: { routeKey: boolean }
+  const [routeSelectedThemeChips, setRouteSelectedThemeChips] = useState({}); // Track selected theme chip per route: { routeKey: chipData }
   const [selectedLogo, setSelectedLogo] = useState(null); // { id, src }
   const [ifeFrameThemeColor, setIfeFrameThemeColor] = useState('#1E1E1E'); // Preserve airline theme for IFE frame
   const [showPlusIcon, setShowPlusIcon] = useState(false);
@@ -662,6 +679,39 @@ export default function Dashboard() {
       ...prev,
       [routeKey]: value
     }));
+  };
+
+  // Helper functions for route-specific theme chip management
+  const getRouteSelectedThemeChip = () => {
+    const routeKey = getCurrentRouteKey();
+    return routeSelectedThemeChips[routeKey] || null;
+  };
+
+  const setRouteSelectedThemeChip = (chipData) => {
+    const routeKey = getCurrentRouteKey();
+    setRouteSelectedThemeChips(prev => ({
+      ...prev,
+      [routeKey]: chipData
+    }));
+  };
+
+  // Helper function to validate if current theme should generate festival content
+  const isCurrentThemeFestive = () => {
+    const selectedChip = getRouteSelectedThemeChip();
+    if (!selectedChip) return false;
+    
+    // Check if the chip is marked as festive
+    if (selectedChip.isFestival) return true;
+    
+    // Check if the chip label indicates a festival
+    const label = selectedChip.label?.toLowerCase() || '';
+    const festiveKeywords = [
+      'carnival', 'carnevale', 'oktoberfest', 'fashion week', 'light festival',
+      'dance event', 'film festival', 'christmas', 'market', 'pride',
+      'bastille', 'king\'s day', 'nuit blanche', 'tollwood', 'frühlingsfest'
+    ];
+    
+    return festiveKeywords.some(keyword => label.includes(keyword));
   };
   
   // Helper function to get route-specific promo card contents
@@ -2117,6 +2167,8 @@ export default function Dashboard() {
               isCurrentRouteModified={isCurrentRouteModified}
               handleContentCardHover={handleContentCardHover}
               selectedDates={selectedDates}
+              isCurrentThemeFestive={isCurrentThemeFestive}
+              getRouteSelectedThemeChip={getRouteSelectedThemeChip}
             />
           </div>
         </div>
@@ -2189,6 +2241,12 @@ export default function Dashboard() {
                 [flightKey]: 100
               }));
               console.log('🎯 Stored progress for flight route:', { flightKey, progress: 100, allProgress: { ...flightRouteProgress, [flightKey]: 100 } });
+            }
+            
+            // Store the selected theme chip data for validation
+            if (chipData) {
+              setRouteSelectedThemeChip(chipData);
+              console.log('🎯 Stored theme chip for route:', { routeKey: getCurrentRouteKey(), chipData });
             }
             
             // Clear the closed without save state since the user saved

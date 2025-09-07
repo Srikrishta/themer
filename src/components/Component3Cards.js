@@ -23,7 +23,9 @@ export default function Component3Cards({
   colorPromptClosedWithoutSave,
   currentRouteKey,
   isModifyClicked,
-  selectedDates
+  selectedDates,
+  isCurrentThemeFestive,
+  getRouteSelectedThemeChip
 }) {
 
   // Force re-render when colorPromptSaved changes
@@ -82,10 +84,15 @@ export default function Component3Cards({
 
   // Helper function for default card content
   const getDefaultCardContent = (cardIndex) => {
-    // If theme is saved, try to get festival content
-    if (colorPromptSaved && selectedFlightPhase && origin && destination) {
+    // Only generate festival content if:
+    // 1. Theme is saved for this route
+    // 2. Current theme is actually festive (not non-festive like Lufthansa)
+    // 3. Required data is available
+    if (colorPromptSaved && isCurrentThemeFestive && isCurrentThemeFestive() && selectedFlightPhase && origin && destination) {
       console.log('=== GETTING FESTIVAL CONTENT FOR PROMO CARD ===', {
         colorPromptSaved,
+        isFestive: isCurrentThemeFestive(),
+        selectedThemeChip: getRouteSelectedThemeChip(),
         selectedFlightPhase,
         origin,
         destination,
@@ -105,33 +112,33 @@ export default function Component3Cards({
       // Use default dates if none are selected
       const datesToUse = selectedDates && selectedDates.length > 0 ? selectedDates : ['2024-09-15'];
       
-      const useFestivalContent = shouldUseFestivalContent(segment, datesToUse, themeColor);
-      
-      console.log('=== FESTIVAL CONTENT CHECK ===', {
-        segment,
-        useFestivalContent,
-        themeColor
+      const festivalContent = getPromoCardContent(segment, datesToUse, selectedFlightPhase, cardIndex, themeColor);
+      console.log('=== FESTIVAL CONTENT RESULT ===', {
+        festivalContent,
+        hasText: !!festivalContent?.text,
+        hasImage: !!festivalContent?.image
       });
       
-      if (useFestivalContent) {
-        const festivalContent = getPromoCardContent(segment, datesToUse, selectedFlightPhase, cardIndex, themeColor);
-        console.log('=== FESTIVAL CONTENT RESULT ===', {
-          festivalContent,
-          hasText: !!festivalContent?.text,
-          hasImage: !!festivalContent?.image
-        });
-        
-        if (festivalContent && festivalContent.text) {
-          return { 
-            text: festivalContent.text, 
-            image: festivalContent.image || '', 
-            bgColor: getLightThemeColor() 
-          };
-        }
+      if (festivalContent && festivalContent.text) {
+        return { 
+          text: festivalContent.text, 
+          image: festivalContent.image || '', 
+          bgColor: getLightThemeColor() 
+        };
       }
+    } else {
+      console.log('=== SKIPPING FESTIVAL CONTENT GENERATION FOR PROMO CARD ===', {
+        colorPromptSaved,
+        isFestive: isCurrentThemeFestive ? isCurrentThemeFestive() : 'function not provided',
+        selectedThemeChip: getRouteSelectedThemeChip ? getRouteSelectedThemeChip() : 'function not provided',
+        reason: !colorPromptSaved ? 'theme not saved' : 
+                !isCurrentThemeFestive ? 'validation function not provided' :
+                !isCurrentThemeFestive() ? 'theme not festive' : 
+                'missing required data'
+      });
     }
     
-    // Fallback to default content
+    // Fallback to default content for non-festive themes or when theme not saved
     return { text: "Add experience", bgColor: getLightThemeColor() };
   };
 
