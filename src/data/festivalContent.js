@@ -4,9 +4,9 @@ export const festivalContent = {
   "Amsterdam Light Festival": {
     takeoff: {
       promo: [
-        { text: "Enjoy your welcome drink", image: "amsterdam light festival drinks" },
-        { text: "Check goodies in seat", image: "headphones snacks" },
-        { text: "Connect your device", image: "smartphone mobile phone" }
+        { text: "Enjoy your welcome drink", image: "amsterdam light festival welcome drinks" },
+        { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
+        { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
         { text: "Amsterdam Light Festival Documentary", image: "amsterdam light festival film" },
@@ -17,9 +17,9 @@ export const festivalContent = {
     },
     climb: {
       promo: [
-        { text: "Order food", image: "amsterdam light festival food" },
+        { text: "Order food", image: "dutch herring fish meal" },
         { text: "Offers onboard", image: "amsterdam light festival offers" },
-        { text: "Latest entertainment", image: "movie cinema" }
+        { text: "Latest entertainment", image: "movie that is in market" }
       ],
       content: [
         { text: "Amsterdam Light Art Films", image: "amsterdam light art cinema" },
@@ -30,9 +30,9 @@ export const festivalContent = {
     },
     cruise: {
       promo: [
-        { text: "Popcorn with movie", image: "amsterdam light festival snacks" },
-        { text: "Buy gifts", image: "amsterdam light festival gifts" },
-        { text: "Latest entertainment", image: "movie cinema" }
+        { text: "Popcorn with movie", image: "amsterdam light festival popcorn bowl" },
+        { text: "Buy gifts", image: "gifts of the festivals" },
+        { text: "Latest entertainment", image: "movie" }
       ],
       content: [
         { text: "Amsterdam Light Festival Highlights", image: "amsterdam light festival highlights" },
@@ -43,9 +43,9 @@ export const festivalContent = {
     },
     descent: {
       promo: [
-        { text: "Buy guides at discount", image: "amsterdam travel guide" },
-        { text: "Buy gifts", image: "amsterdam light festival gifts" },
-        { text: "Save on your next flight", image: "flight booking ticket" }
+        { text: "Buy guides at discount", image: "get your guide related to festivals in the place" },
+        { text: "Buy gifts", image: "gifts for festival" },
+        { text: "Save on your next flight", image: "flight ticket offer" }
       ],
       content: [
         { text: "Amsterdam Light Festival Arrival", image: "amsterdam light festival arrival film" },
@@ -56,9 +56,9 @@ export const festivalContent = {
     },
     landing: {
       promo: [
-        { text: "Thank you for flying with us", image: "thank you message" },
-        { text: "Save on your next flight", image: "flight booking ticket" },
-        { text: "Shop duty free", image: "duty free shopping" }
+        { text: "Thank you for flying with us", image: "Thank you" },
+        { text: "Save on your next flight", image: "flight booking" },
+        { text: "Shop duty free", image: "duty free shop in airport" }
       ],
       content: [
         { text: "Amsterdam Light Festival Celebration", image: "amsterdam light festival celebration film" },
@@ -71,9 +71,9 @@ export const festivalContent = {
   "Christmas in Rome": {
     takeoff: {
       promo: [
-        { text: "Enjoy your welcome drink", image: "christmas mulled wine" },
-        { text: "Check goodies in seat", image: "earphones and snacks" },
-        { text: "Connect your device", image: "phone device" }
+        { text: "Enjoy your welcome drink", image: "christmas in rome welcome drinks" },
+        { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
+        { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
         { text: "Christmas in Rome Documentary", image: "rome christmas film" },
@@ -84,9 +84,9 @@ export const festivalContent = {
     },
     climb: {
       promo: [
-        { text: "Order food", image: "christmas panettone food" },
-        { text: "Offers onboard", image: "christmas offers deals" },
-        { text: "Latest entertainment", image: "movie cinema" }
+        { text: "Order food", image: "italian panettone christmas cake" },
+        { text: "Offers onboard", image: "christmas in rome offers" },
+        { text: "Latest entertainment", image: "movie that is in market" }
       ],
       content: [
         { text: "Roman Christmas Traditions", image: "rome christmas traditions film" },
@@ -97,9 +97,9 @@ export const festivalContent = {
     },
     cruise: {
       promo: [
-        { text: "Popcorn with movie", image: "christmas cookies snacks" },
-        { text: "Buy gifts", image: "christmas gifts" },
-        { text: "Latest entertainment", image: "movie cinema" }
+        { text: "Popcorn with movie", image: "christmas in rome popcorn bowl" },
+        { text: "Buy gifts", image: "gifts of the festivals" },
+        { text: "Latest entertainment", image: "movie" }
       ],
       content: [
         { text: "Christmas in Rome Highlights", image: "rome christmas highlights" },
@@ -110,9 +110,9 @@ export const festivalContent = {
     },
     descent: {
       promo: [
-        { text: "Buy guides at discount", image: "rome travel guide" },
-        { text: "Buy gifts", image: "christmas gifts" },
-        { text: "Save on your next flight", image: "flight booking ticket" }
+        { text: "Buy guides at discount", image: "get your guide related to festivals in the place" },
+        { text: "Buy gifts", image: "gifts for festival" },
+        { text: "Save on your next flight", image: "flight ticket offer" }
       ],
       content: [
         { text: "Christmas in Rome Arrival", image: "rome christmas arrival film" },
@@ -123,9 +123,9 @@ export const festivalContent = {
     },
     landing: {
       promo: [
-        { text: "Thank you for flying with us", image: "thank you message" },
-        { text: "Save on your next flight", image: "flight booking ticket" },
-        { text: "Shop duty free", image: "duty free shopping" }
+        { text: "Thank you for flying with us", image: "Thank you" },
+        { text: "Save on your next flight", image: "flight booking" },
+        { text: "Shop duty free", image: "duty free shop in airport" }
       ],
       content: [
         { text: "Christmas in Rome Celebration", image: "rome christmas celebration film" },
@@ -139,9 +139,9 @@ export const festivalContent = {
   "Rome Carnival": {
     takeoff: {
       promo: [
-        { text: "Enjoy your welcome drink", image: "rome carnival drinks" },
-        { text: "Check goodies in seat", image: "headphones snacks" },
-        { text: "Connect your device", image: "smartphone mobile phone" }
+        { text: "Enjoy your welcome drink", image: "rome carnival welcome drinks" },
+        { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
+        { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
         { text: "Rome Carnival Documentary", image: "rome carnival film" },
@@ -152,9 +152,9 @@ export const festivalContent = {
     },
     climb: {
       promo: [
-        { text: "Order food", image: "rome carnival food" },
+        { text: "Order food", image: "italian frittelle carnival donuts" },
         { text: "Offers onboard", image: "rome carnival offers" },
-        { text: "Latest entertainment", image: "movie cinema" }
+        { text: "Latest entertainment", image: "movie that is in market" }
       ],
       content: [
         { text: "Roman Carnival Traditions", image: "rome carnival traditions film" },
@@ -165,9 +165,9 @@ export const festivalContent = {
     },
     cruise: {
       promo: [
-        { text: "Popcorn with movie", image: "rome carnival snacks" },
-        { text: "Buy gifts", image: "rome carnival gifts" },
-        { text: "Latest entertainment", image: "movie cinema" }
+        { text: "Popcorn with movie", image: "rome carnival popcorn bowl" },
+        { text: "Buy gifts", image: "gifts of the festivals" },
+        { text: "Latest entertainment", image: "movie" }
       ],
       content: [
         { text: "Rome Carnival Highlights", image: "rome carnival highlights" },
@@ -178,9 +178,9 @@ export const festivalContent = {
     },
     descent: {
       promo: [
-        { text: "Buy guides at discount", image: "rome travel guide" },
-        { text: "Buy gifts", image: "rome carnival gifts" },
-        { text: "Save on your next flight", image: "flight booking ticket" }
+        { text: "Buy guides at discount", image: "get your guide related to festivals in the place" },
+        { text: "Buy gifts", image: "gifts for festival" },
+        { text: "Save on your next flight", image: "flight ticket offer" }
       ],
       content: [
         { text: "Rome Carnival Arrival", image: "rome carnival arrival film" },
@@ -191,9 +191,9 @@ export const festivalContent = {
     },
     landing: {
       promo: [
-        { text: "Thank you for flying with us", image: "thank you message" },
-        { text: "Save on your next flight", image: "flight booking ticket" },
-        { text: "Shop duty free", image: "duty free shopping" }
+        { text: "Thank you for flying with us", image: "Thank you" },
+        { text: "Save on your next flight", image: "flight booking" },
+        { text: "Shop duty free", image: "duty free shop in airport" }
       ],
       content: [
         { text: "Rome Carnival Celebration", image: "rome carnival celebration film" },
@@ -206,9 +206,9 @@ export const festivalContent = {
   "Carnevale Ambrosiano": {
     takeoff: {
       promo: [
-        { text: "Enjoy your welcome drink", image: "milan carnevale drinks" },
-        { text: "Check goodies in seat", image: "headphones snacks" },
-        { text: "Connect your device", image: "smartphone mobile phone" }
+        { text: "Enjoy your welcome drink", image: "milan carnevale welcome drinks" },
+        { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
+        { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
         { text: "Milan Carnevale Documentary", image: "milan carnevale film" },
@@ -219,9 +219,9 @@ export const festivalContent = {
     },
     climb: {
       promo: [
-        { text: "Order food", image: "milan carnevale food" },
+        { text: "Order food", image: "milanese risotto rice dish" },
         { text: "Offers onboard", image: "milan carnevale offers" },
-        { text: "Latest entertainment", image: "movie cinema" }
+        { text: "Latest entertainment", image: "movie that is in market" }
       ],
       content: [
         { text: "Milan Carnival Traditions", image: "milan carnevale traditions film" },
@@ -232,9 +232,9 @@ export const festivalContent = {
     },
     cruise: {
       promo: [
-        { text: "Popcorn with movie", image: "milan carnevale snacks" },
-        { text: "Buy gifts", image: "milan carnevale gifts" },
-        { text: "Latest entertainment", image: "movie cinema" }
+        { text: "Popcorn with movie", image: "milan carnevale popcorn bowl" },
+        { text: "Buy gifts", image: "gifts of the festivals" },
+        { text: "Latest entertainment", image: "movie" }
       ],
       content: [
         { text: "Milan Carnevale Highlights", image: "milan carnevale highlights" },
@@ -245,9 +245,9 @@ export const festivalContent = {
     },
     descent: {
       promo: [
-        { text: "Buy guides at discount", image: "milan travel guide" },
-        { text: "Buy gifts", image: "milan carnevale gifts" },
-        { text: "Save on your next flight", image: "flight booking ticket" }
+        { text: "Buy guides at discount", image: "get your guide related to festivals in the place" },
+        { text: "Buy gifts", image: "gifts for festival" },
+        { text: "Save on your next flight", image: "flight ticket offer" }
       ],
       content: [
         { text: "Milan Carnevale Arrival", image: "milan carnevale arrival film" },
@@ -258,9 +258,9 @@ export const festivalContent = {
     },
     landing: {
       promo: [
-        { text: "Thank you for flying with us", image: "thank you message" },
-        { text: "Save on your next flight", image: "flight booking ticket" },
-        { text: "Shop duty free", image: "duty free shopping" }
+        { text: "Thank you for flying with us", image: "Thank you" },
+        { text: "Save on your next flight", image: "flight booking" },
+        { text: "Shop duty free", image: "duty free shop in airport" }
       ],
       content: [
         { text: "Milan Carnevale Celebration", image: "milan carnevale celebration film" },
@@ -274,8 +274,8 @@ export const festivalContent = {
     takeoff: {
       promo: [
         { text: "Enjoy your welcome drink", image: "milan fashion week drinks" },
-        { text: "Check goodies in seat", image: "headphones snacks" },
-        { text: "Connect your device", image: "smartphone mobile phone" }
+        { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
+        { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
         { text: "Milan Fashion Week Documentary", image: "milan fashion week film" },
@@ -286,9 +286,9 @@ export const festivalContent = {
     },
     climb: {
       promo: [
-        { text: "Fashion climb", image: "milan fashion week show" },
-        { text: "Style journey", image: "milan fashion week collection" },
-        { text: "Designer spirit", image: "milan fashion week glamour" }
+        { text: "Order food", image: "italian osso buco meat dish" },
+        { text: "Offers onboard", image: "milan fashion week offers" },
+        { text: "Latest entertainment", image: "movie that is in market" }
       ],
       content: [
         { text: "Milan Fashion Traditions", image: "milan fashion traditions film" },
@@ -299,9 +299,9 @@ export const festivalContent = {
     },
     cruise: {
       promo: [
-        { text: "Fashion cruise", image: "milan fashion week elegance" },
-        { text: "Style magic", image: "milan fashion week luxury" },
-        { text: "Designer journey", image: "milan fashion week sophistication" }
+        { text: "Popcorn with movie", image: "milan fashion week popcorn bowl" },
+        { text: "Buy gifts", image: "gifts of the festivals" },
+        { text: "Latest entertainment", image: "movie" }
       ],
       content: [
         { text: "Milan Fashion Week Highlights", image: "milan fashion week highlights" },
@@ -312,9 +312,9 @@ export const festivalContent = {
     },
     descent: {
       promo: [
-        { text: "Fashion landing", image: "milan fashion week arrival" },
-        { text: "Style descent", image: "milan fashion week welcome" },
-        { text: "Designer greeting", image: "milan fashion week celebration" }
+        { text: "Buy guides at discount", image: "get your guide related to festivals in the place" },
+        { text: "Buy gifts", image: "gifts for festival" },
+        { text: "Save on your next flight", image: "flight ticket offer" }
       ],
       content: [
         { text: "Milan Fashion Week Arrival", image: "milan fashion week arrival film" },
@@ -325,9 +325,9 @@ export const festivalContent = {
     },
     landing: {
       promo: [
-        { text: "Fashion welcome", image: "milan fashion week terminal" },
-        { text: "Style arrival", image: "milan fashion week spirit" },
-        { text: "Designer celebration", image: "milan fashion week joy" }
+        { text: "Thank you for flying with us", image: "Thank you" },
+        { text: "Save on your next flight", image: "flight booking" },
+        { text: "Shop duty free", image: "duty free shop in airport" }
       ],
       content: [
         { text: "Milan Fashion Week Celebration", image: "milan fashion week celebration film" },
@@ -407,9 +407,9 @@ export const festivalContent = {
   "Paris Fashion Week (Winter)": {
     takeoff: {
       promo: [
-        { text: "Paris fashion takeoff", image: "paris fashion week runway" },
-        { text: "French style ascent", image: "paris fashion week models" },
-        { text: "Parisian magic", image: "paris fashion week couture" }
+        { text: "Enjoy your welcome drink", image: "paris fashion week welcome drinks" },
+        { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
+        { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
         { text: "Paris Fashion Week Documentary", image: "paris fashion week film" },
@@ -420,9 +420,9 @@ export const festivalContent = {
     },
     climb: {
       promo: [
-        { text: "Fashion climb", image: "paris fashion week show" },
-        { text: "Style journey", image: "paris fashion week collection" },
-        { text: "Parisian spirit", image: "paris fashion week glamour" }
+        { text: "Order food", image: "french coq au vin chicken dish" },
+        { text: "Offers onboard", image: "paris fashion week offers" },
+        { text: "Latest entertainment", image: "movie that is in market" }
       ],
       content: [
         { text: "Paris Fashion Traditions", image: "paris fashion traditions film" },
@@ -433,9 +433,9 @@ export const festivalContent = {
     },
     cruise: {
       promo: [
-        { text: "Fashion cruise", image: "paris fashion week elegance" },
-        { text: "Style magic", image: "paris fashion week luxury" },
-        { text: "Parisian journey", image: "paris fashion week sophistication" }
+        { text: "Popcorn with movie", image: "paris fashion week popcorn bowl" },
+        { text: "Buy gifts", image: "gifts of the festivals" },
+        { text: "Latest entertainment", image: "movie" }
       ],
       content: [
         { text: "Paris Fashion Week Highlights", image: "paris fashion week highlights" },
@@ -446,9 +446,9 @@ export const festivalContent = {
     },
     descent: {
       promo: [
-        { text: "Fashion landing", image: "paris fashion week arrival" },
-        { text: "Style descent", image: "paris fashion week welcome" },
-        { text: "Parisian greeting", image: "paris fashion week celebration" }
+        { text: "Buy guides at discount", image: "get your guide related to festivals in the place" },
+        { text: "Buy gifts", image: "gifts for festival" },
+        { text: "Save on your next flight", image: "flight ticket offer" }
       ],
       content: [
         { text: "Paris Fashion Week Arrival", image: "paris fashion week arrival film" },
@@ -459,9 +459,9 @@ export const festivalContent = {
     },
     landing: {
       promo: [
-        { text: "Fashion welcome", image: "paris fashion week terminal" },
-        { text: "Style arrival", image: "paris fashion week spirit" },
-        { text: "Parisian celebration", image: "paris fashion week joy" }
+        { text: "Thank you for flying with us", image: "Thank you" },
+        { text: "Save on your next flight", image: "flight booking" },
+        { text: "Shop duty free", image: "duty free shop in airport" }
       ],
       content: [
         { text: "Paris Fashion Week Celebration", image: "paris fashion week celebration film" },
@@ -474,9 +474,9 @@ export const festivalContent = {
   "Paris Fashion Week (Autumn)": {
     takeoff: {
       promo: [
-        { text: "Fashion takeoff", image: "paris fashion week runway" },
-        { text: "Style ascent", image: "paris fashion week models" },
-        { text: "Designer magic", image: "paris fashion week couture" }
+        { text: "Enjoy your welcome drink", image: "paris fashion week welcome drinks" },
+        { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
+        { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
         { text: "Paris Fashion Week Documentary", image: "paris fashion week film" },
@@ -487,9 +487,9 @@ export const festivalContent = {
     },
     climb: {
       promo: [
-        { text: "Fashion climb", image: "paris fashion week show" },
-        { text: "Style journey", image: "paris fashion week collection" },
-        { text: "Parisian spirit", image: "paris fashion week glamour" }
+        { text: "Order food", image: "french coq au vin chicken dish" },
+        { text: "Offers onboard", image: "paris fashion week offers" },
+        { text: "Latest entertainment", image: "movie that is in market" }
       ],
       content: [
         { text: "Paris Fashion Traditions", image: "paris fashion traditions film" },
@@ -500,9 +500,9 @@ export const festivalContent = {
     },
     cruise: {
       promo: [
-        { text: "Fashion cruise", image: "paris fashion week elegance" },
-        { text: "Style magic", image: "paris fashion week luxury" },
-        { text: "Parisian journey", image: "paris fashion week sophistication" }
+        { text: "Popcorn with movie", image: "paris fashion week popcorn bowl" },
+        { text: "Buy gifts", image: "gifts of the festivals" },
+        { text: "Latest entertainment", image: "movie" }
       ],
       content: [
         { text: "Paris Fashion Week Highlights", image: "paris fashion week highlights" },
@@ -513,9 +513,9 @@ export const festivalContent = {
     },
     descent: {
       promo: [
-        { text: "Fashion landing", image: "paris fashion week arrival" },
-        { text: "Style descent", image: "paris fashion week welcome" },
-        { text: "Parisian greeting", image: "paris fashion week celebration" }
+        { text: "Buy guides at discount", image: "get your guide related to festivals in the place" },
+        { text: "Buy gifts", image: "gifts for festival" },
+        { text: "Save on your next flight", image: "flight ticket offer" }
       ],
       content: [
         { text: "Paris Fashion Week Arrival", image: "paris fashion week arrival film" },
@@ -526,9 +526,9 @@ export const festivalContent = {
     },
     landing: {
       promo: [
-        { text: "Fashion welcome", image: "paris fashion week terminal" },
-        { text: "Style arrival", image: "paris fashion week spirit" },
-        { text: "Parisian celebration", image: "paris fashion week joy" }
+        { text: "Thank you for flying with us", image: "Thank you" },
+        { text: "Save on your next flight", image: "flight booking" },
+        { text: "Shop duty free", image: "duty free shop in airport" }
       ],
       content: [
         { text: "Paris Fashion Week Celebration", image: "paris fashion week celebration film" },
@@ -542,9 +542,9 @@ export const festivalContent = {
   "Milan Furniture Fair": {
     takeoff: {
       promo: [
-        { text: "Design takeoff", image: "milan furniture fair modern design" },
-        { text: "Creative ascent", image: "milan furniture fair interior" },
-        { text: "Design magic", image: "milan furniture fair furniture" }
+        { text: "Enjoy your welcome drink", image: "milan furniture fair welcome drinks" },
+        { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
+        { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
         { text: "Milan Furniture Fair Documentary", image: "milan furniture fair film" },
@@ -555,9 +555,9 @@ export const festivalContent = {
     },
     climb: {
       promo: [
-        { text: "Design climb", image: "milan furniture fair showroom" },
-        { text: "Creative journey", image: "milan furniture fair innovation" },
-        { text: "Design spirit", image: "milan furniture fair craftsmanship" }
+        { text: "Order food", image: "italian polenta cornmeal dish" },
+        { text: "Offers onboard", image: "milan furniture fair offers" },
+        { text: "Latest entertainment", image: "movie that is in market" }
       ],
       content: [
         { text: "Milan Design Traditions", image: "milan design traditions film" },
@@ -568,9 +568,9 @@ export const festivalContent = {
     },
     cruise: {
       promo: [
-        { text: "Design cruise", image: "milan furniture fair elegance" },
-        { text: "Creative magic", image: "milan furniture fair luxury" },
-        { text: "Design journey", image: "milan furniture fair sophistication" }
+        { text: "Popcorn with movie", image: "milan furniture fair popcorn bowl" },
+        { text: "Buy gifts", image: "gifts of the festivals" },
+        { text: "Latest entertainment", image: "movie" }
       ],
       content: [
         { text: "Milan Furniture Fair Highlights", image: "milan furniture fair highlights" },
@@ -581,9 +581,9 @@ export const festivalContent = {
     },
     descent: {
       promo: [
-        { text: "Design landing", image: "milan furniture fair arrival" },
-        { text: "Creative descent", image: "milan furniture fair welcome" },
-        { text: "Design greeting", image: "milan furniture fair celebration" }
+        { text: "Buy guides at discount", image: "get your guide related to festivals in the place" },
+        { text: "Buy gifts", image: "gifts for festival" },
+        { text: "Save on your next flight", image: "flight ticket offer" }
       ],
       content: [
         { text: "Milan Furniture Fair Arrival", image: "milan furniture fair arrival film" },
@@ -594,9 +594,9 @@ export const festivalContent = {
     },
     landing: {
       promo: [
-        { text: "Design welcome", image: "milan furniture fair terminal" },
-        { text: "Creative arrival", image: "milan furniture fair spirit" },
-        { text: "Design celebration", image: "milan furniture fair joy" }
+        { text: "Thank you for flying with us", image: "Thank you" },
+        { text: "Save on your next flight", image: "flight booking" },
+        { text: "Shop duty free", image: "duty free shop in airport" }
       ],
       content: [
         { text: "Milan Furniture Fair Celebration", image: "milan furniture fair celebration film" },
@@ -609,9 +609,9 @@ export const festivalContent = {
   "Natale di Roma": {
     takeoff: {
       promo: [
-        { text: "Rome birthday takeoff", image: "rome birthday celebration" },
-        { text: "Roman ascent", image: "rome birthday parade" },
-        { text: "Birthday magic", image: "rome birthday fireworks" }
+        { text: "Enjoy your welcome drink", image: "natale di roma welcome drinks" },
+        { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
+        { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
         { text: "Rome Birthday Documentary", image: "rome birthday film" },
@@ -622,9 +622,9 @@ export const festivalContent = {
     },
     climb: {
       promo: [
-        { text: "Birthday climb", image: "rome birthday celebration" },
-        { text: "Roman journey", image: "rome birthday traditions" },
-        { text: "Birthday spirit", image: "rome birthday joy" }
+        { text: "Order food", image: "roman carbonara pasta dish" },
+        { text: "Offers onboard", image: "natale di roma offers" },
+        { text: "Latest entertainment", image: "movie that is in market" }
       ],
       content: [
         { text: "Roman Birthday Traditions", image: "rome birthday traditions film" },
@@ -635,9 +635,9 @@ export const festivalContent = {
     },
     cruise: {
       promo: [
-        { text: "Birthday cruise", image: "rome birthday atmosphere" },
-        { text: "Roman magic", image: "rome birthday celebration" },
-        { text: "Birthday journey", image: "rome birthday spirit" }
+        { text: "Popcorn with movie", image: "natale di roma popcorn bowl" },
+        { text: "Buy gifts", image: "gifts of the festivals" },
+        { text: "Latest entertainment", image: "movie" }
       ],
       content: [
         { text: "Rome Birthday Highlights", image: "rome birthday highlights" },
@@ -648,9 +648,9 @@ export const festivalContent = {
     },
     descent: {
       promo: [
-        { text: "Birthday landing", image: "rome birthday arrival" },
-        { text: "Roman descent", image: "rome birthday welcome" },
-        { text: "Birthday greeting", image: "rome birthday celebration" }
+        { text: "Buy guides at discount", image: "get your guide related to festivals in the place" },
+        { text: "Buy gifts", image: "gifts for festival" },
+        { text: "Save on your next flight", image: "flight ticket offer" }
       ],
       content: [
         { text: "Rome Birthday Arrival", image: "rome birthday arrival film" },
@@ -661,9 +661,9 @@ export const festivalContent = {
     },
     landing: {
       promo: [
-        { text: "Birthday welcome", image: "rome birthday terminal" },
-        { text: "Roman arrival", image: "rome birthday spirit" },
-        { text: "Birthday celebration", image: "rome birthday joy" }
+        { text: "Thank you for flying with us", image: "Thank you" },
+        { text: "Save on your next flight", image: "flight booking" },
+        { text: "Shop duty free", image: "duty free shop in airport" }
       ],
       content: [
         { text: "Rome Birthday Celebration", image: "rome birthday celebration film" },
@@ -676,9 +676,9 @@ export const festivalContent = {
   "King's Day": {
     takeoff: {
       promo: [
-        { text: "King's Day takeoff", image: "amsterdam kings day orange celebration" },
-        { text: "Dutch ascent", image: "amsterdam kings day parade" },
-        { text: "Royal magic", image: "amsterdam kings day festivities" }
+        { text: "Enjoy your welcome drink", image: "kings day welcome drinks" },
+        { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
+        { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
         { text: "King's Day Documentary", image: "amsterdam kings day film" },
@@ -689,9 +689,9 @@ export const festivalContent = {
     },
     climb: {
       promo: [
-        { text: "King's Day climb", image: "amsterdam kings day celebration" },
-        { text: "Dutch journey", image: "amsterdam kings day traditions" },
-        { text: "Royal spirit", image: "amsterdam kings day joy" }
+        { text: "Order food", image: "dutch bitterballen fried snacks" },
+        { text: "Offers onboard", image: "kings day offers" },
+        { text: "Latest entertainment", image: "movie that is in market" }
       ],
       content: [
         { text: "Dutch King's Day Traditions", image: "amsterdam kings day traditions film" },
@@ -702,9 +702,9 @@ export const festivalContent = {
     },
     cruise: {
       promo: [
-        { text: "King's Day cruise", image: "amsterdam kings day atmosphere" },
-        { text: "Dutch magic", image: "amsterdam kings day celebration" },
-        { text: "Royal journey", image: "amsterdam kings day spirit" }
+        { text: "Popcorn with movie", image: "kings day popcorn bowl" },
+        { text: "Buy gifts", image: "gifts of the festivals" },
+        { text: "Latest entertainment", image: "movie" }
       ],
       content: [
         { text: "King's Day Highlights", image: "amsterdam kings day highlights" },
@@ -715,9 +715,9 @@ export const festivalContent = {
     },
     descent: {
       promo: [
-        { text: "King's Day landing", image: "amsterdam kings day arrival" },
-        { text: "Dutch descent", image: "amsterdam kings day welcome" },
-        { text: "Royal greeting", image: "amsterdam kings day celebration" }
+        { text: "Buy guides at discount", image: "get your guide related to festivals in the place" },
+        { text: "Buy gifts", image: "gifts for festival" },
+        { text: "Save on your next flight", image: "flight ticket offer" }
       ],
       content: [
         { text: "King's Day Arrival", image: "amsterdam kings day arrival film" },
@@ -728,9 +728,9 @@ export const festivalContent = {
     },
     landing: {
       promo: [
-        { text: "King's Day welcome", image: "amsterdam kings day terminal" },
-        { text: "Dutch arrival", image: "amsterdam kings day spirit" },
-        { text: "Royal celebration", image: "amsterdam kings day joy" }
+        { text: "Thank you for flying with us", image: "Thank you" },
+        { text: "Save on your next flight", image: "flight booking" },
+        { text: "Shop duty free", image: "duty free shop in airport" }
       ],
       content: [
         { text: "King's Day Celebration", image: "amsterdam kings day celebration film" },
@@ -743,9 +743,9 @@ export const festivalContent = {
   "Frühlingsfest": {
     takeoff: {
       promo: [
-        { text: "Spring festival takeoff", image: "munich frühlingsfest beer garden" },
-        { text: "Bavarian ascent", image: "munich frühlingsfest celebration" },
-        { text: "Spring magic", image: "munich frühlingsfest traditional dress" }
+        { text: "Enjoy your welcome drink", image: "frühlingsfest welcome drinks" },
+        { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
+        { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
         { text: "Frühlingsfest Documentary", image: "munich frühlingsfest film" },
@@ -756,9 +756,9 @@ export const festivalContent = {
     },
     climb: {
       promo: [
-        { text: "Spring festival climb", image: "munich frühlingsfest beer" },
-        { text: "Bavarian journey", image: "munich frühlingsfest music" },
-        { text: "Spring spirit", image: "munich frühlingsfest joy" }
+        { text: "Order food", image: "german bratwurst sausage meal" },
+        { text: "Offers onboard", image: "frühlingsfest offers" },
+        { text: "Latest entertainment", image: "movie that is in market" }
       ],
       content: [
         { text: "Bavarian Spring Traditions", image: "munich frühlingsfest traditions film" },
@@ -769,9 +769,9 @@ export const festivalContent = {
     },
     cruise: {
       promo: [
-        { text: "Spring festival cruise", image: "munich frühlingsfest atmosphere" },
-        { text: "Bavarian magic", image: "munich frühlingsfest celebration" },
-        { text: "Spring journey", image: "munich frühlingsfest spirit" }
+        { text: "Popcorn with movie", image: "frühlingsfest popcorn bowl" },
+        { text: "Buy gifts", image: "gifts of the festivals" },
+        { text: "Latest entertainment", image: "movie" }
       ],
       content: [
         { text: "Frühlingsfest Highlights", image: "munich frühlingsfest highlights" },
@@ -782,9 +782,9 @@ export const festivalContent = {
     },
     descent: {
       promo: [
-        { text: "Spring festival landing", image: "munich frühlingsfest arrival" },
-        { text: "Bavarian descent", image: "munich frühlingsfest welcome" },
-        { text: "Spring greeting", image: "munich frühlingsfest celebration" }
+        { text: "Buy guides at discount", image: "get your guide related to festivals in the place" },
+        { text: "Buy gifts", image: "gifts for festival" },
+        { text: "Save on your next flight", image: "flight ticket offer" }
       ],
       content: [
         { text: "Frühlingsfest Arrival", image: "munich frühlingsfest arrival film" },
@@ -795,9 +795,9 @@ export const festivalContent = {
     },
     landing: {
       promo: [
-        { text: "Spring festival welcome", image: "munich frühlingsfest terminal" },
-        { text: "Bavarian arrival", image: "munich frühlingsfest spirit" },
-        { text: "Spring celebration", image: "munich frühlingsfest joy" }
+        { text: "Thank you for flying with us", image: "Thank you" },
+        { text: "Save on your next flight", image: "flight booking" },
+        { text: "Shop duty free", image: "duty free shop in airport" }
       ],
       content: [
         { text: "Frühlingsfest Celebration", image: "munich frühlingsfest celebration film" },
@@ -812,7 +812,7 @@ export const festivalContent = {
       promo: [
         { text: "Enjoy your welcome drink", image: "german beer stein oktoberfest festival" },
         { text: "Check goodies in seat", image: "headphones snacks entertainment" },
-        { text: "Connect your device", image: "smartphone mobile phone" }
+        { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
         { text: "Oktoberfest Documentary", image: "oktoberfest documentary film" },
@@ -877,9 +877,9 @@ export const festivalContent = {
   "Nuit Blanche": {
     takeoff: {
       promo: [
-        { text: "Night art takeoff", image: "paris nuit blanche art installations" },
-        { text: "Cultural ascent", image: "paris nuit blanche museums" },
-        { text: "Artistic spirit", image: "paris nuit blanche creativity" }
+        { text: "Enjoy your welcome drink", image: "nuit blanche welcome drinks" },
+        { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
+        { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
         { text: "Nuit Blanche Documentary", image: "paris nuit blanche film" },
@@ -890,9 +890,9 @@ export const festivalContent = {
     },
     climb: {
       promo: [
-        { text: "Art climb", image: "paris nuit blanche galleries" },
-        { text: "Cultural journey", image: "paris nuit blanche exhibitions" },
-        { text: "Artistic spirit", image: "paris nuit blanche inspiration" }
+        { text: "Order food", image: "french croissant pastry meal" },
+        { text: "Offers onboard", image: "nuit blanche offers" },
+        { text: "Latest entertainment", image: "movie that is in market" }
       ],
       content: [
         { text: "Paris Art Traditions", image: "paris nuit blanche traditions film" },
@@ -903,9 +903,9 @@ export const festivalContent = {
     },
     cruise: {
       promo: [
-        { text: "Art cruise", image: "paris nuit blanche performances" },
-        { text: "Cultural magic", image: "paris nuit blanche events" },
-        { text: "Artistic journey", image: "paris nuit blanche atmosphere" }
+        { text: "Popcorn with movie", image: "nuit blanche popcorn bowl" },
+        { text: "Buy gifts", image: "gifts of the festivals" },
+        { text: "Latest entertainment", image: "movie" }
       ],
       content: [
         { text: "Nuit Blanche Highlights", image: "paris nuit blanche highlights" },
@@ -916,9 +916,9 @@ export const festivalContent = {
     },
     descent: {
       promo: [
-        { text: "Art landing", image: "paris nuit blanche arrival" },
-        { text: "Cultural descent", image: "paris nuit blanche welcome" },
-        { text: "Artistic greeting", image: "paris nuit blanche celebration" }
+        { text: "Buy guides at discount", image: "get your guide related to festivals in the place" },
+        { text: "Buy gifts", image: "gifts for festival" },
+        { text: "Save on your next flight", image: "flight ticket offer" }
       ],
       content: [
         { text: "Nuit Blanche Arrival", image: "paris nuit blanche arrival film" },
@@ -929,9 +929,9 @@ export const festivalContent = {
     },
     landing: {
       promo: [
-        { text: "Art welcome", image: "paris nuit blanche terminal" },
-        { text: "Cultural arrival", image: "paris nuit blanche spirit" },
-        { text: "Artistic celebration", image: "paris nuit blanche joy" }
+        { text: "Thank you for flying with us", image: "Thank you" },
+        { text: "Save on your next flight", image: "flight booking" },
+        { text: "Shop duty free", image: "duty free shop in airport" }
       ],
       content: [
         { text: "Nuit Blanche Celebration", image: "paris nuit blanche celebration film" },
@@ -944,9 +944,9 @@ export const festivalContent = {
   "Amsterdam Dance Event": {
     takeoff: {
       promo: [
-        { text: "Music takeoff", image: "amsterdam dance event music festival" },
-        { text: "Electronic ascent", image: "amsterdam dance event dj sets" },
-        { text: "Festival spirit", image: "amsterdam dance event atmosphere" }
+        { text: "Enjoy your welcome drink", image: "amsterdam dance event welcome drinks" },
+        { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
+        { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
         { text: "Amsterdam Dance Event Documentary", image: "amsterdam dance event film" },
@@ -957,9 +957,9 @@ export const festivalContent = {
     },
     climb: {
       promo: [
-        { text: "Music climb", image: "amsterdam dance event venues" },
-        { text: "Electronic journey", image: "amsterdam dance event performances" },
-        { text: "Festival spirit", image: "amsterdam dance event energy" }
+        { text: "Order food", image: "dutch stroopwafel cookie meal" },
+        { text: "Offers onboard", image: "amsterdam dance event offers" },
+        { text: "Latest entertainment", image: "movie that is in market" }
       ],
       content: [
         { text: "Dutch Music Traditions", image: "amsterdam dance event traditions film" },
@@ -970,9 +970,9 @@ export const festivalContent = {
     },
     cruise: {
       promo: [
-        { text: "Music cruise", image: "amsterdam dance event clubs" },
-        { text: "Electronic magic", image: "amsterdam dance event parties" },
-        { text: "Festival journey", image: "amsterdam dance event nightlife" }
+        { text: "Popcorn with movie", image: "amsterdam dance event popcorn bowl" },
+        { text: "Buy gifts", image: "gifts of the festivals" },
+        { text: "Latest entertainment", image: "movie" }
       ],
       content: [
         { text: "Amsterdam Dance Event Highlights", image: "amsterdam dance event highlights" },
@@ -983,9 +983,9 @@ export const festivalContent = {
     },
     descent: {
       promo: [
-        { text: "Music landing", image: "amsterdam dance event arrival" },
-        { text: "Electronic descent", image: "amsterdam dance event welcome" },
-        { text: "Festival greeting", image: "amsterdam dance event celebration" }
+        { text: "Buy guides at discount", image: "get your guide related to festivals in the place" },
+        { text: "Buy gifts", image: "gifts for festival" },
+        { text: "Save on your next flight", image: "flight ticket offer" }
       ],
       content: [
         { text: "Amsterdam Dance Event Arrival", image: "amsterdam dance event arrival film" },
@@ -996,9 +996,9 @@ export const festivalContent = {
     },
     landing: {
       promo: [
-        { text: "Music welcome", image: "amsterdam dance event terminal" },
-        { text: "Electronic arrival", image: "amsterdam dance event spirit" },
-        { text: "Festival celebration", image: "amsterdam dance event joy" }
+        { text: "Thank you for flying with us", image: "Thank you" },
+        { text: "Save on your next flight", image: "flight booking" },
+        { text: "Shop duty free", image: "duty free shop in airport" }
       ],
       content: [
         { text: "Amsterdam Dance Event Celebration", image: "amsterdam dance event celebration film" },
@@ -1011,9 +1011,9 @@ export const festivalContent = {
   "Rome Film Festival": {
     takeoff: {
       promo: [
-        { text: "Cinema takeoff", image: "rome film festival red carpet" },
-        { text: "Movie magic", image: "rome film festival screenings" },
-        { text: "Film spirit", image: "rome film festival atmosphere" }
+        { text: "Enjoy your welcome drink", image: "rome film festival welcome drinks" },
+        { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
+        { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
         { text: "Rome Film Festival Documentary", image: "rome film festival film" },
@@ -1078,9 +1078,9 @@ export const festivalContent = {
   "Tollwood Festival (Winter)": {
     takeoff: {
       promo: [
-        { text: "Winter festival takeoff", image: "munich tollwood winter festival" },
-        { text: "Cultural welcome", image: "munich tollwood traditional crafts" },
-        { text: "Festival spirit", image: "munich tollwood celebration" }
+        { text: "Enjoy your welcome drink", image: "tollwood festival welcome drinks" },
+        { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
+        { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
         { text: "Tollwood Festival Documentary", image: "munich tollwood film" },
@@ -1091,9 +1091,9 @@ export const festivalContent = {
     },
     climb: {
       promo: [
-        { text: "Winter climb", image: "munich tollwood winter activities" },
-        { text: "Cultural journey", image: "munich tollwood music" },
-        { text: "Festival spirit", image: "munich tollwood atmosphere" }
+        { text: "Order food", image: "german sauerkraut cabbage dish" },
+        { text: "Offers onboard", image: "tollwood festival offers" },
+        { text: "Latest entertainment", image: "movie that is in market" }
       ],
       content: [
         { text: "Bavarian Winter Traditions", image: "munich tollwood traditions film" },
@@ -1104,9 +1104,9 @@ export const festivalContent = {
     },
     cruise: {
       promo: [
-        { text: "Winter cruise", image: "munich tollwood winter market" },
-        { text: "Cultural magic", image: "munich tollwood food" },
-        { text: "Festival journey", image: "munich tollwood entertainment" }
+        { text: "Popcorn with movie", image: "tollwood festival popcorn bowl" },
+        { text: "Buy gifts", image: "gifts of the festivals" },
+        { text: "Latest entertainment", image: "movie" }
       ],
       content: [
         { text: "Tollwood Festival Highlights", image: "munich tollwood highlights" },
@@ -1117,9 +1117,9 @@ export const festivalContent = {
     },
     descent: {
       promo: [
-        { text: "Winter landing", image: "munich tollwood arrival" },
-        { text: "Cultural descent", image: "munich tollwood welcome" },
-        { text: "Festival greeting", image: "munich tollwood celebration" }
+        { text: "Buy guides at discount", image: "get your guide related to festivals in the place" },
+        { text: "Buy gifts", image: "gifts for festival" },
+        { text: "Save on your next flight", image: "flight ticket offer" }
       ],
       content: [
         { text: "Tollwood Festival Arrival", image: "munich tollwood arrival film" },
@@ -1130,9 +1130,9 @@ export const festivalContent = {
     },
     landing: {
       promo: [
-        { text: "Winter welcome", image: "munich tollwood terminal" },
-        { text: "Cultural arrival", image: "munich tollwood spirit" },
-        { text: "Festival celebration", image: "munich tollwood joy" }
+        { text: "Thank you for flying with us", image: "Thank you" },
+        { text: "Save on your next flight", image: "flight booking" },
+        { text: "Shop duty free", image: "duty free shop in airport" }
       ],
       content: [
         { text: "Tollwood Festival Celebration", image: "munich tollwood celebration film" },
@@ -1145,9 +1145,9 @@ export const festivalContent = {
   "Christmas Market": {
     takeoff: {
       promo: [
-        { text: "Christmas takeoff", image: "christmas market decorations" },
-        { text: "Holiday welcome", image: "christmas market traditional stalls" },
-        { text: "Festive spirit", image: "christmas market celebration" }
+        { text: "Enjoy your welcome drink", image: "christmas market welcome drinks" },
+        { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
+        { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
         { text: "Christmas Market Documentary", image: "christmas market film" },
@@ -1158,9 +1158,9 @@ export const festivalContent = {
     },
     climb: {
       promo: [
-        { text: "Christmas climb", image: "christmas market lights" },
-        { text: "Holiday journey", image: "christmas market music" },
-        { text: "Festive spirit", image: "christmas market atmosphere" }
+        { text: "Order food", image: "german gluhwein mulled wine" },
+        { text: "Offers onboard", image: "christmas market offers" },
+        { text: "Latest entertainment", image: "movie that is in market" }
       ],
       content: [
         { text: "Christmas Traditions", image: "christmas market traditions film" },
@@ -1171,9 +1171,9 @@ export const festivalContent = {
     },
     cruise: {
       promo: [
-        { text: "Christmas cruise", image: "christmas market food" },
-        { text: "Holiday magic", image: "christmas market gifts" },
-        { text: "Festive journey", image: "christmas market entertainment" }
+        { text: "Popcorn with movie", image: "christmas market popcorn bowl" },
+        { text: "Buy gifts", image: "gifts of the festivals" },
+        { text: "Latest entertainment", image: "movie" }
       ],
       content: [
         { text: "Christmas Market Highlights", image: "christmas market highlights" },
@@ -1184,9 +1184,9 @@ export const festivalContent = {
     },
     descent: {
       promo: [
-        { text: "Christmas landing", image: "christmas market arrival" },
-        { text: "Holiday descent", image: "christmas market welcome" },
-        { text: "Festive greeting", image: "christmas market celebration" }
+        { text: "Buy guides at discount", image: "get your guide related to festivals in the place" },
+        { text: "Buy gifts", image: "gifts for festival" },
+        { text: "Save on your next flight", image: "flight ticket offer" }
       ],
       content: [
         { text: "Christmas Market Arrival", image: "christmas market arrival film" },
@@ -1197,9 +1197,9 @@ export const festivalContent = {
     },
     landing: {
       promo: [
-        { text: "Christmas welcome", image: "christmas market terminal" },
-        { text: "Holiday arrival", image: "christmas market spirit" },
-        { text: "Festive celebration", image: "christmas market joy" }
+        { text: "Thank you for flying with us", image: "Thank you" },
+        { text: "Save on your next flight", image: "flight booking" },
+        { text: "Shop duty free", image: "duty free shop in airport" }
       ],
       content: [
         { text: "Christmas Market Celebration", image: "christmas market celebration film" },
@@ -1216,9 +1216,9 @@ export const festivalContent = {
 export const nonFestiveContent = {
   takeoff: {
     promo: [
-      { text: "Enjoy your welcome drink", image: "welcome drinks beverages" },
-      { text: "Check goodies in seat", image: "headphones snacks" },
-      { text: "Connect your device", image: "smartphone mobile phone" }
+      { text: "Enjoy your welcome drink", image: "welcome drinks" },
+      { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
+      { text: "Connect your device", image: "smartphone device" }
     ],
     content: [
       { text: "Top Gun: Maverick", image: "top gun maverick movie poster" },
@@ -1229,9 +1229,9 @@ export const nonFestiveContent = {
   },
   climb: {
     promo: [
-      { text: "Order food", image: "meal food" },
-      { text: "Offers onboard", image: "offers deals" },
-      { text: "Latest entertainment", image: "movie cinema" }
+      { text: "Order food", image: "meal" },
+      { text: "Offers onboard", image: "offers" },
+      { text: "Latest entertainment", image: "movie that is in market" }
     ],
     content: [
       { text: "Spider-Man: No Way Home", image: "spiderman no way home movie" },
@@ -1242,9 +1242,9 @@ export const nonFestiveContent = {
   },
   cruise: {
     promo: [
-      { text: "Popcorn with movie", image: "popcorn snacks" },
-      { text: "Buy gifts", image: "souvenir gifts" },
-      { text: "Latest entertainment", image: "movie cinema" }
+      { text: "Popcorn with movie", image: "popcorn" },
+      { text: "Buy gifts", image: "gifts" },
+      { text: "Latest entertainment", image: "movie" }
     ],
     content: [
       { text: "Avatar: The Way of Water", image: "avatar way of water movie" },
@@ -1255,9 +1255,9 @@ export const nonFestiveContent = {
   },
   descent: {
     promo: [
-      { text: "Buy guides at discount", image: "travel guide" },
-      { text: "Buy gifts", image: "souvenir gifts" },
-      { text: "Save on your next flight", image: "flight booking ticket" }
+      { text: "Buy guides at discount", image: "get your guide" },
+      { text: "Buy gifts", image: "gifts" },
+      { text: "Save on your next flight", image: "flight ticket offer" }
     ],
     content: [
       { text: "Black Panther: Wakanda Forever", image: "black panther wakanda forever movie" },
@@ -1268,9 +1268,9 @@ export const nonFestiveContent = {
   },
   landing: {
     promo: [
-      { text: "Thank you for flying with us", image: "thank you message" },
-      { text: "Save on your next flight", image: "flight booking ticket" },
-      { text: "Shop duty free", image: "duty free shopping" }
+      { text: "Thank you for flying with us", image: "Thank you" },
+      { text: "Save on your next flight", image: "flight booking" },
+      { text: "Shop duty free", image: "duty free shop in airport" }
     ],
     content: [
       { text: "Everything Everywhere All at Once", image: "everything everywhere all at once movie" },
