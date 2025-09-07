@@ -133,8 +133,8 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
       background: getCardBackgroundColor(themeColor),
       borderTopLeftRadius: '8px',
       borderTopRightRadius: '8px',
-      borderBottomLeftRadius: '0px',
-      borderBottomRightRadius: '0px',
+      borderBottomLeftRadius: '8px',
+      borderBottomRightRadius: '8px',
       border: 'none'
     };
 
@@ -145,31 +145,19 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         style={cardStyle}
         // Hover and click handlers removed for content cards
       >
-        {/* Drag handle */}
-        <div className="absolute top-2 left-2 z-20 cursor-grab">
-          <div className="w-6 h-6 bg-white bg-opacity-80 rounded flex items-center justify-center">
-            <div className="flex flex-col gap-0.5">
-              <div className="w-3 h-0.5 bg-gray-600"></div>
-              <div className="w-3 h-0.5 bg-gray-600"></div>
-              <div className="w-3 h-0.5 bg-gray-600"></div>
-            </div>
-          </div>
-        </div>
-        
-        {getAnimatedBorderOverlay()}
-        
         {/* Bottom rectangle with text field */}
         <div 
-          className="absolute bottom-0 left-0 right-0 z-10 p-2 backdrop-blur-md backdrop-filter shadow-none"
+          className="absolute left-0 right-0 z-10 p-2 backdrop-blur-md backdrop-filter shadow-none"
           style={{ 
+            bottom: '1px',
             backgroundColor: getReadableOnColor(themeColor) + 'CC',
             minHeight: '40px',
             display: 'flex',
             alignItems: 'center',
             borderTopLeftRadius: '0px',
             borderTopRightRadius: '0px',
-            borderBottomLeftRadius: '0px',
-            borderBottomRightRadius: '0px'
+            borderBottomLeftRadius: '8px',
+            borderBottomRightRadius: '8px'
           }}
         >
           <p className="block font-semibold text-center uppercase" 
@@ -196,19 +184,52 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
       <style>{gradientAnimationCSS}</style>
       <div style={{ position: 'relative', zIndex: 10001, width: 1302, margin: '92px auto 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
       <div
-        className="fjb-fps-container"
-        style={{ width: 1336, maxWidth: 1336, marginLeft: -2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, background: themeColor, borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 16, paddingTop: 80, paddingBottom: 40, marginTop: 4, position: 'relative', zIndex: 1 }}
+        className={`fjb-fps-container ${isCurrentRouteModified() && !colorPromptSaved ? 'border-4 border-gradient-to-r from-blue-500 via-purple-500 to-pink-500' : ''}`}
+        style={{ 
+          width: 1336, 
+          maxWidth: 1336, 
+          marginLeft: -2, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          gap: 24, 
+          background: themeColor, 
+          borderTopLeftRadius: 0, 
+          borderTopRightRadius: 0, 
+          borderBottomLeftRadius: 16, 
+          borderBottomRightRadius: 16, 
+          padding: 16, 
+          paddingTop: 80, 
+          paddingBottom: 40, 
+          marginTop: 4, 
+          position: 'relative', 
+          zIndex: 1,
+          ...(isCurrentRouteModified() && !colorPromptSaved && {
+            border: '4px solid',
+            borderImage: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, #10b981 100%) 1',
+            borderRadius: '4px 4px 16px 16px',
+            boxShadow: '0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(139, 92, 246, 0.3)'
+          })
+        }}
         onMouseEnter={(e) => {
           if (!isPromptMode) return;
-          const isOverProgress = e.target.closest('.flight-progress-bar-container') || e.target.closest('.flight-progress-icon');
-          if (!isOverProgress && typeof onPromptHover === 'function') {
+          // Only trigger hover for actual FJB/FPS components, not empty areas or flight phase chips
+          const isOverFJB = e.target.closest('[data-name="flight journey bar"]') || e.target.closest('[data-name="logo placeholder"]');
+          const isOverFPS = e.target.closest('.flight-progress-bar-container') || e.target.closest('.flight-progress-icon');
+          const isOverFlightPhaseChip = e.target.closest('.flight-phase-label') || e.target.closest('.flightPhase-label');
+          
+          if ((isOverFJB || isOverFPS) && !isOverFlightPhaseChip && typeof onPromptHover === 'function') {
             onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
           }
         }}
         onMouseMove={(e) => {
           if (!isPromptMode) return;
-          const isOverProgress = e.target.closest('.flight-progress-bar-container') || e.target.closest('.flight-progress-icon');
-          if (!isOverProgress && typeof onPromptHover === 'function') {
+          // Only trigger hover for actual FJB/FPS components, not empty areas or flight phase chips
+          const isOverFJB = e.target.closest('[data-name="flight journey bar"]') || e.target.closest('[data-name="logo placeholder"]');
+          const isOverFPS = e.target.closest('.flight-progress-bar-container') || e.target.closest('.flight-progress-icon');
+          const isOverFlightPhaseChip = e.target.closest('.flight-phase-label') || e.target.closest('.flightPhase-label');
+          
+          if ((isOverFJB || isOverFPS) && !isOverFlightPhaseChip && typeof onPromptHover === 'function') {
             onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
           } else if (typeof onPromptHover === 'function') {
             onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
@@ -222,13 +243,23 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         }}
         onClick={(e) => {
           if (!isPromptMode || typeof onPromptClick !== 'function') return;
-          const isOverProgress = e.target.closest('.flight-progress-bar-container') || e.target.closest('.flight-progress-icon');
+          // Only trigger click for actual FJB/FPS components, not empty areas
+          const isOverFJB = e.target.closest('[data-name="flight journey bar"]') || e.target.closest('[data-name="logo placeholder"]');
+          const isOverFPS = e.target.closest('.flight-progress-bar-container') || e.target.closest('.flight-progress-icon');
           const isOverLogoPlaceholder = e.target.closest('[data-name="logo placeholder"]');
+          const isOverFlightPhaseChip = e.target.closest('.flight-phase-label') || e.target.closest('.flightPhase-label');
+          
           if (isOverLogoPlaceholder) {
             // Let the logo-placeholder element handle its own click to open the correct PB
             return;
           }
-          if (!isOverProgress) {
+          
+          if (isOverFlightPhaseChip) {
+            // Ignore clicks on flight phase chips - they should only select flight phases
+            return;
+          }
+          
+          if (isOverFJB || isOverFPS) {
             onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
           }
         }}
@@ -273,7 +304,6 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         selectedFlightPhase={selectedFlightPhase}
         promoCardContents={promoCardContents}
         colorPromptClosedWithoutSave={colorPromptClosedWithoutSave}
-        colorPromptSaved={colorPromptSaved}
         currentRouteKey={getCurrentRouteKey()}
         isModifyClicked={isCurrentRouteModified()}
         selectedDates={selectedDates}
@@ -300,8 +330,8 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   height: '184px',
                   borderTopLeftRadius: '8px',
                   borderTopRightRadius: '8px',
-                  borderBottomLeftRadius: '0px',
-                  borderBottomRightRadius: '0px',
+                  borderBottomLeftRadius: '8px',
+                  borderBottomRightRadius: '8px',
                   backgroundColor: getCardBackgroundColor(themeColor)
                 }}
               >
@@ -314,8 +344,8 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   height: '184px',
                   borderTopLeftRadius: '8px',
                   borderTopRightRadius: '8px',
-                  borderBottomLeftRadius: '0px',
-                  borderBottomRightRadius: '0px',
+                  borderBottomLeftRadius: '8px',
+                  borderBottomRightRadius: '8px',
                   backgroundColor: getCardBackgroundColor(themeColor)
                 }}
               >
@@ -328,8 +358,8 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   height: '184px',
                   borderTopLeftRadius: '8px',
                   borderTopRightRadius: '8px',
-                  borderBottomLeftRadius: '0px',
-                  borderBottomRightRadius: '0px',
+                  borderBottomLeftRadius: '8px',
+                  borderBottomRightRadius: '8px',
                   backgroundColor: getCardBackgroundColor(themeColor)
                 }}
               >
@@ -342,8 +372,8 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   height: '184px',
                   borderTopLeftRadius: '8px',
                   borderTopRightRadius: '8px',
-                  borderBottomLeftRadius: '0px',
-                  borderBottomRightRadius: '0px',
+                  borderBottomLeftRadius: '8px',
+                  borderBottomRightRadius: '8px',
                   backgroundColor: getCardBackgroundColor(themeColor)
                 }}
               >
@@ -1808,6 +1838,7 @@ export default function Dashboard() {
               }, 300);
             }, 250);
           }}
+          isRouteModified={isCurrentRouteModified()}
         />
       </div>
       

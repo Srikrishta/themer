@@ -593,7 +593,11 @@ export default function FlightProgress({ landingIn = "LANDING IN 2H 55M", maxFli
   };
 
   return (
-    <div className="flight-progress-bar-container" ref={barRef} onClick={handleBarClick}>
+    <div 
+      className="flight-progress-bar-container"
+      ref={barRef} 
+      onClick={handleBarClick}
+    >
       <div className="flight-path"></div>
       <div className="flight-progress" style={{ 
         width: `${progressWidth}px`, 

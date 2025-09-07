@@ -393,6 +393,9 @@ export default function LandingPage() {
                     onCruiseLabelShow={handleCruiseLabelShow}
                     onMiddleCardPromptClose={handleMiddleCardPromptClose}
                     onThemeColorChange={handleThemeColorChange}
+                    flightsGenerated={false}
+                    onFlightPhaseSelect={() => {}}
+                    selectedFlightPhase={null}
                   />
                 </div>
               </div>

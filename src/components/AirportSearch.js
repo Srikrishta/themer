@@ -317,7 +317,7 @@ function StaticFlightCard({ segment, index }) {
   );
 }
 
-function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], inputFieldRef, defaultLabel, lastCardRef, isLoading = false, hideBeforeIndex = 0, themeColor = '#1E1E1E', replacementIndex = -1, selectedFlightIndex = 0, onSelectFlight, onEnterPromptMode, onTriggerPromptBubble, isGenerating = false, onBuildThemes, setIsReversingToRoutes, setIsGenerating, onEditTheme }) {
+function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], inputFieldRef, defaultLabel, lastCardRef, isLoading = false, hideBeforeIndex = 0, themeColor = '#1E1E1E', replacementIndex = -1, selectedFlightIndex = 0, onSelectFlight, onEnterPromptMode, onTriggerPromptBubble, isGenerating = false, onBuildThemes, setIsReversingToRoutes, setIsGenerating, onEditTheme, isRouteModified = false }) {
   const moveCard = useCallback((dragIndex, hoverIndex) => {
     const newRoutes = [...routes];
     const [reorderedRoute] = newRoutes.splice(dragIndex, 1);
@@ -365,6 +365,7 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
                       onEnterPromptMode={onEnterPromptMode}
                       onTriggerPromptBubble={onTriggerPromptBubble}
                       onEditTheme={onEditTheme}
+                      isRouteModified={isRouteModified}
                     />
                   </div>
                 );
@@ -408,7 +409,12 @@ function RouteList({ routes, setRoutes, onRemoveRoute, selectedDates = [], input
   );
 }
 
-function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized, onSelectedDatesChange, themeColor = '#1E1E1E', onEnterPromptMode, onTriggerPromptBubble, onGeneratingStateChange, onBuildThemes, onFlightSelect, flightsGenerated = false, onScrollingStateChange, onBuildThemeClicked, onAirlineSelect, onModifyClicked, flightCardProgress = {} }) {
+function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selectedRegion = 'Europe', onRemoveRoute, selectedDates = [], defaultLabel, isMinimized, onToggleMinimized, onSelectedDatesChange, themeColor = '#1E1E1E', onEnterPromptMode, onTriggerPromptBubble, onGeneratingStateChange, onBuildThemes, onFlightSelect, flightsGenerated = false, onScrollingStateChange, onBuildThemeClicked, onAirlineSelect, onModifyClicked, flightCardProgress = {}, isRouteModified = false }) {
+  
+  // Debug: Log isRouteModified when it changes
+  useEffect(() => {
+    console.log('🎯 AirportSearchCore: isRouteModified changed to:', isRouteModified);
+  }, [isRouteModified]);
   // Helper function to generate flight key (same as Dashboard)
   const getFlightKey = (origin, destination) => {
     if (!origin || !destination) return null;
@@ -1201,6 +1207,25 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
       <style>{`
         ${progressBarCSS}
         
+        @keyframes gradientRotate {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .animated-gradient-border::before {
+          content: '';
+          position: absolute;
+          top: -2px;
+          left: -2px;
+          right: -2px;
+          bottom: -2px;
+          border-radius: 9999px;
+          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, #10b981 100%);
+          background-size: 200% 200%;
+          animation: gradientRotate 3s ease infinite;
+          z-index: -1;
+        }
+        
         @keyframes containerFadeOut {
           0% {
             opacity: 1;
@@ -1335,12 +1360,15 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
             >
               {/* Custom card content with progress indicator instead of cloned HTML */}
               <div 
-                className="backdrop-blur-[10px] backdrop-filter pl-5 pr-3 py-6 rounded-full shadow-lg w-full h-full flex items-center justify-between"
+                className={`backdrop-blur-[10px] backdrop-filter pl-5 pr-3 py-6 rounded-full shadow-lg w-full h-full flex items-center justify-between ${isRouteModified ? 'animated-gradient-border' : ''}`}
                 style={{
-                  backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                  border: '1px solid rgba(0, 0, 0, 0.2)',
-                  minHeight: '80px'
+                  backgroundColor: isRouteModified ? 'rgba(59, 130, 246, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                  border: isRouteModified ? '2px solid #3b82f6' : '1px solid rgba(0, 0, 0, 0.2)',
+                  minHeight: '80px',
+                  position: 'relative'
                 }}
+                data-debug-is-route-modified={isRouteModified}
+                data-debug-class-name={isRouteModified ? 'animated-gradient-border' : 'no-border'}
               >
                 {/* Flight info section */}
                 <div className="flex items-start gap-1 flex-none">
@@ -2135,6 +2163,7 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
               onBuildThemeClicked();
             }
           }}
+          isRouteModified={isRouteModified}
         />
         </div>
       )}

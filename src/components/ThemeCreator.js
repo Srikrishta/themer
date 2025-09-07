@@ -9,7 +9,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useNavigate } from 'react-router-dom';
 import { getReadableOnColor } from '../utils/color';
 
-export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips, onStartThemeBuild, themeColor = '#1E1E1E', onTriggerPromptBubble, selectedLogo, onThemeAnimationComplete, onGeneratingStateChange, onBuildThemes, onFlightSelect, showIFEFrame = false, flightsGenerated = false, onShowPreview, onBuildThemeClicked, onAirlineSelect, onModifyClicked, flightCardProgress = {}, onDatesChange }) {
+export default function ThemeCreator({ routes, setRoutes, initialMinimized, onColorCardSelect, onThemeColorChange, initialWidth, onExpand, onStateChange, initialFlightCreationMode, onEnterPromptMode, isPromptMode, activeSegmentId, onFilterChipSelect, isInHeader, onExposeThemeChips, onStartThemeBuild, themeColor = '#1E1E1E', onTriggerPromptBubble, selectedLogo, onThemeAnimationComplete, onGeneratingStateChange, onBuildThemes, onFlightSelect, showIFEFrame = false, flightsGenerated = false, onShowPreview, onBuildThemeClicked, onAirlineSelect, onModifyClicked, flightCardProgress = {}, onDatesChange, isRouteModified = false }) {
   const navigate = useNavigate();
 
   // Add CSS animations for container scroll-up
@@ -614,7 +614,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
     }
   }, [isCreatingThemes, flightSegments.length, selectedThemes, isMinimized]); // <-- add isMinimized
 
-  function FlightCard({ segment, index, activeFlightIndex, selectedThemeId, onSelect, collapsed, selectedLogo, themeColor, flightsGenerated = false, onBuildThemeClicked }) {
+  function FlightCard({ segment, index, activeFlightIndex, selectedThemeId, onSelect, collapsed, selectedLogo, themeColor, flightsGenerated = false, onBuildThemeClicked, isRouteModified = false }) {
     const ref = useRef(null);
     // Remove selected action state to eliminate selected UI
 
@@ -661,7 +661,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
     return (
       <>
         {/* Add CSS for animated gradient border */}
-        {index === 0 && (
+        {(index === 0 || isRouteModified) && (
           <style>{`
             @keyframes gradientRotate {
               0% { background-position: 0% 50%; }
@@ -687,7 +687,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
           ref={ref}
           data-handler-id={handlerId}
           className={`backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.1)] pl-5 pr-3 py-4 rounded-full shadow-sm transition-all cursor-move hover:shadow-md hover:bg-blue-600/5 ${
-            index === 0 ? 'relative animated-gradient-border' : ''
+            (index === 0 || isRouteModified) ? 'relative animated-gradient-border' : ''
           }`}
           style={{ 
             opacity: isDragging ? 0.5 : 1, 
@@ -1116,6 +1116,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                         themeColor={themeColor}
                         flightsGenerated={flightsGenerated}
                         onBuildThemeClicked={onBuildThemeClicked}
+                        isRouteModified={isRouteModified}
                         onSelect={(idx, seg) => {
                           setActiveFlightIndex(idx);
                           if (typeof onColorCardSelect === 'function') onColorCardSelect(seg);
@@ -1220,6 +1221,7 @@ export default function ThemeCreator({ routes, setRoutes, initialMinimized, onCo
                     setContainerWidth(480);
                   }
                 }}
+                isRouteModified={isRouteModified}
               />
             </div>
           )}

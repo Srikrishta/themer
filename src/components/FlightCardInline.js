@@ -55,7 +55,7 @@ const gradientAnimationCSS = `
   }
 `;
 
-export default function FlightCardInline({ segment, index, activeIndex, onSelect, onTriggerPromptBubble, onEnterPromptMode, themeColor = '#1E1E1E', onEditTheme }) {
+export default function FlightCardInline({ segment, index, activeIndex, onSelect, onTriggerPromptBubble, onEnterPromptMode, themeColor = '#1E1E1E', onEditTheme, isRouteModified = false }) {
 
   const isActive = activeIndex === index;
   const [isInEditMode, setIsInEditMode] = useState(false);
@@ -205,12 +205,36 @@ export default function FlightCardInline({ segment, index, activeIndex, onSelect
     <>
       <style>{gradientAnimationCSS}</style>
       
+      {/* Add CSS for animated gradient border when route is modified */}
+      {isRouteModified && (
+        <style>{`
+          @keyframes gradientRotate {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+          }
+          .animated-gradient-border::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            border-radius: 50px;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, #10b981 100%);
+            background-size: 200% 200%;
+            animation: gradientRotate 3s ease infinite;
+            z-index: -1;
+          }
+        `}</style>
+      )}
+      
       {/* Show themed card overlay when in edit mode */}
       {isInEditMode && <ThemedFlightCard />}
       
       <div className="w-full flex-1 min-w-0 basis-0" onClick={() => typeof onSelect === 'function' && onSelect(index)}>
         <div 
-          className={`backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.1)] pl-5 pr-3 py-4 rounded-full shadow-sm w-full relative ${isActive ? 'shadow-lg' : 'hover:shadow-md'}`}
+          className={`backdrop-blur-[10px] backdrop-filter bg-[rgba(255,255,255,0.1)] pl-5 pr-3 py-4 rounded-full shadow-sm w-full relative ${isActive ? 'shadow-lg' : 'hover:shadow-md'} ${isRouteModified ? 'animated-gradient-border' : ''}`}
           style={{
             position: 'relative',
             border: isActive ? '1px solid transparent' : 'none',

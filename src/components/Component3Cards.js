@@ -1,19 +1,6 @@
 import { getReadableOnColor } from '../utils/color';
 import { useState, useEffect, useCallback } from 'react';
 
-const gradientAnimationCSS = `
-  @keyframes gradientAnimation {
-    0% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-    100% {
-      background-position: 0% 50%;
-    }
-  }
-`;
 
 export default function Component3Cards({ 
   themeColor = '#1E1E1E', 
@@ -25,7 +12,15 @@ export default function Component3Cards({
   animationProgress = 0, 
   cruiseLabelShown = false, 
   middleCardPromptClosed = false, 
-  isThemeBuildStarted = true
+  isThemeBuildStarted = true,
+  origin,
+  destination,
+  selectedFlightPhase,
+  promoCardContents,
+  colorPromptClosedWithoutSave,
+  currentRouteKey,
+  isModifyClicked,
+  selectedDates
 }) {
 
 
@@ -43,35 +38,6 @@ export default function Component3Cards({
   };
 
 
-  // Helper function to get animated border overlay for specific cards
-  const getAnimatedBorderOverlay = (cardIndex) => {
-    if (!(isPromptMode && isThemeBuildStarted && promptStates[cardIndex]?.showAnimation)) {
-      return null;
-    }
-    
-    return (
-      <div
-        style={{
-          position: 'absolute',
-          top: '-12px',
-          left: '-12px',
-          right: '-12px',
-          bottom: '-12px',
-          borderRadius: '20px',
-          background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, #10b981 100%)',
-          backgroundSize: '200% 200%',
-          animation: 'gradientAnimation 3s ease infinite',
-          zIndex: -1,
-          mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-          maskComposite: 'xor',
-          WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-          WebkitMaskComposite: 'xor',
-          padding: '12px',
-          opacity: 1
-        }}
-      />
-    );
-  };
 
   // Skeleton component for loading state
   const SkeletonCard = () => (
@@ -121,23 +87,20 @@ export default function Component3Cards({
     const cardInfo = cardTypeMap[originalCardIndex];
     
     const cardStyle = {
-      width: '416px', 
-      background: cardContent.bgColor,
-      border: 'none'
+      width: '416px',
+      background: cardContent.bgColor
     };
-
 
     return (
       <div
         key={`card-${originalCardIndex}-${displayPosition}`}
-        className="bg-black h-[200px] overflow-clip relative rounded-lg shrink-0 flex items-center justify-center"
+        className="h-[200px] overflow-clip relative shrink-0 flex items-center justify-center rounded-lg"
         style={cardStyle}
         data-name={cardInfo.name}
         data-card-index={originalCardIndex}
         id={cardInfo.id}
         // Hover and click handlers removed for promo cards
       >
-        {getAnimatedBorderOverlay(originalCardIndex)}
           <div className="relative h-full w-full">
             
             {/* Bottom rectangle with text field */}
@@ -170,7 +133,6 @@ export default function Component3Cards({
 
   return (
     <>
-      <style>{gradientAnimationCSS}</style>
       <div
         className="flex flex-row gap-8 items-center justify-center mx-auto"
         style={{ width: '1302px' }}
