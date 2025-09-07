@@ -1,5 +1,7 @@
 import { getReadableOnColor } from '../utils/color';
 import { useState, useEffect, useCallback } from 'react';
+import { getPromoCardContent, shouldUseFestivalContent } from '../utils/festivalUtils';
+import { getPollinationsImage } from '../utils/unsplash';
 
 
 export default function Component3Cards({ 
@@ -13,6 +15,7 @@ export default function Component3Cards({
   cruiseLabelShown = false, 
   middleCardPromptClosed = false, 
   isThemeBuildStarted = true,
+  colorPromptSaved = false,
   origin,
   destination,
   selectedFlightPhase,
@@ -23,6 +26,21 @@ export default function Component3Cards({
   selectedDates
 }) {
 
+  // Force re-render when colorPromptSaved changes
+  useEffect(() => {
+    console.log('=== COMPONENT3CARDS COLORPROMPTSAVED CHANGED ===', {
+      colorPromptSaved,
+      selectedFlightPhase,
+      origin,
+      destination,
+      themeColor,
+      selectedDates,
+      hasOrigin: !!origin,
+      hasDestination: !!destination,
+      hasSelectedFlightPhase: !!selectedFlightPhase,
+      hasSelectedDates: !!selectedDates && selectedDates.length > 0
+    });
+  }, [colorPromptSaved, selectedFlightPhase, origin, destination, themeColor, selectedDates]);
 
   // Helper function to create lighter version of theme color (same as content cards)
   const getLightThemeColor = (opacity = 0.1) => {
@@ -64,6 +82,56 @@ export default function Component3Cards({
 
   // Helper function for default card content
   const getDefaultCardContent = (cardIndex) => {
+    // If theme is saved, try to get festival content
+    if (colorPromptSaved && selectedFlightPhase && origin && destination) {
+      console.log('=== GETTING FESTIVAL CONTENT FOR PROMO CARD ===', {
+        colorPromptSaved,
+        selectedFlightPhase,
+        origin,
+        destination,
+        cardIndex,
+        selectedDates
+      });
+      
+      // Handle both string and object formats for origin/destination
+      const originCity = typeof origin === 'string' ? origin : origin?.airport?.city || origin;
+      const destCity = typeof destination === 'string' ? destination : destination?.airport?.city || destination;
+      
+      const segment = { 
+        origin: { airport: { city: originCity } }, 
+        destination: { airport: { city: destCity } } 
+      };
+      
+      // Use default dates if none are selected
+      const datesToUse = selectedDates && selectedDates.length > 0 ? selectedDates : ['2024-09-15'];
+      
+      const useFestivalContent = shouldUseFestivalContent(segment, datesToUse, themeColor);
+      
+      console.log('=== FESTIVAL CONTENT CHECK ===', {
+        segment,
+        useFestivalContent,
+        themeColor
+      });
+      
+      if (useFestivalContent) {
+        const festivalContent = getPromoCardContent(segment, datesToUse, selectedFlightPhase, cardIndex, themeColor);
+        console.log('=== FESTIVAL CONTENT RESULT ===', {
+          festivalContent,
+          hasText: !!festivalContent?.text,
+          hasImage: !!festivalContent?.image
+        });
+        
+        if (festivalContent && festivalContent.text) {
+          return { 
+            text: festivalContent.text, 
+            image: festivalContent.image || '', 
+            bgColor: getLightThemeColor() 
+          };
+        }
+      }
+    }
+    
+    // Fallback to default content
     return { text: "Add experience", bgColor: getLightThemeColor() };
   };
 
@@ -102,6 +170,23 @@ export default function Component3Cards({
         // Hover and click handlers removed for promo cards
       >
           <div className="relative h-full w-full">
+            
+            {/* Image area - show image if available */}
+            {cardContent.image && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-full h-full">
+                  <img 
+                    src={getPollinationsImage(cardContent.image)}
+                    alt={cardContent.image}
+                    className="w-full h-full object-cover rounded-lg"
+                    onError={(e) => {
+                      console.log('=== POLLINATIONS IMAGE LOAD ERROR ===', { src: e.target.src, alt: cardContent.image });
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                </div>
+              </div>
+            )}
             
             {/* Bottom rectangle with text field */}
             <div 

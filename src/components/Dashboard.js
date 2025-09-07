@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { getReadableOnColor } from '../utils/color';
 import { getContentCardContent } from '../utils/festivalUtils';
+import { getPollinationsImage } from '../utils/unsplash';
 import ThemeCreator from './ThemeCreator';
 import FlightJourneyBar from './FlightJourneyBar';
 import FlightProgress from './FlightProgress';
@@ -95,9 +96,46 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
     );
   };
 
-  // Helper function to get content text - always returns "Add content"
-  const getContentText = (cardIndex) => {
-    return 'Add content';
+  // Helper function to get content text and image - uses festival content when theme is saved
+  const getContentData = (cardIndex) => {
+    // If theme is saved, try to get festival content
+    if (colorPromptSaved && selectedFlightPhase && origin && destination) {
+      console.log('=== GETTING FESTIVAL CONTENT FOR CONTENT CARD ===', {
+        colorPromptSaved,
+        selectedFlightPhase,
+        origin,
+        destination,
+        cardIndex,
+        selectedDates
+      });
+      
+      // Handle both string and object formats for origin/destination
+      const originCity = typeof origin === 'string' ? origin : origin?.airport?.city || origin;
+      const destCity = typeof destination === 'string' ? destination : destination?.airport?.city || destination;
+      
+      const segment = { 
+        origin: { airport: { city: originCity } }, 
+        destination: { airport: { city: destCity } } 
+      };
+      
+      // Use default dates if none are selected
+      const datesToUse = selectedDates && selectedDates.length > 0 ? selectedDates : ['2024-09-15'];
+      
+      const festivalContent = getContentCardContent(segment, datesToUse, selectedFlightPhase, cardIndex, themeColor);
+      
+      console.log('=== CONTENT CARD FESTIVAL CONTENT RESULT ===', {
+        festivalContent,
+        hasText: !!festivalContent?.text,
+        hasImage: !!festivalContent?.image
+      });
+      
+      if (festivalContent && festivalContent.text) {
+        return { text: festivalContent.text, image: festivalContent.image || '' };
+      }
+    }
+    
+    // Fallback to default content
+    return { text: 'Add content', image: '' };
   };
 
 
@@ -138,6 +176,8 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
       border: 'none'
     };
 
+    const contentData = getContentData(originalCardIndex);
+
     return (
       <div
         key={`content-card-${originalCardIndex}-${displayPosition}`}
@@ -145,6 +185,23 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         style={cardStyle}
         // Hover and click handlers removed for content cards
       >
+        {/* Image area - show image if available */}
+        {contentData.image && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-full h-full">
+              <img 
+                src={getPollinationsImage(contentData.image)}
+                alt={contentData.image}
+                className="w-full h-full object-cover rounded-lg"
+                onError={(e) => {
+                  console.log('=== POLLINATIONS CONTENT CARD IMAGE LOAD ERROR ===', { src: e.target.src, alt: contentData.image });
+                  e.target.style.display = 'none';
+                }}
+              />
+            </div>
+          </div>
+        )}
+        
         {/* Bottom rectangle with text field */}
         <div 
           className="absolute left-0 right-0 z-10 p-2 backdrop-blur-md backdrop-filter shadow-none"
@@ -170,7 +227,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                  : { color: themeColor }
                )
              }}>
-            {getContentText(originalCardIndex)}
+            {contentData.text}
           </p>
         </div>
         
@@ -304,6 +361,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         selectedFlightPhase={selectedFlightPhase}
         promoCardContents={promoCardContents}
         colorPromptClosedWithoutSave={colorPromptClosedWithoutSave}
+        colorPromptSaved={colorPromptSaved}
         currentRouteKey={getCurrentRouteKey()}
         isModifyClicked={isCurrentRouteModified()}
         selectedDates={selectedDates}
@@ -453,6 +511,7 @@ export default function Dashboard() {
   const [selectedThemeChip, setSelectedThemeChip] = useState(null);
   // NEW: Track the currently selected flight phase
   const [selectedFlightPhase, setSelectedFlightPhase] = useState(null);
+  
   // Route-specific promo card contents: { [routeKey]: { [cardIndex]: content } }
   const [promoCardContents, setPromoCardContents] = useState({});
   // NEW: Track the currently selected flight segment for FJB
@@ -806,6 +865,22 @@ export default function Dashboard() {
   
   // Use the current flight's theme instead of global theme
   const activeThemeColor = getCurrentFlightTheme();
+
+  // Debug when colorPromptSaved changes
+  useEffect(() => {
+    console.log('=== DASHBOARD COLORPROMPTSAVED CHANGED ===', {
+      colorPromptSaved,
+      selectedFlightPhase,
+      origin,
+      destination,
+      activeThemeColor,
+      selectedDates,
+      hasOrigin: !!origin,
+      hasDestination: !!destination,
+      hasSelectedFlightPhase: !!selectedFlightPhase,
+      hasSelectedDates: !!selectedDates && selectedDates.length > 0
+    });
+  }, [colorPromptSaved, selectedFlightPhase, origin, destination, activeThemeColor, selectedDates]);
 
   // Compute contrasting border color for hover tip PBs (same logic as main PB)
   const isGradientTheme = typeof activeThemeColor === 'string' && activeThemeColor.includes('gradient');
@@ -1331,12 +1406,20 @@ export default function Dashboard() {
       currentPromoCardContents: promoCardContents
     });
     
-    // Handle flight journey bar theme color submissions (don't reset card content)
-    if (elementType === 'flight-journey-bar') {
-      console.log('=== FLIGHT JOURNEY BAR SUBMISSION - NO CARD RESET ===');
-      // Theme color changes are handled by onThemeColorChange, not here
-      // Just close the prompt bubble
+    // Handle flight journey bar theme color submissions
+    if (elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation') {
+      console.log('=== FLIGHT JOURNEY BAR SUBMISSION - UPDATING CARDS ===');
+      
+      // Set colorPromptSaved to true to trigger card updates
+      setColorPromptSaved(true);
+      
+      // Clear the closed without save state since the user saved
+      setColorPromptClosedWithoutSave(false);
+      
+      // Close the prompt bubble
       setCurrentRoutePromptBubble(null);
+      
+      console.log('=== CARDS SHOULD NOW UPDATE WITH FESTIVAL CONTENT ===');
       return;
     }
     
