@@ -9,9 +9,9 @@ export const festivalContent = {
         { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
-        { text: "Amsterdam Light Festival Documentary", image: "amsterdam light festival film" },
+        { text: "Top Gun: Maverick", image: "top gun maverick movie poster" },
         { text: "The Batman", image: "the batman movie" },
-        { text: "Light Festival Audio Guide", image: "amsterdam light festival podcast" },
+        { text: "The Joe Rogan Experience", image: "joe rogan podcast" },
         { text: "Cyberpunk 2077", image: "cyberpunk 2077 game" }
       ]
     },
@@ -22,9 +22,9 @@ export const festivalContent = {
         { text: "Latest entertainment", image: "movie that is in market" }
       ],
       content: [
-        { text: "Amsterdam Light Art Films", image: "amsterdam light art cinema" },
+        { text: "Spider-Man: No Way Home", image: "spiderman no way home movie" },
         { text: "Dune", image: "dune movie" },
-        { text: "Light Festival Stories", image: "amsterdam light festival podcast" },
+        { text: "Serial Podcast", image: "serial podcast audio" },
         { text: "The Witcher 3", image: "the witcher 3 game" }
       ]
     },
@@ -35,9 +35,9 @@ export const festivalContent = {
         { text: "Latest entertainment", image: "movie" }
       ],
       content: [
-        { text: "Amsterdam Light Festival Highlights", image: "amsterdam light festival highlights" },
+        { text: "Avatar: The Way of Water", image: "avatar way of water movie" },
         { text: "Interstellar", image: "interstellar movie" },
-        { text: "Light Festival Magic", image: "amsterdam light festival podcast" },
+        { text: "This American Life", image: "this american life podcast" },
         { text: "Minecraft", image: "minecraft game" }
       ]
     },
@@ -48,9 +48,9 @@ export const festivalContent = {
         { text: "Save on your next flight", image: "flight ticket offer" }
       ],
       content: [
-        { text: "Amsterdam Light Festival Arrival", image: "amsterdam light festival arrival film" },
+        { text: "Black Panther: Wakanda Forever", image: "black panther wakanda forever movie" },
         { text: "Blade Runner 2049", image: "blade runner 2049 movie" },
-        { text: "Light Festival Greeting", image: "amsterdam light festival podcast" },
+        { text: "Radiolab", image: "radiolab podcast" },
         { text: "Portal 2", image: "portal 2 game" }
       ]
     },
@@ -61,9 +61,9 @@ export const festivalContent = {
         { text: "Shop duty free", image: "duty free shop in airport" }
       ],
       content: [
-        { text: "Amsterdam Light Festival Celebration", image: "amsterdam light festival celebration film" },
+        { text: "Everything Everywhere All at Once", image: "everything everywhere all at once movie" },
         { text: "The Matrix", image: "the matrix movie" },
-        { text: "Light Festival Welcome", image: "amsterdam light festival podcast" },
+        { text: "The Daily", image: "the daily podcast" },
         { text: "Half-Life 2", image: "half life 2 game" }
       ]
     }
@@ -76,9 +76,9 @@ export const festivalContent = {
         { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
-        { text: "Christmas in Rome Documentary", image: "rome christmas film" },
+        { text: "Top Gun: Maverick", image: "top gun maverick movie poster" },
         { text: "Home Alone", image: "home alone movie" },
-        { text: "Christmas in Rome Stories", image: "rome christmas podcast" },
+        { text: "The Joe Rogan Experience", image: "joe rogan podcast" },
         { text: "The Sims 4", image: "the sims 4 game" }
       ]
     },
@@ -89,10 +89,10 @@ export const festivalContent = {
         { text: "Latest entertainment", image: "movie that is in market" }
       ],
       content: [
-        { text: "Roman Christmas Traditions", image: "rome christmas traditions film" },
-        { text: "Christmas in Rome Experience", image: "rome christmas experience" },
-        { text: "Christmas in Rome Adventure", image: "rome christmas adventure game" },
-        { text: "Christmas in Rome Culture", image: "rome christmas culture podcast" }
+        { text: "Spider-Man: No Way Home", image: "spiderman no way home movie" },
+        { text: "Among Us", image: "among us multiplayer game" },
+        { text: "Serial Podcast", image: "serial podcast audio" },
+        { text: "The Crown Season 5", image: "the crown netflix series" }
       ]
     },
     cruise: {
@@ -102,10 +102,10 @@ export const festivalContent = {
         { text: "Latest entertainment", image: "movie" }
       ],
       content: [
-        { text: "Christmas in Rome Highlights", image: "rome christmas highlights" },
-        { text: "Christmas in Rome Discovery", image: "rome christmas discovery" },
-        { text: "Christmas in Rome Quest", image: "rome christmas quest game" },
-        { text: "Christmas in Rome Magic", image: "rome christmas magic podcast" }
+        { text: "Avatar: The Way of Water", image: "avatar way of water movie" },
+        { text: "Wordle", image: "wordle puzzle game" },
+        { text: "This American Life", image: "this american life podcast" },
+        { text: "Wednesday", image: "wednesday netflix series" }
       ]
     },
     descent: {
@@ -115,10 +115,10 @@ export const festivalContent = {
         { text: "Save on your next flight", image: "flight ticket offer" }
       ],
       content: [
-        { text: "Christmas in Rome Arrival", image: "rome christmas arrival film" },
-        { text: "Christmas in Rome Welcome", image: "rome christmas welcome guide" },
-        { text: "Christmas in Rome Landing", image: "rome christmas landing game" },
-        { text: "Christmas in Rome Greeting", image: "rome christmas greeting podcast" }
+        { text: "Black Panther: Wakanda Forever", image: "black panther wakanda forever movie" },
+        { text: "Tetris", image: "tetris classic puzzle game" },
+        { text: "Radiolab", image: "radiolab podcast" },
+        { text: "The Last of Us", image: "the last of us hbo series" }
       ]
     },
     landing: {
@@ -128,9 +128,9 @@ export const festivalContent = {
         { text: "Shop duty free", image: "duty free shop in airport" }
       ],
       content: [
-        { text: "Christmas in Rome Celebration", image: "rome christmas celebration film" },
+        { text: "Everything Everywhere All at Once", image: "everything everywhere all at once movie" },
         { text: "A Christmas Story", image: "a christmas story movie" },
-        { text: "Christmas in Rome Welcome", image: "rome christmas podcast" },
+        { text: "The Daily", image: "the daily podcast" },
         { text: "Hollow Knight", image: "hollow knight game" }
       ]
     }
@@ -1016,9 +1016,9 @@ export const festivalContent = {
         { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
-        { text: "Rome Film Festival Documentary", image: "rome film festival film" },
+        { text: "Top Gun: Maverick", image: "top gun maverick movie poster" },
         { text: "La La Land", image: "la la land movie" },
-        { text: "Rome Film Festival Stories", image: "rome film festival podcast" },
+        { text: "The Joe Rogan Experience", image: "joe rogan podcast" },
         { text: "Among Us", image: "among us game" }
       ]
     },
@@ -1029,10 +1029,10 @@ export const festivalContent = {
         { text: "Film spirit", image: "rome film festival glamour" }
       ],
       content: [
-        { text: "Italian Cinema Traditions", image: "rome film festival traditions film" },
-        { text: "Rome Film Festival Experience", image: "rome film festival experience" },
-        { text: "Rome Film Festival Adventure", image: "rome film festival adventure game" },
-        { text: "Rome Film Festival Culture", image: "rome film festival culture podcast" }
+        { text: "Spider-Man: No Way Home", image: "spiderman no way home movie" },
+        { text: "Dune", image: "dune movie" },
+        { text: "Serial Podcast", image: "serial podcast audio" },
+        { text: "The Witcher 3", image: "the witcher 3 game" }
       ]
     },
     cruise: {
@@ -1042,10 +1042,10 @@ export const festivalContent = {
         { text: "Film journey", image: "rome film festival celebration" }
       ],
       content: [
-        { text: "Rome Film Festival Highlights", image: "rome film festival highlights" },
-        { text: "Rome Film Festival Discovery", image: "rome film festival discovery" },
-        { text: "Rome Film Festival Quest", image: "rome film festival quest game" },
-        { text: "Rome Film Festival Magic", image: "rome film festival magic podcast" }
+        { text: "Avatar: The Way of Water", image: "avatar way of water movie" },
+        { text: "Wordle", image: "wordle puzzle game" },
+        { text: "This American Life", image: "this american life podcast" },
+        { text: "Wednesday", image: "wednesday netflix series" }
       ]
     },
     descent: {
@@ -1055,10 +1055,10 @@ export const festivalContent = {
         { text: "Film greeting", image: "rome film festival celebration" }
       ],
       content: [
-        { text: "Rome Film Festival Arrival", image: "rome film festival arrival film" },
-        { text: "Rome Film Festival Welcome", image: "rome film festival welcome guide" },
-        { text: "Rome Film Festival Landing", image: "rome film festival landing game" },
-        { text: "Rome Film Festival Greeting", image: "rome film festival greeting podcast" }
+        { text: "Black Panther: Wakanda Forever", image: "black panther wakanda forever movie" },
+        { text: "Tetris", image: "tetris classic puzzle game" },
+        { text: "Radiolab", image: "radiolab podcast" },
+        { text: "The Last of Us", image: "the last of us hbo series" }
       ]
     },
     landing: {
@@ -1068,10 +1068,10 @@ export const festivalContent = {
         { text: "Film celebration", image: "rome film festival joy" }
       ],
       content: [
-        { text: "Rome Film Festival Celebration", image: "rome film festival celebration film" },
-        { text: "Rome Film Festival Spirit", image: "rome film festival spirit guide" },
-        { text: "Rome Film Festival Joy", image: "rome film festival joy game" },
-        { text: "Rome Film Festival Welcome", image: "rome film festival welcome podcast" }
+        { text: "Everything Everywhere All at Once", image: "everything everywhere all at once movie" },
+        { text: "Sudoku", image: "sudoku number puzzle game" },
+        { text: "The Daily", image: "the daily podcast" },
+        { text: "House of the Dragon", image: "house of the dragon hbo series" }
       ]
     }
   },
@@ -1083,9 +1083,9 @@ export const festivalContent = {
         { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
-        { text: "Tollwood Festival Documentary", image: "munich tollwood film" },
+        { text: "Top Gun: Maverick", image: "top gun maverick movie poster" },
         { text: "Frozen", image: "frozen movie" },
-        { text: "Tollwood Festival Stories", image: "munich tollwood podcast" },
+        { text: "The Joe Rogan Experience", image: "joe rogan podcast" },
         { text: "The Sims 4", image: "the sims 4 game" }
       ]
     },
@@ -1096,9 +1096,9 @@ export const festivalContent = {
         { text: "Latest entertainment", image: "movie that is in market" }
       ],
       content: [
-        { text: "Bavarian Winter Traditions", image: "munich tollwood traditions film" },
+        { text: "Spider-Man: No Way Home", image: "spiderman no way home movie" },
         { text: "The Lion King", image: "the lion king movie" },
-        { text: "Tollwood Festival Culture", image: "munich tollwood podcast" },
+        { text: "Serial Podcast", image: "serial podcast audio" },
         { text: "Animal Crossing", image: "animal crossing game" }
       ]
     },
@@ -1109,9 +1109,9 @@ export const festivalContent = {
         { text: "Latest entertainment", image: "movie" }
       ],
       content: [
-        { text: "Tollwood Festival Highlights", image: "munich tollwood highlights" },
+        { text: "Avatar: The Way of Water", image: "avatar way of water movie" },
         { text: "Moana", image: "moana movie" },
-        { text: "Tollwood Festival Magic", image: "munich tollwood podcast" },
+        { text: "This American Life", image: "this american life podcast" },
         { text: "Stardew Valley", image: "stardew valley game" }
       ]
     },
@@ -1122,9 +1122,9 @@ export const festivalContent = {
         { text: "Save on your next flight", image: "flight ticket offer" }
       ],
       content: [
-        { text: "Tollwood Festival Arrival", image: "munich tollwood arrival film" },
+        { text: "Black Panther: Wakanda Forever", image: "black panther wakanda forever movie" },
         { text: "Coco", image: "coco movie" },
-        { text: "Tollwood Festival Greeting", image: "munich tollwood podcast" },
+        { text: "Radiolab", image: "radiolab podcast" },
         { text: "Celeste", image: "celeste game" }
       ]
     },
@@ -1135,9 +1135,9 @@ export const festivalContent = {
         { text: "Shop duty free", image: "duty free shop in airport" }
       ],
       content: [
-        { text: "Tollwood Festival Celebration", image: "munich tollwood celebration film" },
+        { text: "Everything Everywhere All at Once", image: "everything everywhere all at once movie" },
         { text: "Encanto", image: "encanto movie" },
-        { text: "Tollwood Festival Welcome", image: "munich tollwood podcast" },
+        { text: "The Daily", image: "the daily podcast" },
         { text: "Hollow Knight", image: "hollow knight game" }
       ]
     }
@@ -1150,9 +1150,9 @@ export const festivalContent = {
         { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
-        { text: "Christmas Market Documentary", image: "christmas market film" },
+        { text: "Top Gun: Maverick", image: "top gun maverick movie poster" },
         { text: "Home Alone", image: "home alone movie" },
-        { text: "Christmas Market Stories", image: "christmas market podcast" },
+        { text: "The Joe Rogan Experience", image: "joe rogan podcast" },
         { text: "The Sims 4", image: "the sims 4 game" }
       ]
     },
@@ -1165,7 +1165,7 @@ export const festivalContent = {
       content: [
         { text: "Christmas Traditions", image: "christmas market traditions film" },
         { text: "Elf", image: "elf movie" },
-        { text: "Christmas Market Culture", image: "christmas market podcast" },
+        { text: "Serial Podcast", image: "serial podcast audio" },
         { text: "Animal Crossing", image: "animal crossing game" }
       ]
     },
@@ -1176,9 +1176,9 @@ export const festivalContent = {
         { text: "Latest entertainment", image: "movie" }
       ],
       content: [
-        { text: "Christmas Market Highlights", image: "christmas market highlights" },
+        { text: "Avatar: The Way of Water", image: "avatar way of water movie" },
         { text: "The Grinch", image: "the grinch movie" },
-        { text: "Christmas Market Magic", image: "christmas market podcast" },
+        { text: "This American Life", image: "this american life podcast" },
         { text: "Stardew Valley", image: "stardew valley game" }
       ]
     },
@@ -1189,9 +1189,9 @@ export const festivalContent = {
         { text: "Save on your next flight", image: "flight ticket offer" }
       ],
       content: [
-        { text: "Christmas Market Arrival", image: "christmas market arrival film" },
+        { text: "Black Panther: Wakanda Forever", image: "black panther wakanda forever movie" },
         { text: "A Christmas Story", image: "a christmas story movie" },
-        { text: "Christmas Market Greeting", image: "christmas market podcast" },
+        { text: "Radiolab", image: "radiolab podcast" },
         { text: "Celeste", image: "celeste game" }
       ]
     },
@@ -1202,9 +1202,9 @@ export const festivalContent = {
         { text: "Shop duty free", image: "duty free shop in airport" }
       ],
       content: [
-        { text: "Christmas Market Celebration", image: "christmas market celebration film" },
+        { text: "Everything Everywhere All at Once", image: "everything everywhere all at once movie" },
         { text: "It's a Wonderful Life", image: "its a wonderful life movie" },
-        { text: "Christmas Market Welcome", image: "christmas market podcast" },
+        { text: "The Daily", image: "the daily podcast" },
         { text: "Hollow Knight", image: "hollow knight game" }
       ]
     }

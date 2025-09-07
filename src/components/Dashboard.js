@@ -257,7 +257,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         <div 
           className="absolute left-0 right-0 z-10 p-2 backdrop-blur-md backdrop-filter shadow-none"
           style={{ 
-            bottom: '0px',
+            bottom: '1px',
             backgroundColor: getReadableOnColor(themeColor) + 'CC',
             minHeight: '40px',
             display: 'flex',
