@@ -1,4 +1,4 @@
-import { getReadableOnColor } from '../utils/color';
+import { getReadableOnColor, getLightCardBackgroundColor } from '../utils/color';
 import { useState, useEffect, useCallback } from 'react';
 import { getPromoCardContent, shouldUseFestivalContent } from '../utils/festivalUtils';
 import { getNonFestiveCardContent } from '../data/festivalContent';
@@ -45,18 +45,6 @@ export default function Component3Cards({
     });
   }, [colorPromptSaved, selectedFlightPhase, origin, destination, themeColor, selectedDates]);
 
-  // Helper function to create lighter version of theme color (same as content cards)
-  const getLightThemeColor = (opacity = 0.1) => {
-    if (themeColor.startsWith('#')) {
-      // Convert hex to rgba with opacity
-      const hex = themeColor.slice(1);
-      const r = parseInt(hex.substr(0, 2), 16);
-      const g = parseInt(hex.substr(2, 2), 16);
-      const b = parseInt(hex.substr(4, 2), 16);
-      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-    }
-    return 'rgba(255,255,255,0.1)';
-  };
 
 
 
@@ -124,7 +112,7 @@ export default function Component3Cards({
         return { 
           text: festivalContent.text, 
           image: festivalContent.image || '', 
-          bgColor: getLightThemeColor() 
+          bgColor: getLightCardBackgroundColor(themeColor) 
         };
       }
     } else {
@@ -158,13 +146,13 @@ export default function Component3Cards({
         return { 
           text: nonFestiveContent.text, 
           image: nonFestiveContent.image || '', 
-          bgColor: getLightThemeColor() 
+          bgColor: getLightCardBackgroundColor(themeColor) 
         };
       }
     }
     
     // Final fallback for unsaved themes
-    return { text: "Add experience", bgColor: getLightThemeColor() };
+    return { text: "Add experience", bgColor: getLightCardBackgroundColor(themeColor) };
   };
 
 
@@ -208,7 +196,7 @@ export default function Component3Cards({
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-full h-full">
                   <img 
-                    src={getPollinationsImage(cardContent.image)}
+                    src={getPollinationsImage(cardContent.image, themeColor)}
                     alt={cardContent.image}
                     className="w-full h-full object-cover rounded-lg"
                     onError={(e) => {

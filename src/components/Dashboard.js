@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { getReadableOnColor } from '../utils/color';
+import { getReadableOnColor, getLightCardBackgroundColor } from '../utils/color';
 import { getContentCardContent } from '../utils/festivalUtils';
 import { getNonFestiveCardContent } from '../data/festivalContent';
 import { getPollinationsImage } from '../utils/unsplash';
@@ -175,35 +175,13 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
 
 
 
-  // Helper function to get background color for cards (handles both solid and gradient)
-  const getCardBackgroundColor = (color) => {
-    if (typeof color === 'string' && color.includes('gradient')) {
-      // For gradients, use a light version of the first color in the gradient
-      const hexMatch = color.match(/#([0-9a-fA-F]{6})/);
-      if (hexMatch) {
-        const hex = hexMatch[1];
-        const r = parseInt(hex.substr(0, 2), 16);
-        const g = parseInt(hex.substr(2, 2), 16);
-        const b = parseInt(hex.substr(4, 2), 16);
-        return `rgba(${r}, ${g}, ${b}, 0.1)`;
-      }
-      return 'rgba(255,255,255,0.1)';
-    } else if (color.startsWith('#')) {
-      const hex = color.slice(1);
-      const r = parseInt(hex.substr(0, 2), 16);
-      const g = parseInt(hex.substr(2, 2), 16);
-      const b = parseInt(hex.substr(4, 2), 16);
-      return `rgba(${r}, ${g}, ${b}, 0.1)`;
-    }
-    return 'rgba(255,255,255,0.1)';
-  };
 
   // Helper function to render a single content card
   const renderContentCard = (originalCardIndex, displayPosition) => {
     const cardStyle = {
       width: '100%',
       height: '160px',
-      background: getCardBackgroundColor(themeColor),
+      background: getLightCardBackgroundColor(themeColor),
       borderTopLeftRadius: '8px',
       borderTopRightRadius: '8px',
       borderBottomLeftRadius: '8px',
@@ -225,7 +203,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-full h-full">
               <img 
-                src={getPollinationsImage(contentData.image)}
+                src={getPollinationsImage(contentData.image, themeColor)}
                 alt={contentData.image}
                 className="w-full h-full object-cover rounded-lg"
                 onError={(e) => {
@@ -427,7 +405,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   borderTopRightRadius: '8px',
                   borderBottomLeftRadius: '8px',
                   borderBottomRightRadius: '8px',
-                  backgroundColor: getCardBackgroundColor(themeColor)
+                  backgroundColor: getLightCardBackgroundColor(themeColor)
                 }}
               >
                 <span style={{ color: 'black', fontSize: '14px' }}>Placeholder 1 (isThemeBuildStarted: {isThemeBuildStarted.toString()})</span>
@@ -441,7 +419,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   borderTopRightRadius: '8px',
                   borderBottomLeftRadius: '8px',
                   borderBottomRightRadius: '8px',
-                  backgroundColor: getCardBackgroundColor(themeColor)
+                  backgroundColor: getLightCardBackgroundColor(themeColor)
                 }}
               >
                 <span style={{ color: 'black', fontSize: '14px' }}>Placeholder 2</span>
@@ -455,7 +433,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   borderTopRightRadius: '8px',
                   borderBottomLeftRadius: '8px',
                   borderBottomRightRadius: '8px',
-                  backgroundColor: getCardBackgroundColor(themeColor)
+                  backgroundColor: getLightCardBackgroundColor(themeColor)
                 }}
               >
                 <span style={{ color: 'black', fontSize: '14px' }}>Placeholder 3</span>
@@ -469,7 +447,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   borderTopRightRadius: '8px',
                   borderBottomLeftRadius: '8px',
                   borderBottomRightRadius: '8px',
-                  backgroundColor: getCardBackgroundColor(themeColor)
+                  backgroundColor: getLightCardBackgroundColor(themeColor)
                 }}
               >
                 <span style={{ color: 'black', fontSize: '14px' }}>Placeholder 4</span>

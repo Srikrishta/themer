@@ -110,6 +110,29 @@ export function applyOnColorStyle(background) {
   return { color: on };
 }
 
+// Helper function to create light background color for cards (handles both solid and gradient)
+export function getLightCardBackgroundColor(color, opacity = 0.1) {
+  if (typeof color === 'string' && color.includes('gradient')) {
+    // For gradients, use a light version of the first color in the gradient
+    const hexMatch = color.match(/#([0-9a-fA-F]{6})/);
+    if (hexMatch) {
+      const hex = hexMatch[1];
+      const r = parseInt(hex.substr(0, 2), 16);
+      const g = parseInt(hex.substr(2, 2), 16);
+      const b = parseInt(hex.substr(4, 2), 16);
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+    return `rgba(255,255,255,${opacity})`;
+  } else if (color && color.startsWith('#')) {
+    const hex = color.slice(1);
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  }
+  return `rgba(255,255,255,${opacity})`;
+}
+
 // Function to detect dominant color from image and determine text color
 export const getTextColorForImage = (imageUrl) => {
   return new Promise((resolve) => {
