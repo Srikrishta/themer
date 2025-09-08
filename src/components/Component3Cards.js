@@ -38,6 +38,12 @@ export default function Component3Cards({
   
   // State for tracking remixed images
   const [remixedImages, setRemixedImages] = useState({});
+  
+  // State for tracking editable image descriptions
+  const [editableDescriptions, setEditableDescriptions] = useState({});
+  
+  // State for tracking saved descriptions (to compare with current edits)
+  const [savedDescriptions, setSavedDescriptions] = useState({});
 
   // Helper functions for image loading state management
   const setImageLoading = (cardIndex, isLoading) => {
@@ -379,112 +385,6 @@ export default function Component3Cards({
               </div>
             )}
             
-            {/* Remix button - only show on left card (index 0) after theme is saved */}
-            {originalCardIndex === 0 && colorPromptSaved && (
-              <div className="absolute inset-0 flex items-center justify-center z-20">
-                <div 
-                  className="px-4 py-3 rounded-lg flex flex-col items-center space-y-2"
-                  style={{
-                    backgroundColor: '#1C1C1C',
-                    border: '1px solid rgba(255, 255, 255, 0.2)'
-                  }}
-                >
-                  <p 
-                    className="text-xs text-white text-center"
-                    style={{ margin: 0 }}
-                  >
-                    {cardContent.image || cardContent.text || 'in-flight experience'}
-                  </p>
-                  <button
-                    className="px-6 py-3 rounded-lg font-semibold text-sm uppercase transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      backgroundColor: themeColor.includes('gradient') ? 'rgba(255, 255, 255, 0.9)' : themeColor,
-                      color: themeColor.includes('gradient') ? '#1E1E1E' : getReadableOnColor(themeColor),
-                      border: '2px solid rgba(255, 255, 255, 0.3)',
-                      backdropFilter: 'blur(10px)'
-                    }}
-                    disabled={remixLoading}
-                  onClick={async () => {
-                    console.log('=== REMIX BUTTON CLICKED ===');
-                    setRemixLoading(true);
-                    
-                    try {
-                      // Get current card content to extract image description
-                      const currentCardContent = getDefaultCardContent(0);
-                      console.log('=== CURRENT CARD CONTENT ===', {
-                        currentCardContent,
-                        hasImage: !!currentCardContent.image,
-                        imageDescription: currentCardContent.image,
-                        text: currentCardContent.text
-                      });
-                      
-                      const imageDescription = currentCardContent.image || currentCardContent.text || 'in-flight experience';
-                      
-                      if (imageDescription) {
-                        console.log('=== GENERATING NEW IMAGE ===', {
-                          imageDescription,
-                          themeColor,
-                          currentRouteKey,
-                          selectedFlightPhase,
-                          colorPromptSaved
-                        });
-                        
-                        // Generate new image URL with current theme color and randomized seed for true remix
-                        const newImageUrl = getPollinationsImage(imageDescription, themeColor, { randomize: true });
-                        
-                        // Force reload the image by updating the src with a cache-busting parameter
-                        const timestamp = Date.now();
-                        const separator = newImageUrl.includes('?') ? '&' : '?';
-                        const newImageUrlWithCacheBust = `${newImageUrl}${separator}t=${timestamp}`;
-                        
-                        console.log('=== UPDATING STATE WITH NEW IMAGE ===', {
-                          newImageUrl,
-                          newImageUrlWithCacheBust,
-                          currentRemixedImages: remixedImages
-                        });
-                        
-                        // Update state to trigger re-render with new image
-                        setRemixedImages(prev => {
-                          const newState = {
-                            ...prev,
-                            0: newImageUrlWithCacheBust
-                          };
-                          console.log('=== NEW REMIXED IMAGES STATE ===', newState);
-                          return newState;
-                        });
-                        
-                        // Set loading state for the card
-                        setImageLoading(0, true);
-                        
-                        console.log('=== REMIX COMPLETE ===', {
-                          newImageUrl: newImageUrlWithCacheBust,
-                          loadingState: true
-                        });
-                      } else {
-                        console.log('=== NO IMAGE DESCRIPTION FOUND ===', {
-                          currentCardContent,
-                          reason: 'No image property in card content'
-                        });
-                      }
-                    } catch (error) {
-                      console.error('=== ERROR GENERATING REMIX IMAGE ===', error);
-                    } finally {
-                      setRemixLoading(false);
-                    }
-                  }}
-                >
-                  {remixLoading ? (
-                    <div className="flex items-center space-x-2">
-                      <ArrowPathIcon className="w-4 h-4 animate-spin" />
-                      <span>Remixing...</span>
-                    </div>
-                  ) : (
-                    'Remix'
-                  )}
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* Bottom rectangle with text field */}
             <div 
@@ -517,25 +417,254 @@ export default function Component3Cards({
   return (
     <>
       <div
-        className="flex flex-row gap-8 items-center justify-center mx-auto"
+        className="flex flex-col items-center justify-center mx-auto gap-4"
         style={{ width: '1302px' }}
         data-name="3-cards"
         id="node-82_36633"
       >
-      {showAllSkeletons ? (
-        <>
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-        </>
-      ) : (
-        <>
-          {/* Render cards in fixed order */}
-          {[0, 1, 2].map((originalCardIndex, displayPosition) => 
-            renderCard(originalCardIndex, displayPosition)
+        <div className="flex flex-row gap-8 items-center justify-center">
+          {showAllSkeletons ? (
+            <>
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </>
+          ) : (
+            <>
+              {/* Render cards in fixed order */}
+              {[0, 1, 2].map((originalCardIndex, displayPosition) => 
+                renderCard(originalCardIndex, displayPosition)
+              )}
+            </>
           )}
-        </>
-      )}
+        </div>
+        
+        {/* Remix controls - only show for left card (index 0) after theme is saved */}
+        {colorPromptSaved && (
+          <div 
+            className="px-4 py-3 rounded-lg flex flex-col items-center space-y-2"
+            style={{
+              backgroundColor: '#1C1C1C',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              width: '416px'
+            }}
+          >
+            <input
+              type="text"
+              value={editableDescriptions[0] || (() => {
+                const cardContent = getDefaultCardContent(0);
+                return cardContent.image || cardContent.text || 'in-flight experience';
+              })()}
+              onChange={(e) => {
+                setEditableDescriptions(prev => ({
+                  ...prev,
+                  0: e.target.value
+                }));
+              }}
+              onFocus={(e) => {
+                // Select all text when focused for easy editing
+                setTimeout(() => {
+                  e.target.select();
+                }, 0);
+              }}
+              onMouseUp={(e) => {
+                // Prevent default mouse up behavior to keep text selected
+                e.preventDefault();
+              }}
+              onKeyDown={(e) => {
+                // Allow Enter key to trigger save
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const saveButton = e.target.parentElement.querySelector('button[style*="10B981"]');
+                  if (saveButton && !saveButton.disabled) {
+                    saveButton.click();
+                  }
+                }
+                // Allow Escape key to reset to original
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  const cardContent = getDefaultCardContent(0);
+                  const originalText = cardContent.image || cardContent.text || 'in-flight experience';
+                  setEditableDescriptions(prev => ({
+                    ...prev,
+                    0: originalText
+                  }));
+                }
+                // Handle Delete and Backspace to ensure proper text clearing
+                if ((e.key === 'Delete' || e.key === 'Backspace') && e.target.selectionStart === 0 && e.target.selectionEnd === e.target.value.length) {
+                  // Text is fully selected, clear it
+                  setEditableDescriptions(prev => ({
+                    ...prev,
+                    0: ''
+                  }));
+                  e.preventDefault();
+                }
+              }}
+              className="text-xs text-white text-center bg-transparent border border-gray-500 outline-none w-full focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+              style={{ 
+                margin: 0,
+                padding: '6px 8px',
+                borderRadius: '6px',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                color: 'white',
+                fontSize: '12px',
+                textAlign: 'center',
+                minHeight: '32px',
+                transition: 'all 0.2s ease'
+              }}
+              placeholder="Enter image description..."
+              spellCheck="false"
+              autoComplete="off"
+              maxLength="100"
+            />
+            <div className="flex gap-2">
+              <button
+                className="px-4 py-2 rounded-lg font-semibold text-xs uppercase transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: '#10B981',
+                  color: 'white',
+                  border: '1px solid rgba(255, 255, 255, 0.3)'
+                }}
+                disabled={(() => {
+                  const currentDescription = editableDescriptions[0] || (() => {
+                    const cardContent = getDefaultCardContent(0);
+                    return cardContent.image || cardContent.text || 'in-flight experience';
+                  })();
+                  const savedDescription = savedDescriptions[0];
+                  return currentDescription === savedDescription;
+                })()}
+                onClick={() => {
+                  console.log('=== SAVE BUTTON CLICKED ===', {
+                    editedDescription: editableDescriptions[0],
+                    cardIndex: 0
+                  });
+                  
+                  // Generate new image based on the edited description
+                  const editedDescription = editableDescriptions[0];
+                  if (editedDescription) {
+                    console.log('=== GENERATING SAVED IMAGE ===', {
+                      editedDescription,
+                      themeColor
+                    });
+                    
+                    // Generate new image URL with the edited description
+                    const newImageUrl = getPollinationsImage(editedDescription, themeColor, { randomize: true });
+                    
+                    // Update the remixed images state to show the new image
+                    setRemixedImages(prev => ({
+                      ...prev,
+                      0: newImageUrl
+                    }));
+                    
+                    // Set loading state for the card
+                    setImageLoading(0, true);
+                    
+                    // Mark this description as saved
+                    setSavedDescriptions(prev => ({
+                      ...prev,
+                      0: editedDescription
+                    }));
+                    
+                    console.log('=== SAVE COMPLETE ===', {
+                      newImageUrl,
+                      editedDescription,
+                      savedDescription: editedDescription
+                    });
+                  }
+                }}
+              >
+                💾 Save Image
+              </button>
+              <button
+                className="px-4 py-2 rounded-lg font-semibold text-xs uppercase transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: themeColor.includes('gradient') ? 'rgba(255, 255, 255, 0.9)' : themeColor,
+                  color: themeColor.includes('gradient') ? '#1E1E1E' : getReadableOnColor(themeColor),
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  backdropFilter: 'blur(10px)'
+                }}
+                disabled={remixLoading}
+                onClick={async () => {
+                  console.log('=== REMIX BUTTON CLICKED ===');
+                  setRemixLoading(true);
+                  
+                  try {
+                    // Get current card content to extract image description
+                    const currentCardContent = getDefaultCardContent(0);
+                    console.log('=== CURRENT CARD CONTENT ===', {
+                      currentCardContent,
+                      hasImage: !!currentCardContent.image,
+                      imageDescription: currentCardContent.image,
+                      text: currentCardContent.text
+                    });
+                    
+                    const imageDescription = editableDescriptions[0] || currentCardContent.image || currentCardContent.text || 'in-flight experience';
+                    
+                    if (imageDescription) {
+                      console.log('=== GENERATING NEW IMAGE ===', {
+                        imageDescription,
+                        themeColor,
+                        currentRouteKey,
+                        selectedFlightPhase,
+                        colorPromptSaved
+                      });
+                      
+                      // Generate new image URL with current theme color and randomized seed for true remix
+                      const newImageUrl = getPollinationsImage(imageDescription, themeColor, { randomize: true });
+                      
+                      // Force reload the image by updating the src with a cache-busting parameter
+                      const timestamp = Date.now();
+                      const separator = newImageUrl.includes('?') ? '&' : '?';
+                      const newImageUrlWithCacheBust = `${newImageUrl}${separator}t=${timestamp}`;
+                      
+                      console.log('=== UPDATING STATE WITH NEW IMAGE ===', {
+                        newImageUrl,
+                        newImageUrlWithCacheBust,
+                        currentRemixedImages: remixedImages
+                      });
+                      
+                      // Update state to trigger re-render with new image
+                      setRemixedImages(prev => {
+                        const newState = {
+                          ...prev,
+                          0: newImageUrlWithCacheBust
+                        };
+                        console.log('=== NEW REMIXED IMAGES STATE ===', newState);
+                        return newState;
+                      });
+                      
+                      // Set loading state for the card
+                      setImageLoading(0, true);
+                      
+                      console.log('=== REMIX COMPLETE ===', {
+                        newImageUrl: newImageUrlWithCacheBust,
+                        loadingState: true
+                      });
+                    } else {
+                      console.log('=== NO IMAGE DESCRIPTION FOUND ===', {
+                        currentCardContent,
+                        reason: 'No image property in card content'
+                      });
+                    }
+                  } catch (error) {
+                    console.error('=== ERROR GENERATING REMIX IMAGE ===', error);
+                  } finally {
+                    setRemixLoading(false);
+                  }
+                }}
+              >
+                {remixLoading ? (
+                  <div className="flex items-center space-x-2">
+                    <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                    <span>Remixing...</span>
+                  </div>
+                ) : (
+                  '🎲 Remix Style'
+                )}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
