@@ -205,8 +205,15 @@ export default function Component3Cards({
         id={cardInfo.id}
         onMouseEnter={(e) => {
           if (isPromptMode && colorPromptSaved && onPromoCardHover) {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const position = { x: rect.left + rect.width / 2, y: rect.top };
+            // Use actual mouse cursor position like FlightJourneyBar does
+            const position = { x: e.clientX, y: e.clientY };
+            onPromoCardHover(true, 'promo-card', { cardIndex: originalCardIndex, cardType: cardInfo.type }, position);
+          }
+        }}
+        onMouseMove={(e) => {
+          if (isPromptMode && colorPromptSaved && onPromoCardHover) {
+            // Continuously update position as mouse moves within the card
+            const position = { x: e.clientX, y: e.clientY };
             onPromoCardHover(true, 'promo-card', { cardIndex: originalCardIndex, cardType: cardInfo.type }, position);
           }
         }}
