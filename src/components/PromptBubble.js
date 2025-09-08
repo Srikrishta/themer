@@ -5,247 +5,29 @@ import { HexColorPicker } from 'react-colorful';
 import { getReadableOnColor } from '../utils/color';
 import { argbFromHex } from '@material/material-color-utilities';
 import { getFestivalsForFlightSegment, formatFestivalChips, getPromoCardContent, getContentCardContent, shouldUseFestivalContent } from '../utils/festivalUtils';
-
-// Blinking cursor component
-const BlinkingCursor = () => (
-  <span 
-    className="animate-pulse"
-    style={{
-      animation: 'blink 1s infinite',
-      color: 'inherit'
-    }}
-  >
-    |
-  </span>
-);
-
-// CSS for blinking animation
-const blinkingCSS = `
-  @keyframes blink {
-    0%, 50% { opacity: 1; }
-    51%, 100% { opacity: 0; }
-  }
-`;
-
-  // Custom placeholder component for promo cards with editable inputs
-  const PromoCardPlaceholder = ({ textColor, onTextChange, onImageTextChange, textValue = '', imageValue = '', onTextFocus, onTextBlur, resetTrigger, elementData, onRemix, isRemixLoading = false, maxWidth = 300 }) => {
-  const [focusedField, setFocusedField] = useState(null); // Track which field is focused
-  const textInputRef = useRef(null);
-  const imageInputRef = useRef(null);
-  
-  // Reset focus when resetTrigger changes
-  useEffect(() => {
-    if (resetTrigger) {
-      setFocusedField(null);
-      if (textInputRef.current) textInputRef.current.blur();
-      if (imageInputRef.current) imageInputRef.current.blur();
-    }
-  }, [resetTrigger]);
-
-  // Auto-resize textarea function
-  const autoResizeTextarea = (textarea) => {
-    if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = textarea.scrollHeight + 'px';
-    }
-  };
-
-  // Auto-resize textareas when text values change
-  useEffect(() => {
-    if (textInputRef.current) {
-      autoResizeTextarea(textInputRef.current);
-    }
-  }, [textValue]);
-
-  useEffect(() => {
-    if (imageInputRef.current) {
-      autoResizeTextarea(imageInputRef.current);
-    }
-  }, [imageValue]);
-  
-  // Character limit for text field
-  const TEXT_CHAR_LIMIT = 30;
-
-  // Function to get accurate text width using canvas measurement
-  const getTextWidth = (text) => {
-    if (!text) return 0;
-    
-    // Create a canvas element to measure text
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    context.font = 'bold 14px system-ui, -apple-system, sans-serif'; // Match the input font with bold weight
-    
-    return context.measureText(text).width;
-  };
-  
-
-  
-
-  
-  return (
-    <div style={{ color: textColor, fontSize: '14px', pointerEvents: 'auto', width: '100%' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px', lineHeight: '1.4', width: '100%' }}>
-        <span>Change text to </span>
-      <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-        {/* Show dots when no text and not focused */}
-        {!textValue && focusedField !== 'text' && (
-          <span 
-            style={{ 
-              opacity: 0.5, 
-              cursor: 'text',
-              position: 'absolute',
-              left: '2px',
-              pointerEvents: 'auto'
-            }}
-            onClick={() => {
-              setFocusedField('text');
-              if (textInputRef.current) textInputRef.current.focus();
-            }}
-          >
-            ......
-          </span>
-        )}
-
-        {/* Input field in the natural position */}
-        <textarea
-          ref={textInputRef}
-          value={textValue}
-          onChange={(e) => {
-            // Enforce character limit
-            const newValue = e.target.value;
-            console.log('=== TEXT INPUT CHANGE ===', { newValue, charLimit: TEXT_CHAR_LIMIT });
-            if (newValue.length <= TEXT_CHAR_LIMIT) {
-              onTextChange(newValue);
-              console.log('=== CALLING onTextChange ===', { newValue });
-              // Auto-resize the textarea
-              autoResizeTextarea(e.target);
-            }
-          }}
-          onFocus={() => {
-            setFocusedField('text');
-            if (onTextFocus) onTextFocus(true);
-          }}
-          onBlur={() => {
-            setFocusedField(null);
-            if (onTextBlur) onTextBlur(false);
-          }}
-          placeholder=""
-          style={{
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            color: textValue ? textColor : 'transparent',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            lineHeight: '1.4',
-            width: '100%',
-            minWidth: '50px',
-            maxWidth: '100%',
-            padding: '0 2px',
-            caretColor: textColor,
-            resize: 'none',
-            overflow: 'hidden',
-            wordWrap: 'break-word',
-            whiteSpace: 'pre-wrap'
-          }}
-          rows={1}
-        />
-      </div>
-      <span> and upload image of </span>
-      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-        {/* Show dots when no text and not focused */}
-        {!imageValue && focusedField !== 'image' && (
-          <span 
-            style={{ 
-              opacity: 0.5, 
-              cursor: 'text',
-              position: 'absolute',
-              left: '2px',
-              pointerEvents: 'auto'
-            }}
-            onClick={() => {
-              setFocusedField('image');
-              if (imageInputRef.current) imageInputRef.current.focus();
-            }}
-          >
-            ......
-          </span>
-        )}
-
-        {/* Input field in the natural position */}
-        <textarea
-          ref={imageInputRef}
-          value={imageValue}
-          onChange={(e) => {
-            console.log('=== IMAGE INPUT CHANGE ===', { value: e.target.value });
-            onImageTextChange(e.target.value);
-            console.log('=== CALLING onImageTextChange ===', { value: e.target.value });
-            // Auto-resize the textarea
-            autoResizeTextarea(e.target);
-          }}
-          onFocus={() => setFocusedField('image')}
-          onBlur={() => setFocusedField(null)}
-          placeholder=""
-          style={{
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            color: imageValue ? textColor : 'transparent',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            lineHeight: '1.4',
-            width: '100%',
-            minWidth: '50px',
-            maxWidth: '100%',
-            padding: '0 2px',
-            caretColor: textColor,
-            resize: 'none',
-            overflow: 'hidden',
-            wordWrap: 'break-word',
-            whiteSpace: 'pre-wrap'
-          }}
-          rows={1}
-        />
-                  {/* Remix button next to the image input */}
-          {(textValue.trim() || imageValue.trim()) && (
-          <button
-            type="button"
-            onClick={() => {
-              if (onRemix) {
-                onRemix();
-              }
-            }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              cursor: 'pointer',
-              padding: '2px',
-              color: textColor,
-              opacity: 0.7,
-              fontSize: '12px'
-            }}
-            title="Remix image"
-          >
-            {isRemixLoading ? (
-              <div className="w-3 h-3 animate-spin">
-                <ArrowPathIcon className="w-3 h-3" />
-              </div>
-            ) : (
-              <ArrowPathIcon className="w-3 h-3" />
-            )}
-          </button>
-        )}
-      </div>
-      </div>
-    </div>
-  );
-};
-
+import PromoCardPlaceholder from './PromptBubble/PromoCardPlaceholder';
+import { 
+  getTextWidth, 
+  calculateRequiredHeight, 
+  initializePromoValues, 
+  normalizeColor, 
+  updateGradient 
+} from '../utils/promptBubbleUtils';
+import { 
+  TEXT_CHAR_LIMIT, 
+  getBubbleWidth, 
+  FLIGHT_PHASE_CHIPS, 
+  LOGO_CHIPS, 
+  DEFAULT_GRADIENT_STOPS, 
+  DEFAULT_GRADIENT_DIRECTION,
+  ANIMATION_DELAYS,
+  POSITION_OFFSETS 
+} from '../constants/promptBubbleConstants';
+// PromoCardPlaceholder component has been extracted to its own file
 export default function PromptBubble({ 
   isVisible, 
   position, 
- elementType, 
+  elementType, 
   elementData, 
   onClose, 
   onSubmit,
@@ -261,7 +43,7 @@ export default function PromptBubble({
   selectedLogo = null,
   onLogoSelect,
   flightsGenerated = false,
-      selectedFlightPhase = null,
+  selectedFlightPhase = null,
     onFlightPhaseSelect,
     onCloseWithoutSave,
     selectedFlightSegment = null,
@@ -278,7 +60,6 @@ export default function PromptBubble({
     existingText,
     existingTextLength: existingText?.length
   });
-
   const [promptText, setPromptText] = useState((elementType === 'flight-icon' || elementType === 'flight-phase-button') && positionKey === 'landing-demo' ? 'Cruise' : (elementType === 'promo-card' ? '' : ''));
   const [isLoading, setIsLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -290,46 +71,14 @@ export default function PromptBubble({
   const [isRemixLoading, setIsRemixLoading] = useState(false);
   const [remixedImageUrl, setRemixedImageUrl] = useState(null);
   const [contentHeight, setContentHeight] = useState('auto');
-  
-  // Function to calculate required height based on text content
-  const calculateRequiredHeight = (text, imageText) => {
-    if (elementType !== 'promo-card' && elementType !== 'content-card') return 'auto';
-    
-    const maxWidth = bubbleWidth - 40; // Account for padding
-    const lineHeight = 20; // Line height in pixels
-    const baseHeight = 120; // Base height for the bubble
-    
-    // Calculate lines needed for text
-    const textLines = text ? Math.ceil((getTextWidth(text) + 20) / maxWidth) : 0;
-    
-    // Calculate lines needed for image text
-    const imageTextLines = imageText ? Math.ceil((getTextWidth(imageText) + 20) / maxWidth) : 0;
-    
-    const totalLines = Math.max(textLines, imageTextLines, 1);
-    const requiredHeight = baseHeight + (totalLines - 1) * lineHeight;
-    
-    return `${requiredHeight}px`;
-  };
-  
-  // Function to get accurate text width using canvas measurement
-  const getTextWidth = (text) => {
-    if (!text) return 0;
-    
-    // Create a canvas element to measure text
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    context.font = 'bold 14px system-ui, -apple-system, sans-serif'; // Match the input font with bold weight
-    
-    return context.measureText(text).width;
-  };
-  
+  // calculateRequiredHeight function is now imported from utils
+  // getTextWidth function is now imported from utils
   // Monitor remix image loading to clear loading state
   useEffect(() => {
     if (isRemixLoading && elementType === 'promo-card' && elementData) {
       // Find the promo card image in the DOM and monitor its loading
       const cardIndex = elementData.cardIndex;
       const promoCard = document.querySelector(`[data-card-index="${cardIndex}"]`);
-      
       if (promoCard) {
         const image = promoCard.querySelector('img');
         if (image) {
@@ -339,19 +88,16 @@ export default function PromptBubble({
             // Capture the remixed image URL for saving when user clicks send
             setRemixedImageUrl(image.src);
           };
-          
           const handleImageError = () => {
             console.log('=== REMIX IMAGE ERROR ===', { cardIndex });
             setIsRemixLoading(false);
           };
-          
           // If image is already loaded, clear loading state immediately
           if (image.complete) {
             setIsRemixLoading(false);
           } else {
             image.addEventListener('load', handleImageLoad);
             image.addEventListener('error', handleImageError);
-            
             return () => {
               image.removeEventListener('load', handleImageLoad);
               image.removeEventListener('error', handleImageError);
@@ -361,93 +107,13 @@ export default function PromptBubble({
       }
     }
   }, [isRemixLoading, elementType, elementData]);
-
-  
-  // Initialize promo card state from existingText if available
-  const initializePromoValues = () => {
-    if (elementType === 'promo-card' || elementType === 'content-card') {
-      console.log('=== INITIALIZING PROMO VALUES FROM EXISTING TEXT ===', { existingText, elementData });
-      
-      // Check if this is a content card
-      if (elementType === 'content-card' || (elementData && elementData.cardType === 'content-card')) {
-        // For content cards, use the existingText as the text content
-        // Pre-populate image field with default values based on card index
-        const cardIndex = elementData.cardIndex;
-        
-        // Check if we should use festival content for content cards
-        const useFestivalContent = shouldUseFestivalContent(selectedFlightSegment, selectedDates);
-        
-        if (useFestivalContent && selectedFlightPhase) {
-          const festivalContent = getContentCardContent(selectedFlightSegment, selectedDates, selectedFlightPhase, cardIndex);
-          if (festivalContent) {
-            console.log('=== INITIALIZING FESTIVAL CONTENT CARD VALUES ===', { 
-              existingText, 
-              cardIndex, 
-              festivalContent 
-            });
-            return { 
-              text: existingText || festivalContent.text || '', 
-              image: festivalContent.image || '' 
-            };
-          }
-        }
-        
-        // Content cards now show empty values - no default text
-        console.log('=== INITIALIZING CONTENT CARD VALUES ===', { existingText, cardIndex });
-        return { text: existingText || '', image: '' };
-      }
-      
-      // For regular promo cards, parse the existingText format
-      if (existingText) {
-        const parts = existingText.split(',');
-        let textContent = '';
-        let imageContent = '';
-        
-        parts.forEach(part => {
-          if (part.startsWith('text:')) {
-            textContent = part.substring(5).trim();
-          } else if (part.startsWith('image:')) {
-            imageContent = part.substring(6).trim();
-          }
-        });
-        
-        console.log('=== INITIALIZED PROMO VALUES ===', { textContent, imageContent });
-        return { text: textContent, image: imageContent };
-      } else {
-        // Check if we should use festival content for promo cards
-        const useFestivalContent = shouldUseFestivalContent(selectedFlightSegment, selectedDates);
-        
-        if (useFestivalContent && selectedFlightPhase && elementData) {
-          const cardIndex = elementData.cardIndex;
-          const festivalContent = getPromoCardContent(selectedFlightSegment, selectedDates, selectedFlightPhase, cardIndex);
-          if (festivalContent) {
-            console.log('=== INITIALIZING FESTIVAL PROMO CARD VALUES ===', { 
-              cardIndex, 
-              festivalContent 
-            });
-            return { 
-              text: festivalContent.text || '', 
-              image: festivalContent.image || '' 
-            };
-          }
-        }
-        
-        // No existing text - return empty values to show placeholders
-        console.log('=== NO EXISTING TEXT - SHOWING PLACEHOLDERS ===');
-        return { text: '', image: '' };
-      }
-    }
-    return { text: '', image: '' };
-  };
-
-  const initialPromoValues = initializePromoValues();
-  
+  // initializePromoValues function is now imported from utils
+  const initialPromoValues = initializePromoValues(elementType, existingText, elementData, selectedFlightSegment, selectedDates, selectedFlightPhase);
   // State for promo card editable inputs
   const [promoTextValue, setPromoTextValue] = useState(initialPromoValues.text);
   const [promoImageValue, setPromoImageValue] = useState(initialPromoValues.image);
   const [isPromoTextFocused, setIsPromoTextFocused] = useState(false);
   const [promoResetTrigger, setPromoResetTrigger] = useState(0);
-  
   // Debug promo state changes
   useEffect(() => {
     console.log('=== PROMO STATE CHANGE ===', {
@@ -458,27 +124,19 @@ export default function PromptBubble({
       isVisible
     });
   }, [promoTextValue, promoImageValue, elementType, existingText, isVisible]);
-  
   // Debug state changes
   useEffect(() => {
     console.log('=== PROMO TEXT VALUE CHANGED ===', { promoTextValue });
   }, [promoTextValue]);
-  
   useEffect(() => {
     console.log('=== PROMO IMAGE VALUE CHANGED ===', { promoImageValue });
   }, [promoImageValue]);
-  
-
-
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showGradientPicker, setShowGradientPicker] = useState(false);
   const [activeChipColorPicker, setActiveChipColorPicker] = useState(null); // Track which chip's color picker is open
   const [selectedChipData, setSelectedChipData] = useState(null); // Track which chip was clicked and its data
-  const [gradientStops, setGradientStops] = useState([
-    { position: 0, color: '#5079BE', opacity: 100 },
-    { position: 100, color: '#253858', opacity: 100 }
-  ]);
-  const [gradientDirection, setGradientDirection] = useState('120deg');
+  const [gradientStops, setGradientStops] = useState(DEFAULT_GRADIENT_STOPS);
+  const [gradientDirection, setGradientDirection] = useState(DEFAULT_GRADIENT_DIRECTION);
   const [selectedColor, setSelectedColor] = useState(() => {
     // Initialize with logo color if available, otherwise use themeColor
     if (selectedLogo && selectedLogo.id) {
@@ -494,8 +152,6 @@ export default function PromptBubble({
   const [pendingColor, setPendingColor] = useState(null); // Track color selection before save
   const bubbleRef = useRef(null);
   const inputRef = useRef(null);
-
-
   // Ensure selectedColor is always in sync with the current theme/logo
   useEffect(() => {
     // If we have a selected logo, prioritize its color
@@ -511,11 +167,9 @@ export default function PromptBubble({
         return;
       }
     }
-    
     // Otherwise, use the theme color
     setSelectedColor(themeColor);
   }, [selectedLogo, themeColor]);
-
   // When prompt bubble becomes visible, ensure selectedColor reflects the current theme
   useEffect(() => {
     if (isVisible && elementType === 'flight-journey-bar') {
@@ -524,19 +178,15 @@ export default function PromptBubble({
       setPendingColor(null);
     }
   }, [isVisible, elementType, themeColor]);
-
   // Determine background color - use theme color for change theme prompts, blue for other flight card prompts
   const isChangeThemePrompt = elementType === 'flight-journey-bar';
   const isAnimationPrompt = elementType === 'flight-journey-bar-animation';
   const isFlightCardPrompt = (elementType === 'flight-phase-button') 
     && (positionKey && (positionKey.includes('inline-flight') || positionKey === 'fjb-dashboard' || positionKey === 'flight-phase-button-dashboard'));
-  
   // IFE frame prompts have these position keys
   const isIFEFramePrompt = positionKey && (positionKey.includes('landing') || positionKey.includes('demo') || !positionKey.includes('dashboard') && !positionKey.includes('inline-flight'));
-  
   const flightCardBlue = '#2563eb'; // Same blue as generate flights button (bg-blue-600)
   const darkContainerColor = '#1f2937'; // Dark gray container color (bg-gray-800)
-  
   // Determine text/icon color for readability on promo-card bubbles (dashboard)
   const actualBackgroundColor = darkContainerColor; // Use dark container color for all prompt bubbles
   const isGradient = false; // Force to false since we're using solid dark container color
@@ -578,10 +228,8 @@ export default function PromptBubble({
     // Since all bubbles now use dark container color, always use light text
     return true;
   })();
-
   // Choose a contrasting border color so the bubble edge is always visible
   const contrastingBorderColor = useLightText ? 'rgba(255, 255, 255, 0.35)' : 'rgba(0, 0, 0, 0.35)';
-  
   // Compute Material readable on-color for chip borders/text
   const onHex = getReadableOnColor(actualBackgroundColor);
   const onRgb = (() => {
@@ -593,7 +241,6 @@ export default function PromptBubble({
       return { r: 255, g: 255, b: 255 }; // fallback to white
     }
   })();
-  
   // Create adaptive text colors that ensure good contrast
   const adaptiveTextColor = (() => {
     // For very light backgrounds, use dark text; for dark backgrounds, use light text
@@ -605,20 +252,15 @@ export default function PromptBubble({
       return '#000000'; // Pure black for maximum contrast
     }
   })();
-  
   // Text colors with different opacities for hierarchy
   const onText90 = `rgba(${onRgb.r}, ${onRgb.g}, ${onRgb.b}, 0.9)`; // Primary text
   const onText70 = `rgba(${onRgb.r}, ${onRgb.g}, ${onRgb.b}, 0.7)`; // Secondary text
   const onText50 = `rgba(${onRgb.r}, ${onRgb.g}, ${onRgb.b}, 0.5)`; // Hint text
-  
   const onBorder20 = `rgba(${onRgb.r}, ${onRgb.g}, ${onRgb.b}, 0.2)`;
-  
   // Fallback border color if onBorder20 calculation fails - ensure it's always visible
   const fallbackBorderColor = useLightText ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)';
-  
   // Ensure we always have a valid border color
   const safeBorderColor = onBorder20 || fallbackBorderColor;
-  
   // Additional safety: if the calculated border color is too transparent, use the fallback
   const finalBorderColor = (() => {
     if (safeBorderColor && safeBorderColor.includes('rgba')) {
@@ -633,7 +275,6 @@ export default function PromptBubble({
     }
     return safeBorderColor;
   })();
-  
   // Debug logging for border colors
   console.log('Border color debug:', {
     actualBackgroundColor,
@@ -644,12 +285,10 @@ export default function PromptBubble({
     finalBorderColor,
     useLightText
   });
-  
   // Calculate contrast ratio between selected color and a reference color (white)
   const calculateContrastRatio = (color1, color2 = '#FFFFFF') => {
     try {
       if (!color1 || !color2) return null;
-      
       // Handle gradients by extracting first hex color
       const extractHex = (input) => {
         if (typeof input !== 'string') return null;
@@ -659,22 +298,17 @@ export default function PromptBubble({
         }
         return input.match(/^#([0-9a-fA-F]{6})$/) ? input : null;
       };
-      
       const hex1 = extractHex(color1);
       const hex2 = extractHex(color2);
-      
       if (!hex1 || !hex2) return null;
-      
       const argb1 = argbFromHex(hex1);
       const argb2 = argbFromHex(hex2);
-      
       // Convert ARGB to RGB
       const argbToRgb = (argb) => ({
         r: (argb >> 16) & 0xff,
         g: (argb >> 8) & 0xff, 
         b: argb & 0xff
       });
-      
       // Calculate relative luminance
       const relativeLuminance = ({ r, g, b }) => {
         const toLinear = (c) => {
@@ -683,21 +317,17 @@ export default function PromptBubble({
         };
         return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
       };
-      
       const l1 = relativeLuminance(argbToRgb(argb1));
       const l2 = relativeLuminance(argbToRgb(argb2));
       const [L1, L2] = l1 > l2 ? [l1, l2] : [l2, l1];
-      
       return (L1 + 0.05) / (L2 + 0.05);
     } catch (error) {
       console.warn('Error calculating contrast ratio:', error);
       return null;
     }
   };
-
   // Bubble width (wider for FJB to accommodate more chips)
-  const bubbleWidth = (elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation') ? 360 : 250;
-  
+  const bubbleWidth = getBubbleWidth(elementType);
   // Update content height when text changes
   useEffect(() => {
     if (elementType === 'promo-card') {
@@ -705,27 +335,16 @@ export default function PromptBubble({
       setContentHeight(newHeight);
     }
   }, [promoTextValue, promoImageValue, elementType, bubbleWidth]);
-
   // Flight phase chips for FPS
-  const flightPhaseChips = [
-    { id: 'takeoff', label: 'Takeoff', color: '#6B7280' },
-    { id: 'climb', label: 'Climb', color: '#6B7280' },
-    { id: 'cruise', label: 'Cruise', color: '#6B7280' },
-    { id: 'descent', label: 'Descent', color: '#6B7280' },
-    { id: 'landing', label: 'Landing', color: '#6B7280' },
-    { id: 'add-new', label: 'Add new', color: '#6B7280' }
-  ];
-
+  const flightPhaseChips = FLIGHT_PHASE_CHIPS;
   // Festival chips based on route and dates
   const getFestivalChips = () => {
     if (!selectedFlightSegment || !selectedDates || selectedDates.length === 0) {
       return [];
     }
-
     const festivals = getFestivalsForFlightSegment(selectedFlightSegment, selectedDates);
     return formatFestivalChips(festivals);
   };
-
   const festivalChips = getFestivalChips();
   // Logo placeholder chips
   const logoChips = [
@@ -733,7 +352,6 @@ export default function PromptBubble({
     { id: 'lufthansa', label: 'Lufthansa' },
     { id: 'swiss', label: 'Swiss' }
   ];
-
   // Set sticky position when bubble becomes visible or when target changes
   useEffect(() => {
     console.log('=== PROMPT BUBBLE POSITION UPDATE ===', { 
@@ -747,7 +365,6 @@ export default function PromptBubble({
     let containerLeft = 0;
     let containerTop = 0;
     let containerSelector = '';
-
     if (elementType === 'flight-icon' || positionKey === 'landing-demo') {
       // Check if this is a button trigger (position is in viewport coords) vs progress bar trigger (container coords)
       // Button triggers have specific elementData values: progress: 0.5, minutesLeft: 200
@@ -775,44 +392,36 @@ export default function PromptBubble({
     } else {
       containerSelector = '.flight-progress-bar-container';
     }
-
     const targetContainer = document.querySelector(containerSelector);
     if (targetContainer) {
       const containerRect = targetContainer.getBoundingClientRect();
       containerLeft = containerRect.left;
       containerTop = containerRect.top;
     }
-
     // Convert relative coordinates to document coordinates
     const absoluteX = containerLeft + position.x;
     const absoluteY = containerTop + position.y;
     const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
     const scrollY = window.pageYOffset || document.documentElement.scrollTop;
     const newStickyPosition = { x: absoluteX + scrollX, y: absoluteY + scrollY };
-
     console.log('=== SETTING STICKY POSITION ===', {
       elementType, positionKey, containerSelector, position, newStickyPosition
     });
     setStickyPosition(newStickyPosition);
   }, [isVisible, position, elementType, positionKey]);
-
   // Update selectedColor when themeColor changes (for automatic theme cycling)
   useEffect(() => {
     setSelectedColor(themeColor);
   }, [themeColor]);
-
   // Update position on scroll to maintain relative position
   useEffect(() => {
     if (!isVisible || !stickyPosition) return;
-
     const handleScroll = () => {
       const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
       const scrollY = window.pageYOffset || document.documentElement.scrollTop;
-      
       // Convert document coordinates back to viewport coordinates for fixed positioning
       const viewportX = stickyPosition.x - scrollX;
       const viewportY = stickyPosition.y - scrollY;
-      
       // Position bubble at the pointer with minimal clamping (no offsets for flight card prompts)
       // For FJB clicks, position the bubble below the hover button
       let finalX, finalY;
@@ -821,7 +430,6 @@ export default function PromptBubble({
         // The hover button is positioned 50px above the click point, so we position the bubble below the hover button
         finalX = viewportX;
         finalY = viewportY - 50 + 60; // 50px above click point (hover button) + 60px below hover button for better spacing
-        
         // Ensure the bubble doesn't go off-screen
         if (finalY + 200 > window.innerHeight) {
           // If bubble would go below viewport, position it above the hover button instead
@@ -842,7 +450,6 @@ export default function PromptBubble({
         finalX = Math.max(minX, Math.min(viewportX, window.innerWidth - (bubbleWidth + 10)));
         finalY = Math.max(minY, Math.min(viewportY, window.innerHeight - 200));
       }
-      
       console.log('=== PROMPT BUBBLE SCROLL POSITION ===', {
         stickyPosition,
         scrollX,
@@ -854,25 +461,20 @@ export default function PromptBubble({
         elementType,
         positionKey
       });
-      
       if (bubbleRef.current) {
         bubbleRef.current.style.left = `${finalX}px`;
         bubbleRef.current.style.top = `${finalY}px`;
       }
     };
-
     // Set initial position
     handleScroll();
-    
     window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('resize', handleScroll, { passive: true });
-    
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleScroll);
     };
   }, [isVisible, stickyPosition]);
-
   // Auto-typing effect for middle card landing page and FJB landing page
   useEffect(() => {
     if (isVisible && ((positionKey === 'middle-card-landing' && elementType === 'promo-card') || (positionKey === 'fjb-landing' && (elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation'))) && !autoTyping) {
@@ -883,13 +485,11 @@ export default function PromptBubble({
       setPromptText(''); // Clear any existing text
     }
   }, [isVisible, positionKey, elementType, autoTyping]);
-
   // Auto-typing animation
   useEffect(() => {
     if (autoTyping) {
       let targetText = '';
       let positionKeyToCheck = '';
-      
       if (positionKey === 'middle-card-landing') {
         targetText = 'Croissants at 3€';
         positionKeyToCheck = 'middle-card-landing';
@@ -897,20 +497,17 @@ export default function PromptBubble({
         targetText = 'add spring theme in paris';
         positionKeyToCheck = 'fjb-landing';
       }
-      
       if (targetText && positionKey === positionKeyToCheck) {
         if (autoTypeIndex < targetText.length) {
           const timer = setTimeout(() => {
             setPromptText(targetText.substring(0, autoTypeIndex + 1));
             setAutoTypeIndex(autoTypeIndex + 1);
           }, 100); // Type at 100ms per character
-          
           return () => clearTimeout(timer);
         } else {
           // Finished typing - trigger continuation after a short delay
           setAutoTyping(false);
           console.log('=== AUTO TYPING COMPLETE ===', { positionKey });
-          
           // Auto-submit after typing is complete
           setTimeout(() => {
             console.log('=== AUTO SUBMITTING PROMPT ===', { positionKey });
@@ -920,13 +517,11 @@ export default function PromptBubble({
               elementType,
               promptText 
             });
-            
             // For FJB landing page, auto-click gradient button and then submit
             if (positionKey === 'fjb-landing') {
               console.log('=== AUTO CLICKING GRADIENT BUTTON ===');
               handleColorChange('#96e6a1'); // Set gradient color
               console.log('=== GRADIENT BUTTON CLICKED ===');
-              
               // Auto-submit after a short delay
               setTimeout(() => {
                 console.log('=== AUTO SUBMITTING FJB PROMPT ===');
@@ -956,7 +551,6 @@ export default function PromptBubble({
       }
     }
   }, [autoTyping, autoTypeIndex, positionKey]);
-
   // Get used prompts for filtering chips
   const getUsedPrompts = () => {
     const used = new Set();
@@ -967,28 +561,22 @@ export default function PromptBubble({
     });
     return used;
   };
-
   // Filter out chips that are already used at other positions
   const getAvailableChips = () => {
     if (elementType !== 'flight-icon' && elementType !== 'flight-phase-button') return flightPhaseChips;
-    
     const usedPrompts = getUsedPrompts();
     const currentText = existingText.toLowerCase();
-    
     // If flights are generated (showMovingIcon is true), show all chips as selected except "Add new"
     if (flightsGenerated) {
       return flightPhaseChips;
     }
-    
     return flightPhaseChips.filter(chip => {
       const chipLabel = chip.label.toLowerCase();
       // Show chip if it's not used elsewhere, OR if it's the current position's text
       return !usedPrompts.has(chipLabel) || chipLabel === currentText;
     });
   };
-
   const availableChips = getAvailableChips();
-
   // Auto-click save button for landing page demo
   useEffect(() => {
     if (elementType === 'flight-icon' && positionKey === 'landing-demo' && isVisible) {
@@ -1013,11 +601,9 @@ export default function PromptBubble({
           });
         }
       }, 3000); // 3 seconds delay after prompt bubble appears
-      
       return () => clearTimeout(timer);
     }
   }, [isVisible, promptText, isLoading, elementType, positionKey, onSubmit, elementData]);
-
   // Auto-click save button for middle card demo
   useEffect(() => {
     if (elementType === 'promo-card' && positionKey === 'middle-card-demo' && isVisible && !isLoading && promptText.trim() && !isTyping) {
@@ -1040,33 +626,28 @@ export default function PromptBubble({
           onClose();
         }, 500); // Close after 500ms to show loading state briefly
       }, 2000); // 2 seconds delay after text is ready
-      
       return () => clearTimeout(timer);
     }
   }, [isVisible, promptText, isLoading, isTyping, elementType, positionKey, onSubmit, elementData, onClose]);
-
   // Function to simulate typing animation
   const startTypingAnimation = (text) => {
     console.log('=== STARTING TYPING ANIMATION ===', { text });
     setIsTyping(true);
     setTypedText('');
     let index = 0;
-    
     const typeNextChar = () => {
       if (index < text.length) {
         setTypedText(prev => prev + text[index]);
         index++;
-        setTimeout(typeNextChar, 100); // Type each character with 100ms delay
+        setTimeout(typeNextChar, ANIMATION_DELAYS.TYPING_CHAR_DELAY); // Type each character with delay
       } else {
         console.log('=== TYPING ANIMATION COMPLETED ===');
         setIsTyping(false);
         setPromptText(text);
       }
     };
-    
     typeNextChar();
   };
-
   // Focus input when bubble becomes visible and reset loading state
   useEffect(() => {
     if (isVisible && inputRef.current) {
@@ -1099,7 +680,6 @@ export default function PromptBubble({
       } else {
         console.log('=== PROMPT BUBBLE FALLBACK CASE ===', { elementType, positionKey, existingText });
         setIsLoading(false);
-        
         // For promo cards, values are already initialized from existingText in useState
         if (elementType === 'promo-card') {
           console.log('=== PROMO CARD INITIALIZATION COMPLETE ===', { 
@@ -1112,7 +692,6 @@ export default function PromptBubble({
           setPromptText(existingText); // Load existing text for this position
         }
       }
-      
       // For landing page demo, show Cruise as already selected immediately
       if (elementType === 'flight-icon' && positionKey === 'landing-demo') {
         if (existingText === 'loading...') {
@@ -1137,7 +716,6 @@ export default function PromptBubble({
       }
     }
   }, [isVisible, existingText, elementType, positionKey, onSubmit, elementData]);
-
   // Update content height when text changes
   useEffect(() => {
     if (elementType === 'promo-card' || elementType === 'content-card') {
@@ -1145,38 +723,32 @@ export default function PromptBubble({
       setContentHeight(newHeight);
     }
   }, [promoTextValue, promoImageValue, elementType]);
-
   // Notify parent component when loading state changes
   useEffect(() => {
     if (onLoadingStateChange && elementType === 'promo-card') {
       onLoadingStateChange(isLoading);
     }
   }, [isLoading, elementType, onLoadingStateChange]);
-
   // Notify parent component when visibility changes
   useEffect(() => {
     if (onVisibilityChange && elementType === 'promo-card') {
       onVisibilityChange(isVisible);
     }
   }, [isVisible, elementType, onVisibilityChange]);
-
   // Handle click outside to close
   useEffect(() => {
     if (!isVisible) return;
-
     const handleClickOutside = (event) => {
       // Don't close if clicking on the hover tip
       const isHoverTip = event.target.closest('[data-hover-tip]') || 
                         event.target.closest('[class*="fjb-hover"]') ||
                         event.target.getAttribute('key')?.includes('fjb-hover');
-      
       console.log('=== CLICK OUTSIDE CHECK ===', {
         isHoverTip,
         target: event.target,
         bubbleContains: bubbleRef.current?.contains(event.target),
         elementType
       });
-      
       if (bubbleRef.current && !bubbleRef.current.contains(event.target) && !isHoverTip) {
         console.log('=== CLOSING PROMPT BUBBLE ===');
         // If this is a color changing prompt, call onCloseWithoutSave (regardless of pending changes)
@@ -1186,14 +758,11 @@ export default function PromptBubble({
         onClose();
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isVisible, onClose]);
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    
     // Check if submission is valid based on element type and step
     let isValidSubmission;
     if (elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation') {
@@ -1209,7 +778,6 @@ export default function PromptBubble({
     } else {
       isValidSubmission = promptText.trim();
     }
-    
     console.log('=== VALIDATION CHECK ===', { 
       elementType, 
       promoTextValue, 
@@ -1219,12 +787,8 @@ export default function PromptBubble({
       isValidSubmission,
       isLoading
     });
-    
     if (isValidSubmission && !isLoading) {
       setIsLoading(true);
-      
-
-      
       // For promo cards, combine the text and image values
       let submitText;
       if (elementType === 'promo-card') {
@@ -1238,7 +802,6 @@ export default function PromptBubble({
       } else {
         submitText = promptText.trim() || '';
       }
-      
       console.log('=== SUBMITTING PROMO CARD ===', { 
         elementType, 
         promoTextValue, 
@@ -1248,11 +811,9 @@ export default function PromptBubble({
         positionKey,
         remixedImageUrl
       });
-      
       // If we have a remixed image URL, include it in the submission
       const submissionOptions = remixedImageUrl ? { remixedImageUrl } : {};
       onSubmit(submitText, elementType, elementData, positionKey, submissionOptions);
-      
       // Clear promo card values after submission to show placeholder text again
       if (elementType === 'promo-card') {
         setPromoTextValue('');
@@ -1264,7 +825,6 @@ export default function PromptBubble({
       }
     }
   };
-
   const handleKeyDown = (e) => {
     if (e.key === 'Escape') {
       // If this is a color changing prompt, call onCloseWithoutSave (regardless of pending changes)
@@ -1279,7 +839,6 @@ export default function PromptBubble({
       } else {
         // Enter: submit and show loading
         e.preventDefault();
-        
         // Check if submission is valid based on element type and step
         let isValidSubmission;
         if (elementType === 'flight-journey-bar') {
@@ -1295,12 +854,8 @@ export default function PromptBubble({
         } else {
           isValidSubmission = promptText.trim();
         }
-        
         if (isValidSubmission) {
           setIsLoading(true);
-          
-
-          
           // For promo cards, combine the text and image values
           let submitText;
           if (elementType === 'promo-card') {
@@ -1314,7 +869,6 @@ export default function PromptBubble({
           } else {
             submitText = promptText.trim() || '';
           }
-          
           console.log('=== KEYBOARD SUBMITTING PROMO CARD ===', { 
             elementType, 
             promoTextValue, 
@@ -1324,11 +878,9 @@ export default function PromptBubble({
             positionKey,
             remixedImageUrl
           });
-          
           // If we have a remixed image URL, include it in the submission
           const submissionOptions = remixedImageUrl ? { remixedImageUrl } : {};
           onSubmit(submitText, elementType, elementData, positionKey, submissionOptions);
-          
           // Clear promo card values after submission to show placeholder text again  
           if (elementType === 'promo-card') {
             setPromoTextValue('');
@@ -1342,7 +894,6 @@ export default function PromptBubble({
       }
     }
   };
-
   const handleChipClick = (chipLabel) => {
     setPromptText(chipLabel);
     // Find the chip id from the label
@@ -1361,16 +912,13 @@ export default function PromptBubble({
       }
     }
   };
-
   const handleColorChange = (color, chipData) => {
     // Only update visual selection, don't apply theme change immediately
     setPendingColor({ color, chipData });
   };
-
   const handleChipChevronClick = (e, chip, chipIndex) => {
     e.stopPropagation(); // Prevent the chip button click
     setSelectedChipData(chip);
-    
     // Check if this is a gradient chip
     if (chip.isGradient || String(chip.color).includes('gradient')) {
       setShowGradientPicker(true);
@@ -1382,26 +930,11 @@ export default function PromptBubble({
       setShowColorPicker(false);
     }
   };
-
-  const updateGradient = () => {
-    const gradientString = `linear-gradient(${gradientDirection}, ${gradientStops.map(stop => `${stop.color}${stop.opacity !== 100 ? Math.round(stop.opacity * 2.55) : ''} ${stop.position}%`).join(', ')})`;
+  // updateGradient and normalizeColor functions are now imported from utils
+  const updateGradientLocal = () => {
+    const gradientString = updateGradient(gradientStops, gradientDirection);
     handleColorChange(gradientString, { label: selectedChipData?.label || 'Custom Gradient', color: gradientString });
   };
-
-  // Helper function to normalize colors for comparison
-  const normalizeColor = (color) => {
-    if (typeof color === 'string') {
-      if (color.startsWith('#')) {
-        return color.toUpperCase();
-      }
-      // For gradients, normalize whitespace and case
-      if (color.includes('gradient')) {
-        return color.replace(/\s+/g, ' ').trim();
-      }
-    }
-    return color;
-  };
-
   const handleLogoChipClick = (chip) => {
     if (chip.id === 'add-new') {
       try {
@@ -1412,9 +945,7 @@ export default function PromptBubble({
     // Only update the visual selection state, don't apply logo/color changes yet
     // Logo chip selection functionality removed
   };
-
   if (!isVisible || !stickyPosition) return null;
-
   // Simple modal-style overlay approach - guaranteed to work
   return createPortal(
     <div
@@ -1456,7 +987,6 @@ export default function PromptBubble({
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-
           {/* Title */}
           <span className={`text-sm font-semibold ${useLightText ? 'text-white' : 'text-black'}`}>
             {(() => {
@@ -1470,18 +1000,13 @@ export default function PromptBubble({
                   return '';
                 case 'promo-card':
                   return '';
-
                 default:
                   return 'Build theme';
               }
             })()}
           </span>
-
         </div>
       </div>
-
-
-
       {/* Input Form */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-3" style={{ minHeight: 'fit-content' }}>
         {/* Hidden file input for logo upload (triggered by image icon) */}
@@ -1512,7 +1037,7 @@ export default function PromptBubble({
           />
         )}
         <div className="relative flex-1">
-          <style>{blinkingCSS}</style>
+          {/* blinkingCSS is now in PromoCardPlaceholder component */}
           {elementType !== 'flight-journey-bar' && elementType !== 'flight-icon' && elementType !== 'flight-phase-button' && elementType !== 'promo-card' && elementType !== 'content-card' && (
             <>
               <textarea
@@ -1531,7 +1056,6 @@ export default function PromptBubble({
                     ? 'change theme or add animation'
                     : elementType === 'flight-journey-bar-animation'
                     ? 'add animation to your experience'
-
                     : 'select flight phase'
                 }
                 className={`bg-transparent border-0 text-sm ${useLightText ? 'text-white placeholder-white/60' : 'text-black placeholder-black/60'} resize-none focus:ring-0 focus:outline-none`}
@@ -1560,7 +1084,6 @@ export default function PromptBubble({
             />
           </>
           )}
-          
           {/* Use PromoCardPlaceholder for both promo and content cards */}
           {(elementType === 'promo-card' || elementType === 'content-card') && !isLoading && (
             <div 
@@ -1587,7 +1110,6 @@ export default function PromptBubble({
                 onRemix={() => {
                   // Set loading state for remix button
                   setIsRemixLoading(true);
-                  
                   // Trigger remix functionality by calling onSubmit with remix flag
                   let submitText;
                   if (elementData && elementData.cardType === 'content-card') {
@@ -1609,7 +1131,6 @@ export default function PromptBubble({
               />
             </div>
           )}
-          
           {/* Flight Phase Chips - Only show for flight-icon and flight-phase-button and filter out used ones */}
           {(elementType === 'flight-icon' || elementType === 'flight-phase-button') && availableChips.length > 0 && (
             <div className="mt-2">
@@ -1632,20 +1153,17 @@ export default function PromptBubble({
                   const container = e.currentTarget;
                   const startX = e.pageX - container.offsetLeft;
                   const startScrollLeft = container.scrollLeft;
-                  
                   const handleMouseMove = (e) => {
                     e.preventDefault();
                     const x = e.pageX - container.offsetLeft;
                     const walk = (x - startX) * 2;
                     container.scrollLeft = startScrollLeft - walk;
                   };
-                  
                   const handleMouseUp = () => {
                     document.removeEventListener('mousemove', handleMouseMove);
                     document.removeEventListener('mouseup', handleMouseUp);
                     container.style.cursor = 'grab';
                   };
-                  
                   document.addEventListener('mousemove', handleMouseMove);
                   document.addEventListener('mouseup', handleMouseUp);
                   container.style.cursor = 'grabbing';
@@ -1698,8 +1216,6 @@ export default function PromptBubble({
               </div>
             </div>
           )}
-
-
           {/* Logo Placeholder Label and Chips */}
           {false && (
             <>
@@ -1707,7 +1223,6 @@ export default function PromptBubble({
                 <div className="flex flex-wrap gap-1">
               {logoChips.map((chip) => {
                 const isSelected = false;
-                
                 // Get logo image source based on chip ID
                 const getLogoSource = (chipId) => {
                   switch (chipId) {
@@ -1721,9 +1236,7 @@ export default function PromptBubble({
                       return null;
                   }
                 };
-                
                 const logoSource = getLogoSource(chip.id);
-                
                 return (
                   <button
                     key={chip.id}
@@ -1771,7 +1284,6 @@ export default function PromptBubble({
             null
           )}
         </div>
-        
         {/* Actions for promo cards and flight journey bar */}
         {elementType === 'flight-journey-bar-animation' && (
           <div className="flex flex-col gap-2">
@@ -1819,7 +1331,6 @@ export default function PromptBubble({
                 })}
               </div>
             </div>
-
             {/* Save Button for Animation */}
             <div className="flex items-center justify-between mt-2">
               {/* Hint Text - left side */}
@@ -1829,7 +1340,6 @@ export default function PromptBubble({
               >
                 Select animation style for your UI
               </span>
-              
               {/* Save Button - right side */}
               <button
                 type="button"
@@ -1856,7 +1366,6 @@ export default function PromptBubble({
             </div>
           </div>
         )}
-
         {elementType === 'flight-journey-bar' && (
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
@@ -1864,7 +1373,6 @@ export default function PromptBubble({
               {(() => {
                 // Create custom chips based on flight data (origin, destination, airline)
                 const customChips = [];
-                
                 // Debug: Log the selectedFlightSegment data
                 console.log('=== CREATING CUSTOM CHIPS ===', {
                   selectedFlightSegment,
@@ -1872,7 +1380,6 @@ export default function PromptBubble({
                   originCity: selectedFlightSegment?.origin?.airport?.city || elementData?.origin?.airport?.city,
                   destCity: selectedFlightSegment?.destination?.airport?.city || elementData?.destination?.airport?.city
                 });
-                
                 // 1. Brand chip (based on selected airline)
                 if (selectedLogo && selectedLogo.id) {
                   const logoColorMap = {
@@ -1880,7 +1387,6 @@ export default function PromptBubble({
                     'lufthansa': { label: 'Lufthansa', color: '#050F43' },
                     'swiss': { label: 'Swiss', color: '#CB0300' }
                   };
-                  
                   const logoChip = logoColorMap[selectedLogo.id];
                   if (logoChip) {
                     customChips.push({
@@ -1896,7 +1402,6 @@ export default function PromptBubble({
                       originalColor: '#1E1E1E'
                     });
                   }
-                
                 // 2. Origin city chip - use selectedFlightSegment if available, otherwise fallback to elementData
                 const originCity = selectedFlightSegment?.origin?.airport?.city || elementData?.origin?.airport?.city || 'Paris';
                 const originColorMap = {
@@ -1917,7 +1422,6 @@ export default function PromptBubble({
                   color: originColorMap[originCity] || '#FF6B6B',
                   originalColor: originColorMap[originCity] || '#FF6B6B'
                 });
-                
                 // 3. Destination city chip - use selectedFlightSegment if available, otherwise fallback to elementData
                 const destCity = selectedFlightSegment?.destination?.airport?.city || elementData?.destination?.airport?.city || 'Milan';
                 const destColorMap = {
@@ -1938,7 +1442,6 @@ export default function PromptBubble({
                   color: destColorMap[destCity] || '#9B59B6',
                   originalColor: destColorMap[destCity] || '#9B59B6'
                 });
-                
                 // 4. Origin-Destination gradient chip
                 const originColor = originColorMap[originCity] || '#FF6B6B';
                 const destColor = destColorMap[destCity] || '#9B59B6';
@@ -1948,7 +1451,6 @@ export default function PromptBubble({
                   originalColor: `linear-gradient(135deg, ${originColor} 0%, ${destColor} 100%)`,
                   isGradient: true
                 });
-                
                 // 5. Festival chips - add festival chips to the main theme chips
                 if (festivalChips.length > 0) {
                   festivalChips.forEach(festivalChip => {
@@ -1962,17 +1464,14 @@ export default function PromptBubble({
                     });
                   });
                 }
-                
                 return customChips;
               })().map((chip, idx) => {
                 // Get the original chip color for the color circle
                 const originalChipColor = typeof chip === 'object' ? chip.originalColor || chip.color : String(chip);
-                
                 // Check if this chip has a modified color
                 const chipKey = `${chip.label}-${originalChipColor}`;
                 const modifiedColor = modifiedChipColors[chipKey];
                 const displayColor = modifiedColor || originalChipColor;
-                
                 // In routes view, use the same color for chip display but keep original for color circles
                 const chipColor = !isThemeBuildStarted ? themeColor : displayColor;
                 const label = typeof chip === 'object'
@@ -2015,10 +1514,6 @@ export default function PromptBubble({
                   </button>
                 );
               })}
-
-
-
-
               {/* Color Picker Chip - moved inline with other chips */}
               <button
                 type="button"
@@ -2062,22 +1557,18 @@ export default function PromptBubble({
                   />
                 </div>
               </button>
-              
             </div>
             </div>
-            
             <div className="flex items-center justify-between">
               {/* Accessibility Score Text - left side */}
               {(() => {
                 const ratioWhite = calculateContrastRatio(selectedColor, '#FFFFFF');
                 const ratioBlack = calculateContrastRatio(selectedColor, '#000000');
                 if (!ratioWhite || !ratioBlack) return null;
-                
                 // Choose the better contrast ratio to display
                 const ratio = Math.max(ratioWhite, ratioBlack);
                 const background = ratioWhite > ratioBlack ? 'vs white' : 'vs black';
                 const formattedRatio = ratio.toFixed(1);
-                
                 // Determine readability level based on contrast ratio
                 let readabilityLevel;
                 if (ratio >= 7) {
@@ -2089,7 +1580,6 @@ export default function PromptBubble({
                 } else {
                   readabilityLevel = 'Very low';
                 }
-                
                 return (
                   <span 
                     className="text-xs font-medium" 
@@ -2100,7 +1590,6 @@ export default function PromptBubble({
                   </span>
                 );
               })()}
-              
               {/* Save Button - right side */}
               <button
                 type="button"
@@ -2131,7 +1620,6 @@ export default function PromptBubble({
             </div>
           </div>
         )}
-
         {(elementType === 'promo-card' || elementType === 'content-card') && (
           <div className="flex items-center gap-3 justify-between">
             {/* Character counter - only show when text field is focused */}
@@ -2144,10 +1632,8 @@ export default function PromptBubble({
                 {30 - (promoTextValue ? promoTextValue.length : 0)} characters left
               </span>
             )}
-            
             {/* Spacer when counter is not shown */}
             {!isPromoTextFocused && <div></div>}
-            
             {/* Right side: Image Icon + Save Button */}
             <div className="flex items-center gap-3">
               {/* Image Icon */}
@@ -2162,7 +1648,6 @@ export default function PromptBubble({
               >
                 <PhotoIcon className="w-4 h-4" />
               </button>
-              
               {/* Save Button */}
               <button
                 type="submit"
@@ -2190,7 +1675,6 @@ export default function PromptBubble({
             </div>
           </div>
         )}
-
         {elementType === 'logo-placeholder' && (
           <div className="flex items-center justify-between mt-2">
             {/* Hint Text - left side */}
@@ -2200,7 +1684,6 @@ export default function PromptBubble({
             >
               Logo functionality disabled
             </span>
-            
             {/* Right side: Image Icon + Save Button */}
             <div className="flex items-center gap-3">
               {/* Image Icon */}
@@ -2214,7 +1697,6 @@ export default function PromptBubble({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                 </svg>
               </button>
-              
               {/* Save Button */}
               <button
                 type="submit"
@@ -2232,7 +1714,6 @@ export default function PromptBubble({
             </div>
           </div>
         )}
-
         {/* Color Picker for FJB */}
         {elementType === 'flight-journey-bar' && showColorPicker && (
           <div className="absolute top-full left-0 mt-2 z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-lg p-3">
@@ -2249,7 +1730,6 @@ export default function PromptBubble({
             </button>
           </div>
         )}
-
         {/* Advanced Gradient Picker */}
         {elementType === 'flight-journey-bar' && showGradientPicker && (
           <div className="absolute top-full left-0 mt-2 z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-lg p-4" style={{ width: '320px' }}>
@@ -2261,7 +1741,7 @@ export default function PromptBubble({
                 onChange={(e) => {
                   const direction = e.target.value;
                   setGradientDirection(direction);
-                  updateGradient();
+                  updateGradientLocal();
                 }}
               >
                 <option value="120deg">Linear</option>
@@ -2283,7 +1763,7 @@ export default function PromptBubble({
                       position: 100 - stop.position
                     }));
                     setGradientStops(reversedStops);
-                    updateGradient();
+                    updateGradientLocal();
                   }}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2298,7 +1778,7 @@ export default function PromptBubble({
                       position: (stop.position + 25) % 100
                     }));
                     setGradientStops(rotatedStops);
-                    updateGradient();
+                    updateGradientLocal();
                   }}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2307,7 +1787,6 @@ export default function PromptBubble({
                 </button>
               </div>
             </div>
-            
             {/* Gradient Visualizer */}
             <div 
               className="relative h-8 bg-gray-700 rounded mb-3 cursor-pointer" 
@@ -2320,7 +1799,7 @@ export default function PromptBubble({
                 const percentage = Math.round((clickX / rect.width) * 100);
                 const newStop = { position: percentage, color: '#808080', opacity: 100 };
                 setGradientStops([...gradientStops, newStop].sort((a, b) => a.position - b.position));
-                updateGradient();
+                updateGradientLocal();
               }}
             >
               {gradientStops.map((stop, index) => (
@@ -2340,13 +1819,12 @@ export default function PromptBubble({
                       const newStops = [...gradientStops];
                       newStops[index].color = newColor;
                       setGradientStops(newStops);
-                      updateGradient();
+                      updateGradientLocal();
                     }
                   }}
                 />
               ))}
             </div>
-            
             {/* Stops Management */}
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-gray-300">Stops</span>
@@ -2356,7 +1834,7 @@ export default function PromptBubble({
                   if (gradientStops.length < 5) {
                     const newStop = { position: 50, color: '#808080', opacity: 100 };
                     setGradientStops([...gradientStops, newStop].sort((a, b) => a.position - b.position));
-                    updateGradient();
+                    updateGradientLocal();
                   }
                 }}
               >
@@ -2365,7 +1843,6 @@ export default function PromptBubble({
                 </svg>
               </button>
             </div>
-            
             {/* Stop Controls */}
             {gradientStops.map((stop, index) => (
               <div key={index} className="flex items-center gap-2 mb-2">
@@ -2385,7 +1862,7 @@ export default function PromptBubble({
                       const newStops = [...gradientStops];
                       newStops[index].color = newColor;
                       setGradientStops(newStops);
-                      updateGradient();
+                      updateGradientLocal();
                     }
                   }}
                   className="flex-1 px-2 py-1 text-xs bg-gray-700 text-gray-200 border border-gray-500 rounded"
@@ -2400,7 +1877,7 @@ export default function PromptBubble({
                       const newStops = [...gradientStops];
                       newStops[index].opacity = newOpacity;
                       setGradientStops(newStops);
-                      updateGradient();
+                      updateGradientLocal();
                     }
                   }}
                   className="w-16 px-2 py-1 text-xs bg-gray-700 text-gray-200 border border-gray-500 rounded"
@@ -2411,7 +1888,7 @@ export default function PromptBubble({
                     onClick={() => {
                       const newStops = gradientStops.filter((_, i) => i !== index);
                       setGradientStops(newStops);
-                      updateGradient();
+                      updateGradientLocal();
                     }}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2421,7 +1898,6 @@ export default function PromptBubble({
                 )}
               </div>
             ))}
-            
             <button
               onClick={() => {
                 // Apply the gradient change
@@ -2430,7 +1906,6 @@ export default function PromptBubble({
                     onThemeColorChange(pendingColor.color, selectedChipData);
                   }
                 }
-                
                 // Close the gradient picker
                 setShowGradientPicker(false);
                 setSelectedChipData(null);
@@ -2442,7 +1917,6 @@ export default function PromptBubble({
             </button>
           </div>
         )}
-
         {/* Color Picker for Chip Chevron Clicks */}
         {elementType === 'flight-journey-bar' && activeChipColorPicker !== null && (
           <div className="absolute top-full left-0 mt-2 z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-lg p-3">
@@ -2453,7 +1927,6 @@ export default function PromptBubble({
               const chipKey = `${selectedChipData.label}-${originalChipColor}`;
               const modifiedColor = modifiedChipColors[chipKey];
               const initialColor = pendingColor ? pendingColor.color : (modifiedColor || selectedColor);
-              
               return (
                 <>
                   <HexColorPicker
@@ -2487,13 +1960,11 @@ export default function PromptBubble({
                   // Create a key for the modified chip color using the original color
                   const originalChipColor = selectedChipData.originalColor || selectedChipData.color;
                   const chipKey = `${selectedChipData.label}-${originalChipColor}`;
-                  
                   // Store the modified color
                   setModifiedChipColors(prev => ({
                     ...prev,
                     [chipKey]: pendingColor.color
                   }));
-                  
                   // Update the chip's color with the new color
                   const updatedChip = { ...selectedChipData, color: pendingColor.color };
                   // Set the selected color to the new color
@@ -2510,7 +1981,6 @@ export default function PromptBubble({
             </button>
           </div>
         )}
-        
         {/* Save Button for Flight Phase Selection (FPS) */}
         {elementType !== 'promo-card' && elementType !== 'flight-journey-bar' && elementType !== 'content-card' && (
           <button

@@ -27,7 +27,8 @@ export default function Component3Cards({
   isModifyClicked,
   selectedDates,
   isCurrentThemeFestive,
-  getRouteSelectedThemeChip
+  getRouteSelectedThemeChip,
+  onPromoCardHover
 }) {
   // State for tracking image loading
   const [imageLoadingStates, setImageLoadingStates] = useState({});
@@ -202,7 +203,18 @@ export default function Component3Cards({
         data-name={cardInfo.name}
         data-card-index={originalCardIndex}
         id={cardInfo.id}
-        // Hover and click handlers removed for promo cards
+        onMouseEnter={(e) => {
+          if (isPromptMode && colorPromptSaved && onPromoCardHover) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const position = { x: rect.left + rect.width / 2, y: rect.top };
+            onPromoCardHover(true, 'promo-card', { cardIndex: originalCardIndex, cardType: cardInfo.type }, position);
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (isPromptMode && colorPromptSaved && onPromoCardHover) {
+            onPromoCardHover(false, 'promo-card', { cardIndex: originalCardIndex, cardType: cardInfo.type }, { x: 0, y: 0 });
+          }
+        }}
       >
           <div className="relative h-full w-full">
             

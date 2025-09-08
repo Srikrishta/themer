@@ -37,7 +37,7 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
   return (
     <div className="w-full flex justify-center">
       <div
-        className="box-border content-stretch flex flex-row gap-8 items-center justify-between p-0 relative mx-auto w-full max-w-[1328px]"
+        className="box-border content-stretch flex flex-row gap-8 items-center justify-between p-0 relative mx-auto w-full"
         data-name="flight journey bar"
         id="node-77_5469"
         onMouseEnter={(e) => {

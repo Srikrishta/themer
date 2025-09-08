@@ -44,7 +44,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, onContentCardHover, colorPromptClosedWithoutSave, getRouteColorPromptSaved, recommendedContentCards, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, handleContentCardHover, selectedDates = [], isCurrentThemeFestive, getRouteSelectedThemeChip }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, onContentCardHover, colorPromptClosedWithoutSave, getRouteColorPromptSaved, recommendedContentCards, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, handleContentCardHover, selectedDates = [], isCurrentThemeFestive, getRouteSelectedThemeChip, handlePromoCardHover }) {
 
   // State for tracking content card image loading
   const [contentImageLoadingStates, setContentImageLoadingStates] = useState({});
@@ -214,7 +214,18 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         key={`content-card-${originalCardIndex}-${displayPosition}`}
         className="overflow-clip relative shrink-0 flex items-center justify-center backdrop-blur-[10px] backdrop-filter group"
         style={cardStyle}
-        // Hover and click handlers removed for content cards
+        onMouseEnter={(e) => {
+          if (isPromptMode && getRouteColorPromptSaved() && handleContentCardHover) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const position = { x: rect.left + rect.width / 2, y: rect.top };
+            handleContentCardHover(true, 'content-card', { cardIndex: originalCardIndex, cardType: 'content-card' }, position);
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (isPromptMode && getRouteColorPromptSaved() && handleContentCardHover) {
+            handleContentCardHover(false, 'content-card', { cardIndex: originalCardIndex, cardType: 'content-card' }, { x: 0, y: 0 });
+          }
+        }}
       >
         {/* Image area - show image if available */}
         {contentData.image && (
@@ -419,6 +430,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         selectedDates={selectedDates}
         isCurrentThemeFestive={isCurrentThemeFestive}
         getRouteSelectedThemeChip={getRouteSelectedThemeChip}
+        onPromoCardHover={handlePromoCardHover}
       />
       
       {/* Recommended for you section */}
@@ -585,6 +597,8 @@ export default function Dashboard() {
   const [pcHoverTip, setPcHoverTip] = useState({ visible: false, x: 0, y: 0, elementData: null });
   // Add state for content card hover tip
   const [ccHoverTip, setCCHoverTip] = useState({ visible: false, x: 0, y: 0, elementData: null });
+  // State for promo card hover tip
+  const [promoCardHoverTip, setPromoCardHoverTip] = useState({ visible: false, x: 0, y: 0, elementData: null });
   // State for analytics bubble
   const [analyticsBubble, setAnalyticsBubble] = useState({ visible: false, x: 0, y: 0, elementData: null });
 
@@ -628,6 +642,17 @@ export default function Dashboard() {
   // Close analytics bubble
   const handleCloseAnalytics = () => {
     setAnalyticsBubble({ visible: false, x: 0, y: 0, elementData: null });
+  };
+
+  // Handle promo card hover
+  const handlePromoCardHover = (isHovering, elementType, elementData, position) => {
+    if (!isPromptMode || !getRouteColorPromptSaved()) return;
+    
+    if (isHovering) {
+      setPromoCardHoverTip({ visible: true, x: position.x, y: position.y - 50, elementData });
+    } else {
+      setPromoCardHoverTip({ visible: false, x: 0, y: 0, elementData: null });
+    }
   };
 
   // Handle content tab click
@@ -2196,6 +2221,7 @@ export default function Dashboard() {
               selectedDates={selectedDates}
               isCurrentThemeFestive={isCurrentThemeFestive}
               getRouteSelectedThemeChip={getRouteSelectedThemeChip}
+              handlePromoCardHover={handlePromoCardHover}
             />
           </div>
         </div>
@@ -2455,7 +2481,8 @@ export default function Dashboard() {
                 e.stopPropagation();
                 // Close the prompt bubble if it's open
                 setRoutePromptBubbles({});
-                setIsPromptMode(false);
+                // Hide only the FJB hover tip
+                setFjbHoverTip({ visible: false, x: 0, y: 0 });
               }}
               className="w-4 h-4 flex items-center justify-center ml-1"
               style={{ pointerEvents: 'auto', color: '#FFFFFF' }}
@@ -2641,7 +2668,139 @@ export default function Dashboard() {
         </>
       )}
 
-      {/* Content Card hover tips removed */}
+      {/* Promo Card hover tip: shows Content | Analytics | close button */}
+      {isCurrentRouteModified() && isPromptMode && promoCardHoverTip.visible && (
+        <div
+          key={`promo-hover-${activeThemeColor}`}
+          className="fixed"
+          data-hover-tip="true"
+          style={{ left: promoCardHoverTip.x, top: promoCardHoverTip.y, pointerEvents: 'none', zIndex: 999999999 }}
+        >
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
+            style={{
+              backgroundColor: '#1f2937', // Dark container color
+              borderColor: hoverBorderColor,
+              opacity: 1,
+              borderTopLeftRadius: 0
+            }}
+          >
+            <span 
+              className="text-xs font-bold cursor-pointer hover:bg-white/10 px-2 py-1 rounded"
+              style={{ 
+                color: '#FFFFFF', 
+                pointerEvents: 'auto'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('=== CONTENT CLICKED ===', { elementData: promoCardHoverTip.elementData });
+                // Open prompt bubble for content editing
+                handleContentClick(e, promoCardHoverTip.elementData);
+              }}
+            >
+              Content
+            </span>
+            <div className="w-px h-4 bg-white/30"></div>
+            <span 
+              className="text-xs font-bold cursor-pointer hover:bg-white/10 px-2 py-1 rounded"
+              style={{ 
+                color: '#FFFFFF', 
+                pointerEvents: 'auto'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('=== ANALYTICS CLICKED ===', { elementData: promoCardHoverTip.elementData });
+                // Open analytics bubble
+                handleAnalyticsClick(e, promoCardHoverTip.elementData);
+              }}
+            >
+              Analytics
+            </span>
+            <div className="w-px h-4 bg-white/30"></div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                // Close the prompt bubble if it's open
+                setRoutePromptBubbles({});
+                // Hide only the promo card hover tip
+                setPromoCardHoverTip({ visible: false, x: 0, y: 0, elementData: null });
+              }}
+              className="w-4 h-4 flex items-center justify-center ml-1"
+              style={{ pointerEvents: 'auto', color: '#FFFFFF' }}
+              title="Close"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Content Card hover tip: shows Content | Analytics | close button */}
+      {isCurrentRouteModified() && isPromptMode && ccHoverTip.visible && (
+        <div
+          key={`content-hover-${activeThemeColor}`}
+          className="fixed"
+          data-hover-tip="true"
+          style={{ left: ccHoverTip.x, top: ccHoverTip.y, pointerEvents: 'none', zIndex: 999999999 }}
+        >
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
+            style={{
+              backgroundColor: '#1f2937', // Dark container color
+              borderColor: hoverBorderColor,
+              opacity: 1,
+              borderTopLeftRadius: 0
+            }}
+          >
+            <span 
+              className="text-xs font-bold cursor-pointer hover:bg-white/10 px-2 py-1 rounded"
+              style={{ 
+                color: '#FFFFFF', 
+                pointerEvents: 'auto'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('=== CONTENT CLICKED ===', { elementData: ccHoverTip.elementData });
+                // Open prompt bubble for content editing
+                handleContentClick(e, ccHoverTip.elementData);
+              }}
+            >
+              Content
+            </span>
+            <div className="w-px h-4 bg-white/30"></div>
+            <span 
+              className="text-xs font-bold cursor-pointer hover:bg-white/10 px-2 py-1 rounded"
+              style={{ 
+                color: '#FFFFFF', 
+                pointerEvents: 'auto'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('=== ANALYTICS CLICKED ===', { elementData: ccHoverTip.elementData });
+                // Open analytics bubble
+                handleAnalyticsClick(e, ccHoverTip.elementData);
+              }}
+            >
+              Analytics
+            </span>
+            <div className="w-px h-4 bg-white/30"></div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                // Close the prompt bubble if it's open
+                setRoutePromptBubbles({});
+                // Hide only the content card hover tip
+                setCCHoverTip({ visible: false, x: 0, y: 0, elementData: null });
+              }}
+              className="w-4 h-4 flex items-center justify-center ml-1"
+              style={{ pointerEvents: 'auto', color: '#FFFFFF' }}
+              title="Close"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
