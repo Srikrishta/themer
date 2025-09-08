@@ -1,5 +1,5 @@
 // Helper function to get Pollinations AI generated images for content cards and promo cards
-export const getPollinationsImage = (description, themeColor = null) => {
+export const getPollinationsImage = (description, themeColor = null, options = {}) => {
   console.log('=== GETTING POLLINATIONS AI IMAGE ===', { description, themeColor });
   
   // Clean and optimize the description for AI image generation
@@ -19,14 +19,20 @@ export const getPollinationsImage = (description, themeColor = null) => {
     enhancedPrompt = `high quality, professional, ${cleanDescription}, ${colorName} background, modern, clean, 4k resolution`;
   }
   
+  // Seed handling: deterministic by default, randomized when requested
+  const { seed, randomize } = options || {};
+  const deterministicSeed = Math.abs(description.split('').reduce((a, b) => a + b.charCodeAt(0), 0));
+  const chosenSeed = typeof seed === 'number' ? seed : (randomize ? Math.floor(Math.random() * 1_000_000_000) : deterministicSeed);
+
   // Pollinations AI API endpoint
-  const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=416&height=200&nologo=true&seed=${Math.abs(description.split('').reduce((a, b) => a + b.charCodeAt(0), 0))}`;
+  const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=416&height=200&nologo=true&seed=${chosenSeed}`;
   
   console.log('=== POLLINATIONS AI URL GENERATED ===', { 
     originalDescription: description,
     cleanDescription,
     enhancedPrompt,
     themeColor,
+    chosenSeed,
     pollinationsUrl 
   });
   

@@ -32,6 +32,12 @@ export default function Component3Cards({
 }) {
   // State for tracking image loading
   const [imageLoadingStates, setImageLoadingStates] = useState({});
+  
+  // State for tracking remix loading
+  const [remixLoading, setRemixLoading] = useState(false);
+  
+  // State for tracking remixed images
+  const [remixedImages, setRemixedImages] = useState({});
 
   // Helper functions for image loading state management
   const setImageLoading = (cardIndex, isLoading) => {
@@ -300,8 +306,8 @@ export default function Component3Cards({
       >
           <div className="relative h-full w-full">
             
-            {/* Image area - show image if available */}
-            {cardContent.image && (
+            {/* Image area - show image if available OR if we have a remixed image */}
+            {(cardContent.image || remixedImages[originalCardIndex]) && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-full h-full relative">
                   {/* Loading spinner */}
@@ -316,26 +322,54 @@ export default function Component3Cards({
                   
                   {/* Image */}
                   {(() => {
-                    const imageSrc = (cardContent && cardContent.backgroundImage)
-                      ? cardContent.backgroundImage
-                      : getPollinationsImage(cardContent.image, themeColor);
+                    // Use remixed image if available, otherwise use original logic
+                    const hasRemixedImage = !!remixedImages[originalCardIndex];
+                    const baseDescription = cardContent.image || cardContent.text || 'in-flight experience';
+                    const imageSrc = remixedImages[originalCardIndex] || 
+                      ((cardContent && cardContent.backgroundImage)
+                        ? cardContent.backgroundImage
+                        : getPollinationsImage(baseDescription, themeColor));
+                    
+                    console.log('=== IMAGE RENDERING DEBUG ===', {
+                      originalCardIndex,
+                      hasRemixedImage,
+                      remixedImages,
+                      imageSrc,
+                      cardContentImage: cardContent.image,
+                      isLoading: isImageLoading(originalCardIndex)
+                    });
+                    
                     return (
                       <img 
                         src={imageSrc}
-                        alt={cardContent.image}
+                        alt={baseDescription}
                         className="w-full h-full object-cover rounded-lg"
                         style={{ display: isImageLoading(originalCardIndex) ? 'none' : 'block' }}
                         onLoad={() => {
-                          console.log('=== POLLINATIONS IMAGE LOADED ===', { cardIndex: originalCardIndex, alt: cardContent.image });
+                          console.log('=== POLLINATIONS IMAGE LOADED ===', { 
+                            cardIndex: originalCardIndex, 
+                            alt: cardContent.image, 
+                            src: imageSrc,
+                            wasRemixed: hasRemixedImage
+                          });
                           setImageLoading(originalCardIndex, false);
                         }}
                         onError={(e) => {
-                          console.log('=== POLLINATIONS IMAGE LOAD ERROR ===', { src: e.target.src, alt: cardContent.image });
+                          console.log('=== POLLINATIONS IMAGE LOAD ERROR ===', { 
+                            src: e.target.src, 
+                            alt: cardContent.image,
+                            wasRemixed: hasRemixedImage
+                          });
                           setImageLoading(originalCardIndex, false);
                           e.target.style.display = 'none';
                         }}
                         onLoadStart={() => {
-                          console.log('=== POLLINATIONS IMAGE LOAD START ===', { cardIndex: originalCardIndex, alt: cardContent.image });
+                          console.log('=== POLLINATIONS IMAGE LOAD START ===', { 
+                            cardIndex: originalCardIndex, 
+                            alt: cardContent.image, 
+                            src: imageSrc,
+                            wasRemixed: hasRemixedImage
+                          });
                           setImageLoading(originalCardIndex, true);
                         }}
                       />
@@ -345,6 +379,113 @@ export default function Component3Cards({
               </div>
             )}
             
+            {/* Remix button - only show on left card (index 0) after theme is saved */}
+            {originalCardIndex === 0 && colorPromptSaved && (
+              <div className="absolute inset-0 flex items-center justify-center z-20">
+                <div 
+                  className="px-4 py-3 rounded-lg flex flex-col items-center space-y-2"
+                  style={{
+                    backgroundColor: '#1C1C1C',
+                    border: '1px solid rgba(255, 255, 255, 0.2)'
+                  }}
+                >
+                  <p 
+                    className="text-xs text-white text-center"
+                    style={{ margin: 0 }}
+                  >
+                    {cardContent.image || cardContent.text || 'in-flight experience'}
+                  </p>
+                  <button
+                    className="px-6 py-3 rounded-lg font-semibold text-sm uppercase transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: themeColor.includes('gradient') ? 'rgba(255, 255, 255, 0.9)' : themeColor,
+                      color: themeColor.includes('gradient') ? '#1E1E1E' : getReadableOnColor(themeColor),
+                      border: '2px solid rgba(255, 255, 255, 0.3)',
+                      backdropFilter: 'blur(10px)'
+                    }}
+                    disabled={remixLoading}
+                  onClick={async () => {
+                    console.log('=== REMIX BUTTON CLICKED ===');
+                    setRemixLoading(true);
+                    
+                    try {
+                      // Get current card content to extract image description
+                      const currentCardContent = getDefaultCardContent(0);
+                      console.log('=== CURRENT CARD CONTENT ===', {
+                        currentCardContent,
+                        hasImage: !!currentCardContent.image,
+                        imageDescription: currentCardContent.image,
+                        text: currentCardContent.text
+                      });
+                      
+                      const imageDescription = currentCardContent.image || currentCardContent.text || 'in-flight experience';
+                      
+                      if (imageDescription) {
+                        console.log('=== GENERATING NEW IMAGE ===', {
+                          imageDescription,
+                          themeColor,
+                          currentRouteKey,
+                          selectedFlightPhase,
+                          colorPromptSaved
+                        });
+                        
+                        // Generate new image URL with current theme color and randomized seed for true remix
+                        const newImageUrl = getPollinationsImage(imageDescription, themeColor, { randomize: true });
+                        
+                        // Force reload the image by updating the src with a cache-busting parameter
+                        const timestamp = Date.now();
+                        const separator = newImageUrl.includes('?') ? '&' : '?';
+                        const newImageUrlWithCacheBust = `${newImageUrl}${separator}t=${timestamp}`;
+                        
+                        console.log('=== UPDATING STATE WITH NEW IMAGE ===', {
+                          newImageUrl,
+                          newImageUrlWithCacheBust,
+                          currentRemixedImages: remixedImages
+                        });
+                        
+                        // Update state to trigger re-render with new image
+                        setRemixedImages(prev => {
+                          const newState = {
+                            ...prev,
+                            0: newImageUrlWithCacheBust
+                          };
+                          console.log('=== NEW REMIXED IMAGES STATE ===', newState);
+                          return newState;
+                        });
+                        
+                        // Set loading state for the card
+                        setImageLoading(0, true);
+                        
+                        console.log('=== REMIX COMPLETE ===', {
+                          newImageUrl: newImageUrlWithCacheBust,
+                          loadingState: true
+                        });
+                      } else {
+                        console.log('=== NO IMAGE DESCRIPTION FOUND ===', {
+                          currentCardContent,
+                          reason: 'No image property in card content'
+                        });
+                      }
+                    } catch (error) {
+                      console.error('=== ERROR GENERATING REMIX IMAGE ===', error);
+                    } finally {
+                      setRemixLoading(false);
+                    }
+                  }}
+                >
+                  {remixLoading ? (
+                    <div className="flex items-center space-x-2">
+                      <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                      <span>Remixing...</span>
+                    </div>
+                  ) : (
+                    'Remix'
+                  )}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Bottom rectangle with text field */}
             <div 
               className="absolute bottom-0 left-0 right-0 z-10 p-2 rounded-b-lg"
