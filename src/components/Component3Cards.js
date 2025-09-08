@@ -12,7 +12,6 @@ export default function Component3Cards({
   isPromptMode = false, 
   onPromptHover, 
   onPromptClick, 
-  onPromoCardClick,
   promptStates = {}, 
   animationProgress = 0, 
   cruiseLabelShown = false, 
@@ -296,40 +295,6 @@ export default function Component3Cards({
         onMouseLeave={(e) => {
           if (isPromptMode && colorPromptSaved && onPromoCardHover) {
             onPromoCardHover(false, 'promo-card', { cardIndex: originalCardIndex, cardType: cardInfo.type }, { x: 0, y: 0 });
-          }
-        }}
-        onClick={(e) => {
-          console.log('=== PROMO CARD CLICK ATTEMPTED ===', {
-            originalCardIndex,
-            cardInfo,
-            cardContent,
-            isPromptMode,
-            colorPromptSaved,
-            hasOnPromoCardClick: !!onPromoCardClick,
-            allConditionsMet: isPromptMode && colorPromptSaved && onPromoCardClick
-          });
-          
-          if (isPromptMode && colorPromptSaved && onPromoCardClick) {
-            e.stopPropagation();
-            const position = { x: e.clientX, y: e.clientY };
-            // Pass the current card content along with the click event
-            console.log('=== PROMO CARD CLICKED IN COMPONENT3CARDS ===', {
-              originalCardIndex,
-              cardInfo,
-              cardContent,
-              position
-            });
-            onPromoCardClick(e, { 
-              cardIndex: originalCardIndex, 
-              cardType: cardInfo.type,
-              currentContent: cardContent
-            }, position);
-          } else {
-            console.log('=== PROMO CARD CLICK CONDITIONS NOT MET ===', {
-              isPromptMode,
-              colorPromptSaved,
-              hasOnPromoCardClick: !!onPromoCardClick
-            });
           }
         }}
       >

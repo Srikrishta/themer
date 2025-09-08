@@ -5,7 +5,6 @@ import { HexColorPicker } from 'react-colorful';
 import { getReadableOnColor } from '../utils/color';
 import { argbFromHex } from '@material/material-color-utilities';
 import { getFestivalsForFlightSegment, formatFestivalChips, getPromoCardContent, getContentCardContent, shouldUseFestivalContent } from '../utils/festivalUtils';
-import PromoCardPlaceholder from './PromptBubble/PromoCardPlaceholder';
 import { 
   getTextWidth, 
   calculateRequiredHeight, 
@@ -1108,20 +1107,6 @@ export default function PromptBubble({
                 minHeight: 'fit-content'
               }}
             >
-              <PromoCardPlaceholder 
-                textColor={useLightText ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)'}
-                onTextChange={(v) => { setPromoEdited(true); setPromoTextValue(v); }}
-                onImageTextChange={(v) => { setPromoEdited(true); setPromoImageValue(v); }}
-                textValue={promoTextValue}
-                imageValue={promoImageValue}
-                onTextFocus={() => setIsPromoTextFocused(true)}
-                onTextBlur={() => setIsPromoTextFocused(false)}
-                onImageFocus={() => setIsPromoImageFocused(true)}
-                onImageBlur={() => setIsPromoImageFocused(false)}
-                resetTrigger={promoResetTrigger}
-                elementData={elementData}
-                maxWidth={bubbleWidth}
-              />
             </div>
           )}
           {/* Flight Phase Chips - Only show for flight-icon and flight-phase-button and filter out used ones */}

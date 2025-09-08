@@ -44,7 +44,7 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, onContentCardHover, colorPromptClosedWithoutSave, getRouteColorPromptSaved, recommendedContentCards, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, handleContentCardHover, selectedDates = [], isCurrentThemeFestive, getRouteSelectedThemeChip, handlePromoCardHover, handlePromoCardClick }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, onContentCardHover, colorPromptClosedWithoutSave, getRouteColorPromptSaved, recommendedContentCards, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, handleContentCardHover, selectedDates = [], isCurrentThemeFestive, getRouteSelectedThemeChip, handlePromoCardHover }) {
 
   // State for tracking content card image loading
   const [contentImageLoadingStates, setContentImageLoadingStates] = useState({});
@@ -426,7 +426,6 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         isPromptMode={isPromptMode}
         onPromptHover={onPromptHover}
         onPromptClick={onPromptClick}
-        onPromoCardClick={handlePromoCardClick}
         isThemeBuildStarted={isThemeBuildStarted}
         selectedFlightPhase={selectedFlightPhase}
         promoCardContents={promoCardContents}
@@ -601,27 +600,12 @@ export default function Dashboard() {
   // Hover hint bubble for FPS ("Select flight phase")
   const [fpsHoverTip, setFpsHoverTip] = useState({ visible: false, x: 0, y: 0, progress: 0 });
   // Hover hint bubble for Promo Cards ("Edit promo card")
-  // Add state for content card hover tip
-  const [ccHoverTip, setCCHoverTip] = useState({ visible: false, x: 0, y: 0, elementData: null });
   // State for promo card hover tip
   const [promoCardHoverTip, setPromoCardHoverTip] = useState({ visible: false, x: 0, y: 0, elementData: null });
+  // Add state for content card hover tip
+  const [ccHoverTip, setCCHoverTip] = useState({ visible: false, x: 0, y: 0, elementData: null });
   // State for analytics bubble
   const [analyticsBubble, setAnalyticsBubble] = useState({ visible: false, x: 0, y: 0, elementData: null });
-
-  // Handle analytics click
-  const handleAnalyticsClick = (e, elementData) => {
-    e.stopPropagation();
-    console.log('=== ANALYTICS CLICKED - DISABLED ===', { elementData });
-    
-    // Analytics bubble is currently disabled
-    // Do nothing - analytics functionality is turned off
-    return;
-  };
-
-  // Close analytics bubble
-  const handleCloseAnalytics = () => {
-    setAnalyticsBubble({ visible: false, x: 0, y: 0, elementData: null });
-  };
 
   // Handle promo card hover
   const handlePromoCardHover = (isHovering, elementType, elementData, position) => {
@@ -650,109 +634,22 @@ export default function Dashboard() {
     }
   };
 
-  // Handle promo card click
-  const handlePromoCardClick = (e, elementData, position = null) => {
+  // Handle analytics click
+  const handleAnalyticsClick = (e, elementData) => {
     e.stopPropagation();
-    console.log('=== PROMO CARD CLICKED ===', { elementData, position });
+    console.log('=== ANALYTICS CLICKED - DISABLED ===', { elementData });
     
-    // Close analytics bubble if open
-    setAnalyticsBubble({ visible: false, x: 0, y: 0, elementData: null });
-    
-    // Use the provided position or fall back to hover tip position
-    // Apply the same offset as in handlePromoCardHover (50px above mouse pointer)
-    const hoverTipPosition = position ? 
-      { x: position.x, y: position.y - 50 } : 
-      { x: promoCardHoverTip.x, y: promoCardHoverTip.y };
-    
-    // Pin hover tip at its position and keep it visible
-    const fixedPosition = { x: hoverTipPosition.x, y: hoverTipPosition.y };
-    setPcFixedPosition(fixedPosition);
-    setPromoCardHoverTip({ visible: true, x: hoverTipPosition.x, y: hoverTipPosition.y, elementData });
-    
-    // Get current promo card content for this route
-    const routeKey = getCurrentRouteKey();
-    const routeContents = promoCardContents[routeKey];
-    let existingText = '';
-    
-    if (routeContents && routeContents[elementData.cardIndex] && (routeContents[elementData.cardIndex].text || routeContents[elementData.cardIndex].image)) {
-      const savedContent = routeContents[elementData.cardIndex];
-      // Format the existing text as expected by the prompt bubble
-      existingText = `text:${savedContent.text || ''},image:${savedContent.image || ''}`;
-      console.log('=== LOADING SAVED PROMO CARD CONTENT ===', {
-        routeKey,
-        cardIndex: elementData.cardIndex,
-        savedContent,
-        existingText
-      });
-    } else {
-      // No saved content - use the currently displayed content from the card
-      if (elementData.currentContent) {
-        const currentContent = elementData.currentContent;
-        console.log('=== DEBUGGING CURRENT CONTENT ===', {
-          currentContent,
-          textValue: currentContent.text,
-          imageValue: currentContent.image,
-          textType: typeof currentContent.text,
-          imageType: typeof currentContent.image,
-          textLength: currentContent.text?.length,
-          imageLength: currentContent.image?.length
-        });
-        
-        existingText = `text:${currentContent.text || ''},image:${currentContent.image || ''}`;
-        console.log('=== USING CURRENT DISPLAYED CONTENT ===', {
-          routeKey,
-          cardIndex: elementData.cardIndex,
-          currentContent,
-          existingText,
-          textValue: currentContent.text,
-          imageValue: currentContent.image
-        });
-      } else {
-        console.log('=== NO SAVED OR CURRENT CONTENT ===', {
-          routeKey,
-          cardIndex: elementData.cardIndex,
-          routeContents,
-          elementData,
-          hasCurrentContent: !!elementData.currentContent
-        });
-        existingText = '';
-      }
-    }
-    
-    // Small delay to prevent flickering, then open prompt bubble automatically
-    setTimeout(() => {
-      console.log('=== OPENING PROMPT BUBBLE FOR PROMO CARD ===', {
-        hoverTipPosition,
-        elementData,
-        cardIndex: elementData.cardIndex,
-        fixedPosition,
-        existingText
-      });
-      
-      // Ensure hover tip stays at fixed position when prompt bubble opens
-      setPromoCardHoverTip({ visible: true, x: fixedPosition.x, y: fixedPosition.y, elementData });
-      
-      // Open prompt bubble for promo card editing with existing content
-      console.log('=== SETTING CURRENT ROUTE PROMPT BUBBLE ===', {
-        x: hoverTipPosition.x,
-        y: hoverTipPosition.y + 50,
-        elementType: 'promo-card',
-        elementData: elementData,
-        positionKey: `promo-card-${elementData.cardIndex}`,
-        existingText: existingText,
-        existingTextLength: existingText.length
-      });
-      
-      setCurrentRoutePromptBubble({
-        x: hoverTipPosition.x,
-        y: hoverTipPosition.y + 50, // Position below hover tip
-        elementType: 'promo-card',
-        elementData: elementData,
-        positionKey: `promo-card-${elementData.cardIndex}`,
-        existingText: existingText
-      });
-    }, 50);
+    // Analytics bubble is currently disabled
+    // Do nothing - analytics functionality is turned off
+    return;
   };
+
+  // Close analytics bubble
+  const handleCloseAnalytics = () => {
+    setAnalyticsBubble({ visible: false, x: 0, y: 0, elementData: null });
+  };
+
+
 
   // Handle content tab click
   const handleContentClick = (e, elementData) => {
@@ -771,12 +668,6 @@ export default function Dashboard() {
       // Pin hover tip at its position and keep it visible
       setCcFixedPosition({ x: hoverTipPosition.x, y: hoverTipPosition.y });
       setCCHoverTip(prev => ({ ...prev, visible: true, x: hoverTipPosition.x, y: hoverTipPosition.y, elementData }));
-    } else {
-      // Use promo card hover tip position
-      hoverTipPosition = { x: promoCardHoverTip.x, y: promoCardHoverTip.y };
-      // Pin hover tip at its position and keep it visible
-      setPcFixedPosition({ x: hoverTipPosition.x, y: hoverTipPosition.y });
-      setPromoCardHoverTip(prev => ({ ...prev, visible: true, x: hoverTipPosition.x, y: hoverTipPosition.y, elementData }));
     }
     
     // Small delay to prevent flickering
@@ -1258,11 +1149,6 @@ export default function Dashboard() {
       return;
     }
     
-    // Prevent promo card hover from showing until color has been saved at least once
-    if (elementType === 'promo-card' && !getRouteColorPromptSaved() && colorPromptClosedWithoutSave) {
-      console.log('=== BLOCKING PROMO CARD HOVER - COLOR NEVER SAVED ===');
-      return;
-    }
     
     // For FJB: do NOT show the icon-only plus; show hover bubble with "+ add theme"
     if (elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation') {
@@ -1310,6 +1196,7 @@ export default function Dashboard() {
       }
       return;
     }
+
 
     if (elementType === 'promo-card') {
       if (!getCurrentRoutePromptBubble()) {
@@ -1382,9 +1269,9 @@ export default function Dashboard() {
       isPromptMode
     });
     
-    // Ignore promo and content card clicks - no prompt bubbles for these
-    if (elementType === 'promo-card' || elementType === 'content-card') {
-      console.log('🎯 Prompt click ignored - promo/content cards no longer support prompt bubbles');
+    // Ignore content card clicks - no prompt bubbles for these
+    if (elementType === 'content-card') {
+      console.log('🎯 Prompt click ignored - content cards no longer support prompt bubbles');
       return;
     }
     
@@ -1426,12 +1313,9 @@ export default function Dashboard() {
     // Set fixed positions for promo cards and content cards
     if (elementType === 'promo-card') {
       setPcFixedPosition({ x: position.x, y: position.y });
-              // Immediately show hover tip at fixed position
-        console.log('=== PROMO CARD HOVER POSITION ===', { position, elementData });
-        setPromoCardHoverTip({ visible: true, x: position.x, y: position.y, elementData });
-        
-        // Call handlePromoCardClick to open prompt bubble with the correct position
-        handlePromoCardClick({ stopPropagation: () => {} }, elementData, position);
+      // Immediately show hover tip at fixed position
+      console.log('=== PROMO CARD HOVER POSITION ===', { position, elementData });
+      setPromoCardHoverTip({ visible: true, x: position.x, y: position.y, elementData });
     }
     
     if (elementType === 'content-card') {
@@ -1441,11 +1325,6 @@ export default function Dashboard() {
       setCCHoverTip({ visible: true, x: position.x, y: position.y, elementData });
     }
     
-    // Prevent promo card prompt bubble from showing until color has been saved at least once
-    if (elementType === 'promo-card' && !getRouteColorPromptSaved() && colorPromptClosedWithoutSave) {
-      console.log('=== BLOCKING PROMO CARD PROMPT - COLOR NEVER SAVED ===');
-      return;
-    }
     
     // Generate unique key for different element types
     let positionKey;
@@ -1478,53 +1357,6 @@ export default function Dashboard() {
       // Content cards now show empty text - no default content
       existingText = '';
       console.log('=== CONTENT CARD EXISTING TEXT SET TO EMPTY ===', { existingText });
-    } else if (elementType === 'promo-card' && elementData?.cardIndex !== undefined) {
-      // Check if this is a content card (passed as promo-card type)
-      if (elementData.cardType === 'content-card') {
-        // For content cards, get existing content from route-specific content cards
-        const routeContentCards = getRouteContentCards();
-        const contentCard = routeContentCards[elementData.cardIndex];
-        console.log('=== DEBUG ROUTE-SPECIFIC CONTENT CARD RETRIEVAL ===', {
-        elementType,
-        cardIndex: elementData.cardIndex,
-          routeKey: getCurrentRouteKey(),
-          routeContentCards,
-          contentCard
-        });
-        // Content cards now show empty text - no default content
-        existingText = '';
-        console.log('=== CONTENT CARD EXISTING TEXT SET TO EMPTY ===', { existingText });
-      } else {
-        // For promo cards, get existing content from route-specific promoCardContents
-        const routeContents = getRoutePromoCardContents();
-        const cardContent = routeContents[elementData.cardIndex];
-        console.log('=== DEBUG ROUTE-SPECIFIC PROMO CARD RETRIEVAL ===', {
-          elementType,
-          cardIndex: elementData.cardIndex,
-          routeKey: getCurrentRouteKey(),
-          routeContents,
-        cardContent,
-          hasUpdated: cardContent?.updated,
-          allRoutes: Object.keys(promoCardContents)
-      });
-      if (cardContent && cardContent.updated && !selectedFlightPhase) {
-        // Use existing content only if no flight phase is selected
-        existingText = `text:${cardContent.text || ''},image:${cardContent.image || ''}`;
-        console.log('=== FORMATTED EXISTING TEXT ===', { existingText });
-      } else {
-        console.log('=== NO EXISTING CONTENT FOUND OR FLIGHT PHASE SELECTED ===', { 
-          hasCardContent: !!cardContent,
-          hasUpdated: cardContent?.updated,
-            routeContents,
-          cardIndex: elementData.cardIndex,
-            routeKey: getCurrentRouteKey(),
-          selectedFlightPhase
-        });
-        
-        // Promo cards now show empty content - no phase-specific defaults
-        existingText = '';
-      }
-      }
     } else {
       existingText = fpsPrompts[positionKey] || '';
     }
@@ -1564,16 +1396,6 @@ export default function Dashboard() {
         positionKey,
         existingText
       });
-    } else if (elementType === 'promo-card') {
-      // For promo-card, place below the hover tip (hover tip is typically 50px tall)
-      setCurrentRoutePromptBubble({
-        x: position.x,
-        y: position.y + 60, // Position below hover tip with enough spacing to avoid overlap
-        elementType,
-        elementData,
-        positionKey,
-        existingText
-      });
     } else if (elementType === 'content-card') {
       // For content-card, place below the hover tip (hover tip is typically 50px tall)
       setCurrentRoutePromptBubble({
@@ -1602,9 +1424,9 @@ export default function Dashboard() {
     // Ensure hover tips remain visible at fixed positions when prompt bubbles open
     if ((elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation') && fjbFixedPosition) {
       setFjbHoverTip({ visible: true, x: fjbFixedPosition.x, y: fjbFixedPosition.y });
-            } else if (elementType === 'promo-card' && pcFixedPosition) {
-        setPromoCardHoverTip({ visible: true, x: pcFixedPosition.x, y: pcFixedPosition.y, elementData });
-      }
+    } else if (elementType === 'promo-card' && pcFixedPosition) {
+      setPromoCardHoverTip({ visible: true, x: pcFixedPosition.x, y: pcFixedPosition.y, elementData });
+    }
   };
 
   // Listen for prompt events from routes view (inline flight cards)
@@ -1644,7 +1466,6 @@ export default function Dashboard() {
     setShowPlusIcon(false);
     // Clear all fixed positions when exiting prompt mode
     setFjbFixedPosition(null);
-    setPcFixedPosition(null);
     setCcFixedPosition(null);
   };
 
@@ -1673,119 +1494,6 @@ export default function Dashboard() {
     });
     
     
-        // Handle promo card and content card submissions
-    if ((elementType === 'promo-card' || elementType === 'content-card') && elementData && elementData.cardIndex !== undefined) {
-      console.log('=== DASHBOARD RECEIVED CARD SUBMISSION ===', { 
-        promptText, 
-        elementType, 
-        elementData, 
-        positionKey,
-      });
-      
-      // Check if this is a content card
-      if (elementType === 'content-card' || elementData.cardType === 'content-card') {
-        // Handle content card submissions
-        console.log('=== HANDLING CONTENT CARD SUBMISSION ===', { promptText });
-        
-        // Content cards now always show "Add content" - no title updates allowed
-        console.log('=== CONTENT CARD SUBMISSION IGNORED ===', { promptText });
-      } else {
-        // Handle promo card submissions
-        console.log('=== HANDLING PROMO CARD SUBMISSION ===', { promptText });
-        
-      
-      // Parse the submitted text (format: "text:value,image:value")
-      const parts = promptText.split(',');
-      let textContent = '';
-      let imageContent = '';
-      
-      parts.forEach(part => {
-        if (part.startsWith('text:')) {
-          textContent = part.substring(5).trim();
-        } else if (part.startsWith('image:')) {
-          imageContent = part.substring(6).trim();
-        }
-      });
-      
-      console.log('=== PARSED PROMO CONTENT ===', { 
-        parts, 
-        textContent, 
-        imageContent 
-      });
-      
-        // Update the promo card content for the current route
-        const routeKey = getCurrentRouteKey();
-        console.log('=== DEBUGGING PROMO CARD SAVE ===', {
-          routeKey,
-          elementData,
-          textContent,
-          imageContent,
-          origin,
-          destination
-        });
-        
-        if (routeKey) {
-          setPromoCardContents(prev => {
-            const routeContents = prev[routeKey] || {};
-            const existingContent = routeContents[elementData.cardIndex] || {};
-            
-            console.log('=== BEFORE SAVE STATE ===', {
-              routeKey,
-              cardIndex: elementData.cardIndex,
-              prevState: prev,
-              routeContents,
-              existingContent,
-              textContent,
-              imageContent
-            });
-            
-            // Update the specific card that was edited
-            const updatedRouteContents = {
-              ...routeContents,
-              [elementData.cardIndex]: {
-                text: textContent,
-                image: imageContent.trim() ? imageContent : existingContent.image,
-                backgroundImage: existingContent.backgroundImage,
-                updated: true
-              }
-            };
-            
-            const newState = {
-              ...prev,
-              [routeKey]: updatedRouteContents
-            };
-            
-            console.log('=== AFTER SAVE STATE ===', {
-              routeKey,
-              cardIndex: elementData.cardIndex,
-              newState,
-              updatedRouteContents
-            });
-            
-            return newState;
-          });
-          
-          console.log('=== PROMO CARD CONTENT UPDATED ===', { 
-            cardIndex: elementData.cardIndex, 
-            textContent, 
-            imageContent 
-          });
-          
-          // Force a re-render by updating a dummy state to test if the issue is with React updates
-          setTimeout(() => {
-            console.log('=== CHECKING PROMO CARD CONTENTS AFTER SAVE ===', {
-              routeKey,
-              cardIndex: elementData.cardIndex,
-              promoCardContents: promoCardContents,
-              routeContents: promoCardContents[routeKey],
-              cardContent: promoCardContents[routeKey]?.[elementData.cardIndex]
-            });
-          }, 100);
-        } else {
-          console.log('=== NO ROUTE KEY FOUND ===', { routeKey, origin, destination });
-        }
-      }
-    }
     
     // Store the submitted text for this position
     if (positionKey) {
@@ -2015,9 +1723,10 @@ export default function Dashboard() {
     }
     
     // Don't show content card hover tip if other UI elements are active
-    if (fjbHoverTip.visible || getCurrentRoutePromptBubble() || showPlusIcon) {
+    if (fjbHoverTip.visible || promoCardHoverTip.visible || getCurrentRoutePromptBubble() || showPlusIcon) {
       console.log('=== IGNORING CONTENT CARD HOVER - OTHER UI ACTIVE ===', { 
         fjbHoverTipVisible: fjbHoverTip.visible, 
+        promoCardHoverTipVisible: promoCardHoverTip.visible,
         promptBubbleOpen: !!getCurrentRoutePromptBubble(),
         showPlusIcon 
       });
@@ -2279,9 +1988,7 @@ export default function Dashboard() {
                 // Check if hover is on promo or content card to avoid triggering hover effects
                 const target = e.target;
                 const isPromoOrContentCard = (
-                  target.closest('[data-promo-card]') || 
                   target.closest('[data-content-card]') ||
-                  target.closest('.promo-card') ||
                   target.closest('.content-card')
                 );
                 
@@ -2293,9 +2000,7 @@ export default function Dashboard() {
                 // Check if hover is on promo or content card to avoid triggering hover effects
                 const target = e.target;
                 const isPromoOrContentCard = (
-                  target.closest('[data-promo-card]') || 
                   target.closest('[data-content-card]') ||
-                  target.closest('.promo-card') ||
                   target.closest('.content-card')
                 );
                 
@@ -2397,7 +2102,6 @@ export default function Dashboard() {
               isCurrentThemeFestive={isCurrentThemeFestive}
               getRouteSelectedThemeChip={getRouteSelectedThemeChip}
               handlePromoCardHover={handlePromoCardHover}
-              handlePromoCardClick={handlePromoCardClick}
             />
           </div>
         </div>
@@ -2860,6 +2564,8 @@ export default function Dashboard() {
         </>
       )}
 
+
+
       {/* Promo Card hover tip: shows Content | Analytics | close button */}
       {isCurrentRouteModified() && isPromptMode && promoCardHoverTip.visible && (
         <div
@@ -2929,7 +2635,6 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-
 
       {/* Content Card hover tip: shows Content | Analytics | close button */}
       {isCurrentRouteModified() && isPromptMode && ccHoverTip.visible && (
