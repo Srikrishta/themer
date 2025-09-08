@@ -85,9 +85,12 @@ export default function PromptBubble({
     promoImageValue
   });
   const [isPromoTextFocused, setIsPromoTextFocused] = useState(false);
+  const [isPromoImageFocused, setIsPromoImageFocused] = useState(false);
   const [promoResetTrigger, setPromoResetTrigger] = useState(0);
   // Update promo values when existingText changes (for promo cards)
   useEffect(() => {
+    // Do not overwrite user edits while either field is focused
+    if (isPromoTextFocused || isPromoImageFocused) return;
     console.log('=== PROMO VALUES USEEFFECT TRIGGERED ===', {
       elementType,
       existingText,
@@ -108,10 +111,12 @@ export default function PromptBubble({
       setPromoTextValue(newPromoValues.text);
       setPromoImageValue(newPromoValues.image);
     }
-  }, [existingText, elementType, elementData, selectedFlightSegment, selectedDates, selectedFlightPhase, isVisible]);
+  }, [existingText, elementType, elementData, selectedFlightSegment, selectedDates, selectedFlightPhase, isVisible, isPromoTextFocused, isPromoImageFocused]);
 
   // Additional useEffect to handle when prompt bubble becomes visible
   useEffect(() => {
+    // Do not overwrite user edits while either field is focused
+    if (isPromoTextFocused || isPromoImageFocused) return;
     if (isVisible && elementType === 'promo-card' && existingText) {
       console.log('=== PROMPT BUBBLE BECAME VISIBLE ===', {
         elementType,
@@ -125,7 +130,7 @@ export default function PromptBubble({
       setPromoTextValue(newPromoValues.text);
       setPromoImageValue(newPromoValues.image);
     }
-  }, [isVisible, elementType, existingText, elementData, selectedFlightSegment, selectedDates, selectedFlightPhase]);
+  }, [isVisible, elementType, existingText, elementData, selectedFlightSegment, selectedDates, selectedFlightPhase, isPromoTextFocused, isPromoImageFocused]);
 
   // Debug promo state changes
   useEffect(() => {
@@ -1106,8 +1111,10 @@ export default function PromptBubble({
                 onImageTextChange={setPromoImageValue}
                 textValue={promoTextValue}
                 imageValue={promoImageValue}
-                onTextFocus={setIsPromoTextFocused}
-                onTextBlur={setIsPromoTextFocused}
+                onTextFocus={() => setIsPromoTextFocused(true)}
+                onTextBlur={() => setIsPromoTextFocused(false)}
+                onImageFocus={() => setIsPromoImageFocused(true)}
+                onImageBlur={() => setIsPromoImageFocused(false)}
                 resetTrigger={promoResetTrigger}
                 elementData={elementData}
                 maxWidth={bubbleWidth}

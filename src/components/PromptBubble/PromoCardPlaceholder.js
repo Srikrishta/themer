@@ -1,26 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 
-// Blinking cursor component
-const BlinkingCursor = () => (
-  <span 
-    className="animate-pulse"
-    style={{
-      animation: 'blink 1s infinite',
-      color: 'inherit'
-    }}
-  >
-    |
-  </span>
-);
-
-// CSS for blinking animation
-const blinkingCSS = `
-  @keyframes blink {
-    0%, 50% { opacity: 1; }
-    51%, 100% { opacity: 0; }
-  }
-`;
-
 // Custom placeholder component for promo cards with editable inputs
 const PromoCardPlaceholder = ({ 
   textColor, 
@@ -30,6 +9,8 @@ const PromoCardPlaceholder = ({
   imageValue = '', 
   onTextFocus, 
   onTextBlur, 
+  onImageFocus,
+  onImageBlur,
   resetTrigger, 
   elementData, 
   maxWidth = 300 
@@ -47,26 +28,10 @@ const PromoCardPlaceholder = ({
     }
   }, [resetTrigger]);
 
-  // Auto-resize textarea function
-  const autoResizeTextarea = (textarea) => {
-    if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = textarea.scrollHeight + 'px';
-    }
+  // Ensure only one field is focused at a time
+  const handleFieldFocus = (fieldType) => {
+    setFocusedField(fieldType);
   };
-
-  // Auto-resize textareas when text values change
-  useEffect(() => {
-    if (textInputRef.current) {
-      autoResizeTextarea(textInputRef.current);
-    }
-  }, [textValue]);
-
-  useEffect(() => {
-    if (imageInputRef.current) {
-      autoResizeTextarea(imageInputRef.current);
-    }
-  }, [imageValue]);
   
   // Character limit for text field
   const TEXT_CHAR_LIMIT = 30;
@@ -83,138 +48,94 @@ const PromoCardPlaceholder = ({
     return context.measureText(text).width;
   };
   
+
   return (
     <div style={{ color: textColor, fontSize: '14px', pointerEvents: 'auto', width: '100%' }}>
-      <style>{blinkingCSS}</style>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px', lineHeight: '1.4', width: '100%' }}>
         <span>Change text to </span>
-        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-          {/* Show dots when no text and not focused */}
-          {!textValue && focusedField !== 'text' && (
-            <span 
-              style={{ 
-                opacity: 0.5, 
-                cursor: 'text',
-                position: 'absolute',
-                left: '2px',
-                pointerEvents: 'auto'
-              }}
-              onClick={() => {
-                setFocusedField('text');
-                setTimeout(() => textInputRef.current?.focus(), 0);
-              }}
-            >
-              ••••••••••
-            </span>
-          )}
-          
-          <textarea
-            ref={textInputRef}
-            value={textValue}
-            onChange={(e) => {
-              const newValue = e.target.value;
-              if (newValue.length <= TEXT_CHAR_LIMIT) {
-                onTextChange(newValue);
-                // Auto-resize the textarea
-                autoResizeTextarea(e.target);
-              }
-            }}
-            onFocus={() => {
-              setFocusedField('text');
-              onTextFocus?.();
-            }}
-            onBlur={() => {
-              setFocusedField(null);
-              onTextBlur?.();
-            }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              color: 'inherit',
-              fontSize: 'inherit',
-              fontWeight: 'bold',
-              fontFamily: 'inherit',
-              padding: '2px',
-              margin: 0,
-              resize: 'none',
-              overflow: 'hidden',
-              minHeight: '20px',
-              maxWidth: `${maxWidth - 60}px`, // Prevent overflow
-              width: `${Math.max(getTextWidth(textValue) + 10, 50)}px`,
-              lineHeight: '1.4'
-            }}
-            placeholder=""
-            rows={1}
-          />
-          
-          {/* Show cursor when focused */}
-          {focusedField === 'text' && (
-            <BlinkingCursor />
-          )}
-        </div>
+        <input
+          ref={textInputRef}
+          type="text"
+          value={textValue}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              // Keep input single-line and avoid form submit
+              e.preventDefault();
+            }
+          }}
+          onChange={(e) => {
+            const newValue = e.target.value;
+            if (newValue.length <= TEXT_CHAR_LIMIT) {
+              onTextChange(newValue);
+            }
+          }}
+          onFocus={() => {
+            handleFieldFocus('text');
+            onTextFocus?.();
+          }}
+          onBlur={() => {
+            setFocusedField(null);
+            onTextBlur?.();
+          }}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            color: 'inherit',
+            fontSize: 'inherit',
+            fontWeight: 'bold',
+            fontFamily: 'inherit',
+            padding: '2px',
+            margin: 0,
+            minWidth: '50px',
+            maxWidth: `${maxWidth - 60}px`,
+            width: `${Math.max(getTextWidth(textValue) + 10, 50)}px`,
+            lineHeight: '1.4',
+            cursor: 'text'
+          }}
+          placeholder={!textValue && focusedField !== 'text' ? '••••••••••' : ''}
+        />
         
         <span>and image to </span>
-        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-          {/* Show dots when no image text and not focused */}
-          {!imageValue && focusedField !== 'image' && (
-            <span 
-              style={{ 
-                opacity: 0.5, 
-                cursor: 'text',
-                position: 'absolute',
-                left: '2px',
-                pointerEvents: 'auto'
-              }}
-              onClick={() => {
-                setFocusedField('image');
-                setTimeout(() => imageInputRef.current?.focus(), 0);
-              }}
-            >
-              ••••••••••
-            </span>
-          )}
-          
-          <textarea
-            ref={imageInputRef}
-            value={imageValue}
-            onChange={(e) => {
-              onImageTextChange(e.target.value);
-              // Auto-resize the textarea
-              autoResizeTextarea(e.target);
-            }}
-            onFocus={() => {
-              setFocusedField('image');
-            }}
-            onBlur={() => {
-              setFocusedField(null);
-            }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              color: 'inherit',
-              fontSize: 'inherit',
-              fontWeight: 'bold',
-              fontFamily: 'inherit',
-              padding: '2px',
-              margin: 0,
-              resize: 'none',
-              overflow: 'hidden',
-              minHeight: '20px',
-              maxWidth: `${maxWidth - 60}px`, // Prevent overflow
-              width: `${Math.max(getTextWidth(imageValue) + 10, 50)}px`,
-              lineHeight: '1.4'
-            }}
-            placeholder=""
-            rows={1}
-          />
-          
-          {/* Show cursor when focused */}
-          {focusedField === 'image' && (
-            <BlinkingCursor />
-          )}
-        </div>
+        <input
+          ref={imageInputRef}
+          type="text"
+          value={imageValue}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              // Keep input single-line and avoid form submit
+              e.preventDefault();
+            }
+          }}
+          onChange={(e) => {
+            onImageTextChange(e.target.value);
+          }}
+          onFocus={() => {
+            handleFieldFocus('image');
+            onImageFocus?.();
+          }}
+          onBlur={() => {
+            setFocusedField(null);
+            onImageBlur?.();
+          }}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            color: 'inherit',
+            fontSize: 'inherit',
+            fontWeight: 'bold',
+            fontFamily: 'inherit',
+            padding: '2px',
+            margin: 0,
+            minWidth: '50px',
+            maxWidth: `${maxWidth - 60}px`,
+            width: `${Math.max(getTextWidth(imageValue) + 10, 50)}px`,
+            lineHeight: '1.4',
+            cursor: 'text'
+          }}
+          placeholder={!imageValue && focusedField !== 'image' ? '••••••••••' : ''}
+        />
         
       </div>
     </div>
