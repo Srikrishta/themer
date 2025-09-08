@@ -12,6 +12,7 @@ export default function Component3Cards({
   isPromptMode = false, 
   onPromptHover, 
   onPromptClick, 
+  onPromoCardClick,
   promptStates = {}, 
   animationProgress = 0, 
   cruiseLabelShown = false, 
@@ -220,6 +221,13 @@ export default function Component3Cards({
         onMouseLeave={(e) => {
           if (isPromptMode && colorPromptSaved && onPromoCardHover) {
             onPromoCardHover(false, 'promo-card', { cardIndex: originalCardIndex, cardType: cardInfo.type }, { x: 0, y: 0 });
+          }
+        }}
+        onClick={(e) => {
+          if (isPromptMode && colorPromptSaved && onPromoCardClick) {
+            e.stopPropagation();
+            const position = { x: e.clientX, y: e.clientY };
+            onPromoCardClick(e, { cardIndex: originalCardIndex, cardType: cardInfo.type }, position);
           }
         }}
       >
