@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { ArrowPathIcon } from '@heroicons/react/24/outline';
 
 // Blinking cursor component
 const BlinkingCursor = () => (
@@ -33,8 +32,6 @@ const PromoCardPlaceholder = ({
   onTextBlur, 
   resetTrigger, 
   elementData, 
-  onRemix, 
-  isRemixLoading = false, 
   maxWidth = 300 
 }) => {
   const [focusedField, setFocusedField] = useState(null); // Track which field is focused
@@ -219,38 +216,6 @@ const PromoCardPlaceholder = ({
           )}
         </div>
         
-        {/* Remix button */}
-        {elementData && (
-          <button
-            type="button"
-            title="Remix image"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              console.log('=== REMIX BUTTON UI CLICKED ===', { elementData });
-              onRemix?.(elementData);
-            }}
-            disabled={isRemixLoading}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'inherit',
-              cursor: 'pointer',
-              padding: '2px',
-              display: 'flex',
-              alignItems: 'center',
-              opacity: isRemixLoading ? 0.5 : 1
-            }}
-          >
-            {isRemixLoading ? (
-              <div className="w-3 h-3 animate-spin">
-                <ArrowPathIcon className="w-3 h-3" />
-              </div>
-            ) : (
-              <ArrowPathIcon className="w-3 h-3" />
-            )}
-          </button>
-        )}
       </div>
     </div>
   );

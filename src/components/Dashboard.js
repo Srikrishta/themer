@@ -793,24 +793,6 @@ export default function Dashboard() {
     }, 50);
   };
 
-  // Callback for remix image loading
-  const handleRemixImageLoaded = (cardIndex) => {
-    console.log('=== DASHBOARD REMIX CALLBACK CALLED ===', { cardIndex });
-    // Clear loading state for the specific card in the current route
-    const routeKey = getCurrentRouteKey();
-    if (routeKey) {
-      setPromoCardContents(prev => ({
-        ...prev,
-        [routeKey]: {
-          ...prev[routeKey],
-          [cardIndex]: {
-            ...prev[routeKey]?.[cardIndex],
-            isLoading: false
-          }
-        }
-      }));
-    }
-  };
 
   // Removed scroll-collapsed header behavior
 
@@ -1698,19 +1680,19 @@ export default function Dashboard() {
         elementType, 
         elementData, 
         positionKey,
-        isRemix: options.isRemix
       });
       
       // Check if this is a content card
       if (elementType === 'content-card' || elementData.cardType === 'content-card') {
         // Handle content card submissions
-        console.log('=== HANDLING CONTENT CARD SUBMISSION ===', { promptText, isRemix: options.isRemix });
+        console.log('=== HANDLING CONTENT CARD SUBMISSION ===', { promptText });
         
         // Content cards now always show "Add content" - no title updates allowed
         console.log('=== CONTENT CARD SUBMISSION IGNORED ===', { promptText });
       } else {
         // Handle promo card submissions
-        console.log('=== HANDLING PROMO CARD SUBMISSION ===', { promptText, isRemix: options.isRemix });
+        console.log('=== HANDLING PROMO CARD SUBMISSION ===', { promptText });
+        
       
       // Parse the submitted text (format: "text:value,image:value")
       const parts = promptText.split(',');
@@ -1742,18 +1724,13 @@ export default function Dashboard() {
             const updatedRouteContents = {
               ...routeContents,
               [elementData.cardIndex]: {
-                // For remix operations, preserve existing text content
-                text: options.isRemix ? existingContent.text : textContent,
-                // Use remixed image URL if provided, otherwise use image content or existing image
-                image: options.remixedImageUrl ? options.remixedImageUrl : (imageContent.trim() ? imageContent : existingContent.image),
-                backgroundImage: options.remixedImageUrl || existingContent.backgroundImage,
-                updated: true,
-                // Add remix counter for remix operations to trigger re-render
-                remixCount: options.isRemix ? (existingContent.remixCount || 0) + 1 : 0,
-                // Add loading state for remix operations
-                isLoading: options.isRemix ? true : false
+                text: textContent,
+                image: imageContent.trim() ? imageContent : existingContent.image,
+                backgroundImage: existingContent.backgroundImage,
+                updated: true
               }
             };
+            
             
             // If this is the first time saving content for this route, populate all flight phase cards
             const hasAnyUpdatedCards = Object.values(routeContents).some(card => card.updated);
@@ -1771,8 +1748,6 @@ export default function Dashboard() {
               cardIndex: elementData.cardIndex,
               textContent,
               imageContent,
-              isRemix: options.isRemix,
-              remixCount: updatedRouteContents[elementData.cardIndex].remixCount,
               previousRouteContents: routeContents,
               newRouteContents: updatedRouteContents,
               allRoutes: Object.keys(prev),
@@ -1801,8 +1776,7 @@ export default function Dashboard() {
     
     // TODO: Handle the actual prompt submission logic here
     // Don't close the bubble for logo placeholder submissions (keep bubble open for editing)
-    // Don't close the bubble for remix operations (keep bubble open for continued editing)
-    if (elementType !== 'logo-placeholder' && !options.isRemix) {
+    if (elementType !== 'logo-placeholder') {
       setCurrentRoutePromptBubble(null);
     }
     // Heuristic: if this is logo placeholder, parse prompt to choose or clear an animation

@@ -68,45 +68,9 @@ export default function PromptBubble({
   const [autoTypeIndex, setAutoTypeIndex] = useState(0);
   const [stickyPosition, setStickyPosition] = useState(null);
   const [selectedChip, setSelectedChip] = useState((elementType === 'flight-icon' || elementType === 'flight-phase-button') && positionKey === 'landing-demo' ? 'cruise' : null);
-  const [isRemixLoading, setIsRemixLoading] = useState(false);
-  const [remixedImageUrl, setRemixedImageUrl] = useState(null);
   const [contentHeight, setContentHeight] = useState('auto');
   // calculateRequiredHeight function is now imported from utils
   // getTextWidth function is now imported from utils
-  // Monitor remix image loading to clear loading state
-  useEffect(() => {
-    if (isRemixLoading && elementType === 'promo-card' && elementData) {
-      // Find the promo card image in the DOM and monitor its loading
-      const cardIndex = elementData.cardIndex;
-      const promoCard = document.querySelector(`[data-card-index="${cardIndex}"]`);
-      if (promoCard) {
-        const image = promoCard.querySelector('img');
-        if (image) {
-          const handleImageLoad = () => {
-            console.log('=== REMIX IMAGE LOADED ===', { cardIndex });
-            setIsRemixLoading(false);
-            // Capture the remixed image URL for saving when user clicks send
-            setRemixedImageUrl(image.src);
-          };
-          const handleImageError = () => {
-            console.log('=== REMIX IMAGE ERROR ===', { cardIndex });
-            setIsRemixLoading(false);
-          };
-          // If image is already loaded, clear loading state immediately
-          if (image.complete) {
-            setIsRemixLoading(false);
-          } else {
-            image.addEventListener('load', handleImageLoad);
-            image.addEventListener('error', handleImageError);
-            return () => {
-              image.removeEventListener('load', handleImageLoad);
-              image.removeEventListener('error', handleImageError);
-            };
-          }
-        }
-      }
-    }
-  }, [isRemixLoading, elementType, elementData]);
   // initializePromoValues function is now imported from utils
   const initialPromoValues = initializePromoValues(elementType, existingText, elementData, selectedFlightSegment, selectedDates, selectedFlightPhase);
   // State for promo card editable inputs
@@ -858,16 +822,12 @@ export default function PromptBubble({
         submitText, 
         elementData, 
         positionKey,
-        remixedImageUrl
       });
-      // If we have a remixed image URL, include it in the submission
-      const submissionOptions = remixedImageUrl ? { remixedImageUrl } : {};
-      onSubmit(submitText, elementType, elementData, positionKey, submissionOptions);
+      onSubmit(submitText, elementType, elementData, positionKey, {});
       // Clear promo card values after submission to show placeholder text again
       if (elementType === 'promo-card') {
         setPromoTextValue('');
         setPromoImageValue('');
-        setRemixedImageUrl(null); // Clear remixed image URL
         setPromoResetTrigger(prev => prev + 1); // Trigger reset of focus state
       } else {
         setPromptText('');
@@ -925,16 +885,12 @@ export default function PromptBubble({
             submitText, 
             elementData, 
             positionKey,
-            remixedImageUrl
           });
-          // If we have a remixed image URL, include it in the submission
-          const submissionOptions = remixedImageUrl ? { remixedImageUrl } : {};
-          onSubmit(submitText, elementType, elementData, positionKey, submissionOptions);
+          onSubmit(submitText, elementType, elementData, positionKey, {});
           // Clear promo card values after submission to show placeholder text again  
           if (elementType === 'promo-card') {
             setPromoTextValue('');
             setPromoImageValue('');
-            setRemixedImageUrl(null); // Clear remixed image URL
             setPromoResetTrigger(prev => prev + 1); // Trigger reset of focus state
           } else {
             setPromptText('');
@@ -1154,29 +1110,7 @@ export default function PromptBubble({
                 onTextBlur={setIsPromoTextFocused}
                 resetTrigger={promoResetTrigger}
                 elementData={elementData}
-                isRemixLoading={isRemixLoading}
                 maxWidth={bubbleWidth}
-                onRemix={() => {
-                  // Set loading state for remix button
-                  setIsRemixLoading(true);
-                  // Trigger remix functionality by calling onSubmit with remix flag
-                  let submitText;
-                  if (elementData && elementData.cardType === 'content-card') {
-                    // For content cards, use the image value (which is the title) for remix
-                    submitText = `remix:${promoImageValue}`;
-                  } else {
-                    // For promo cards, use either text or image value
-                    submitText = `remix:${promoTextValue || promoImageValue}`;
-                  }
-                  console.log('=== REMIX BUTTON CLICKED ===', { 
-                    elementType, 
-                    elementData, 
-                    promoTextValue, 
-                    promoImageValue, 
-                    submitText 
-                  });
-                  onSubmit(submitText, elementType, elementData, positionKey, { isRemix: true });
-                }}
               />
             </div>
           )}

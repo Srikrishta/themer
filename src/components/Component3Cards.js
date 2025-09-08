@@ -101,6 +101,7 @@ export default function Component3Cards({
       return {
         text: savedContent.text || "Add experience",
         image: savedContent.image || '',
+        backgroundImage: savedContent.backgroundImage || '',
         bgColor: getLightCardBackgroundColor(themeColor)
       };
     }
@@ -310,25 +311,32 @@ export default function Component3Cards({
                   )}
                   
                   {/* Image */}
-                  <img 
-                    src={getPollinationsImage(cardContent.image, themeColor)}
-                    alt={cardContent.image}
-                    className="w-full h-full object-cover rounded-lg"
-                    style={{ display: isImageLoading(originalCardIndex) ? 'none' : 'block' }}
-                    onLoad={() => {
-                      console.log('=== POLLINATIONS IMAGE LOADED ===', { cardIndex: originalCardIndex, alt: cardContent.image });
-                      setImageLoading(originalCardIndex, false);
-                    }}
-                    onError={(e) => {
-                      console.log('=== POLLINATIONS IMAGE LOAD ERROR ===', { src: e.target.src, alt: cardContent.image });
-                      setImageLoading(originalCardIndex, false);
-                      e.target.style.display = 'none';
-                    }}
-                    onLoadStart={() => {
-                      console.log('=== POLLINATIONS IMAGE LOAD START ===', { cardIndex: originalCardIndex, alt: cardContent.image });
-                      setImageLoading(originalCardIndex, true);
-                    }}
-                  />
+                  {(() => {
+                    const imageSrc = (cardContent && cardContent.backgroundImage)
+                      ? cardContent.backgroundImage
+                      : getPollinationsImage(cardContent.image, themeColor);
+                    return (
+                      <img 
+                        src={imageSrc}
+                        alt={cardContent.image}
+                        className="w-full h-full object-cover rounded-lg"
+                        style={{ display: isImageLoading(originalCardIndex) ? 'none' : 'block' }}
+                        onLoad={() => {
+                          console.log('=== POLLINATIONS IMAGE LOADED ===', { cardIndex: originalCardIndex, alt: cardContent.image });
+                          setImageLoading(originalCardIndex, false);
+                        }}
+                        onError={(e) => {
+                          console.log('=== POLLINATIONS IMAGE LOAD ERROR ===', { src: e.target.src, alt: cardContent.image });
+                          setImageLoading(originalCardIndex, false);
+                          e.target.style.display = 'none';
+                        }}
+                        onLoadStart={() => {
+                          console.log('=== POLLINATIONS IMAGE LOAD START ===', { cardIndex: originalCardIndex, alt: cardContent.image });
+                          setImageLoading(originalCardIndex, true);
+                        }}
+                      />
+                    );
+                  })()}
                 </div>
               </div>
             )}
