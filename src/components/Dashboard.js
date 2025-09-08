@@ -655,6 +655,12 @@ export default function Dashboard() {
   const handlePromoCardHover = (isHovering, elementType, elementData, position) => {
     if (!isPromptMode || !getRouteColorPromptSaved()) return;
     
+    // If we have a fixed position (user clicked), ignore hover events
+    if (pcFixedPosition) {
+      console.log('=== IGNORING PROMO CARD HOVER - FIXED POSITION ACTIVE ===', { pcFixedPosition });
+      return;
+    }
+    
     if (isHovering) {
       setPromoCardHoverTip({ visible: true, x: position.x, y: position.y - 50, elementData });
     } else {
@@ -671,19 +677,27 @@ export default function Dashboard() {
     setAnalyticsBubble({ visible: false, x: 0, y: 0, elementData: null });
     
     // Use the provided position or fall back to hover tip position
-    const hoverTipPosition = position || { x: promoCardHoverTip.x, y: promoCardHoverTip.y };
+    // Apply the same offset as in handlePromoCardHover (50px above mouse pointer)
+    const hoverTipPosition = position ? 
+      { x: position.x, y: position.y - 50 } : 
+      { x: promoCardHoverTip.x, y: promoCardHoverTip.y };
     
     // Pin hover tip at its position and keep it visible
-    setPcFixedPosition({ x: hoverTipPosition.x, y: hoverTipPosition.y });
-    setPromoCardHoverTip(prev => ({ ...prev, visible: true, x: hoverTipPosition.x, y: hoverTipPosition.y, elementData }));
+    const fixedPosition = { x: hoverTipPosition.x, y: hoverTipPosition.y };
+    setPcFixedPosition(fixedPosition);
+    setPromoCardHoverTip({ visible: true, x: hoverTipPosition.x, y: hoverTipPosition.y, elementData });
     
     // Small delay to prevent flickering, then open prompt bubble automatically
     setTimeout(() => {
       console.log('=== OPENING PROMPT BUBBLE FOR PROMO CARD ===', {
         hoverTipPosition,
         elementData,
-        cardIndex: elementData.cardIndex
+        cardIndex: elementData.cardIndex,
+        fixedPosition
       });
+      
+      // Ensure hover tip stays at fixed position when prompt bubble opens
+      setPromoCardHoverTip({ visible: true, x: fixedPosition.x, y: fixedPosition.y, elementData });
       
       // Open prompt bubble for promo card editing
       setCurrentRoutePromptBubble({
@@ -1276,6 +1290,12 @@ export default function Dashboard() {
       if (!getCurrentRoutePromptBubble()) {
         setShowPlusIcon(false);
         setPromoCardHoverTip(prev => {
+          // If we have a fixed position (user clicked), ignore mouse movements and keep hover tip visible
+          if (pcFixedPosition) {
+            return { visible: true, x: pcFixedPosition.x, y: pcFixedPosition.y, elementData };
+          }
+          
+          // Only hide hover tip if user is not hovering AND there's no fixed position
           if (!isHovering) return { visible: false, x: 0, y: 0, elementData: null };
           
           // If we have a fixed position, use it instead of following mouse
@@ -2803,7 +2823,8 @@ export default function Dashboard() {
               className="text-xs font-bold cursor-pointer hover:bg-white/10 px-2 py-1 rounded"
               style={{ 
                 color: '#FFFFFF', 
-                pointerEvents: 'auto'
+                pointerEvents: 'auto',
+                backgroundColor: getCurrentRoutePromptBubble()?.elementType === 'promo-card' ? 'rgba(255, 255, 255, 0.2)' : 'transparent'
               }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -2838,6 +2859,8 @@ export default function Dashboard() {
                 setRoutePromptBubbles({});
                 // Hide only the promo card hover tip
                 setPromoCardHoverTip({ visible: false, x: 0, y: 0, elementData: null });
+                // Clear the fixed position so hover tip can respond to mouse movements again
+                setPcFixedPosition(null);
               }}
               className="w-4 h-4 flex items-center justify-center ml-1"
               style={{ pointerEvents: 'auto', color: '#FFFFFF' }}
