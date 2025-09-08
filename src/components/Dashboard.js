@@ -669,26 +669,87 @@ export default function Dashboard() {
     setPcFixedPosition(fixedPosition);
     setPromoCardHoverTip({ visible: true, x: hoverTipPosition.x, y: hoverTipPosition.y, elementData });
     
+    // Get current promo card content for this route
+    const routeKey = getCurrentRouteKey();
+    const routeContents = promoCardContents[routeKey];
+    let existingText = '';
+    
+    if (routeContents && routeContents[elementData.cardIndex] && (routeContents[elementData.cardIndex].text || routeContents[elementData.cardIndex].image)) {
+      const savedContent = routeContents[elementData.cardIndex];
+      // Format the existing text as expected by the prompt bubble
+      existingText = `text:${savedContent.text || ''},image:${savedContent.image || ''}`;
+      console.log('=== LOADING SAVED PROMO CARD CONTENT ===', {
+        routeKey,
+        cardIndex: elementData.cardIndex,
+        savedContent,
+        existingText
+      });
+    } else {
+      // No saved content - use the currently displayed content from the card
+      if (elementData.currentContent) {
+        const currentContent = elementData.currentContent;
+        console.log('=== DEBUGGING CURRENT CONTENT ===', {
+          currentContent,
+          textValue: currentContent.text,
+          imageValue: currentContent.image,
+          textType: typeof currentContent.text,
+          imageType: typeof currentContent.image,
+          textLength: currentContent.text?.length,
+          imageLength: currentContent.image?.length
+        });
+        
+        existingText = `text:${currentContent.text || ''},image:${currentContent.image || ''}`;
+        console.log('=== USING CURRENT DISPLAYED CONTENT ===', {
+          routeKey,
+          cardIndex: elementData.cardIndex,
+          currentContent,
+          existingText,
+          textValue: currentContent.text,
+          imageValue: currentContent.image
+        });
+      } else {
+        console.log('=== NO SAVED OR CURRENT CONTENT ===', {
+          routeKey,
+          cardIndex: elementData.cardIndex,
+          routeContents,
+          elementData,
+          hasCurrentContent: !!elementData.currentContent
+        });
+        existingText = '';
+      }
+    }
+    
     // Small delay to prevent flickering, then open prompt bubble automatically
     setTimeout(() => {
       console.log('=== OPENING PROMPT BUBBLE FOR PROMO CARD ===', {
         hoverTipPosition,
         elementData,
         cardIndex: elementData.cardIndex,
-        fixedPosition
+        fixedPosition,
+        existingText
       });
       
       // Ensure hover tip stays at fixed position when prompt bubble opens
       setPromoCardHoverTip({ visible: true, x: fixedPosition.x, y: fixedPosition.y, elementData });
       
-      // Open prompt bubble for promo card editing
+      // Open prompt bubble for promo card editing with existing content
+      console.log('=== SETTING CURRENT ROUTE PROMPT BUBBLE ===', {
+        x: hoverTipPosition.x,
+        y: hoverTipPosition.y + 50,
+        elementType: 'promo-card',
+        elementData: elementData,
+        positionKey: `promo-card-${elementData.cardIndex}`,
+        existingText: existingText,
+        existingTextLength: existingText.length
+      });
+      
       setCurrentRoutePromptBubble({
         x: hoverTipPosition.x,
         y: hoverTipPosition.y + 50, // Position below hover tip
         elementType: 'promo-card',
         elementData: elementData,
         positionKey: `promo-card-${elementData.cardIndex}`,
-        existingText: ''
+        existingText: existingText
       });
     }, 50);
   };
@@ -2395,7 +2456,17 @@ export default function Dashboard() {
         }}
         themeColor={activeThemeColor}
         isThemeBuildStarted={isThemeBuildStarted}
-        existingText={getCurrentRoutePromptBubble()?.existingText || ''}
+        existingText={(() => {
+          const bubble = getCurrentRoutePromptBubble();
+          const existingText = bubble?.existingText || '';
+          console.log('=== RENDERING PROMPT BUBBLE WITH EXISTING TEXT ===', {
+            bubble,
+            existingText,
+            existingTextLength: existingText.length,
+            elementType: bubble?.elementType
+          });
+          return existingText;
+        })()}
         positionKey={getCurrentRoutePromptBubble()?.positionKey}
         fpsPrompts={fpsPrompts}
         onThemeColorChange={(color, chipData) => {

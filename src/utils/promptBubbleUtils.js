@@ -97,16 +97,32 @@ export const initializePromoValues = (
     
     // For regular promo cards, parse the existingText format
     if (existingText) {
+      console.log('=== INITIALIZING PROMO VALUES FROM EXISTING TEXT ===', {
+        existingText,
+        elementData,
+        existingTextLength: existingText.length
+      });
+      
       const parts = existingText.split(',');
       let textContent = '';
       let imageContent = '';
       
       parts.forEach(part => {
+        console.log('=== PARSING PART ===', { part, trimmed: part.trim() });
         if (part.startsWith('text:')) {
           textContent = part.substring(5).trim();
+          console.log('=== EXTRACTED TEXT ===', { textContent });
         } else if (part.startsWith('image:')) {
           imageContent = part.substring(6).trim();
+          console.log('=== EXTRACTED IMAGE ===', { imageContent });
         }
+      });
+      
+      console.log('=== PARSED PROMO VALUES ===', {
+        textContent,
+        imageContent,
+        textLength: textContent.length,
+        imageLength: imageContent.length
       });
       
       return { text: textContent, image: imageContent };

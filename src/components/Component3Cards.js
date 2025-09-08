@@ -90,6 +90,21 @@ export default function Component3Cards({
 
   // Helper function for default card content
   const getDefaultCardContent = (cardIndex) => {
+    // First, check if we have saved content for this route and card
+    if (currentRouteKey && promoCardContents[currentRouteKey] && promoCardContents[currentRouteKey][cardIndex]) {
+      const savedContent = promoCardContents[currentRouteKey][cardIndex];
+      console.log('=== USING SAVED PROMO CARD CONTENT ===', {
+        currentRouteKey,
+        cardIndex,
+        savedContent
+      });
+      return {
+        text: savedContent.text || "Add experience",
+        image: savedContent.image || '',
+        bgColor: getLightCardBackgroundColor(themeColor)
+      };
+    }
+    
     // Only generate festival content if:
     // 1. Theme is saved for this route
     // 2. Current theme is actually festive (not non-festive like Lufthansa)
@@ -182,6 +197,16 @@ export default function Component3Cards({
     // Simple card content - always show "Add experience"
     const cardContent = getDefaultCardContent(originalCardIndex);
     
+    console.log('=== RENDER CARD DEBUG ===', {
+      originalCardIndex,
+      displayPosition,
+      cardContent,
+      textValue: cardContent.text,
+      imageValue: cardContent.image,
+      textType: typeof cardContent.text,
+      imageType: typeof cardContent.image
+    });
+    
     // Get card type mapping
     const cardTypeMap = {
       0: { type: 'shopping', name: 'add experience', id: 'node-82_35814' },
@@ -208,14 +233,24 @@ export default function Component3Cards({
           if (isPromptMode && colorPromptSaved && onPromoCardHover) {
             // Use actual mouse cursor position like FlightJourneyBar does
             const position = { x: e.clientX, y: e.clientY };
-            onPromoCardHover(true, 'promo-card', { cardIndex: originalCardIndex, cardType: cardInfo.type }, position);
+            onPromoCardHover(
+              true,
+              'promo-card',
+              { cardIndex: originalCardIndex, cardType: cardInfo.type, currentContent: cardContent },
+              position
+            );
           }
         }}
         onMouseMove={(e) => {
           if (isPromptMode && colorPromptSaved && onPromoCardHover) {
             // Continuously update position as mouse moves within the card
             const position = { x: e.clientX, y: e.clientY };
-            onPromoCardHover(true, 'promo-card', { cardIndex: originalCardIndex, cardType: cardInfo.type }, position);
+            onPromoCardHover(
+              true,
+              'promo-card',
+              { cardIndex: originalCardIndex, cardType: cardInfo.type, currentContent: cardContent },
+              position
+            );
           }
         }}
         onMouseLeave={(e) => {
@@ -224,10 +259,37 @@ export default function Component3Cards({
           }
         }}
         onClick={(e) => {
+          console.log('=== PROMO CARD CLICK ATTEMPTED ===', {
+            originalCardIndex,
+            cardInfo,
+            cardContent,
+            isPromptMode,
+            colorPromptSaved,
+            hasOnPromoCardClick: !!onPromoCardClick,
+            allConditionsMet: isPromptMode && colorPromptSaved && onPromoCardClick
+          });
+          
           if (isPromptMode && colorPromptSaved && onPromoCardClick) {
             e.stopPropagation();
             const position = { x: e.clientX, y: e.clientY };
-            onPromoCardClick(e, { cardIndex: originalCardIndex, cardType: cardInfo.type }, position);
+            // Pass the current card content along with the click event
+            console.log('=== PROMO CARD CLICKED IN COMPONENT3CARDS ===', {
+              originalCardIndex,
+              cardInfo,
+              cardContent,
+              position
+            });
+            onPromoCardClick(e, { 
+              cardIndex: originalCardIndex, 
+              cardType: cardInfo.type,
+              currentContent: cardContent
+            }, position);
+          } else {
+            console.log('=== PROMO CARD CLICK CONDITIONS NOT MET ===', {
+              isPromptMode,
+              colorPromptSaved,
+              hasOnPromoCardClick: !!onPromoCardClick
+            });
           }
         }}
       >

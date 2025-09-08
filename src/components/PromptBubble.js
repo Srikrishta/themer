@@ -112,8 +112,57 @@ export default function PromptBubble({
   // State for promo card editable inputs
   const [promoTextValue, setPromoTextValue] = useState(initialPromoValues.text);
   const [promoImageValue, setPromoImageValue] = useState(initialPromoValues.image);
+  
+  console.log('=== PROMPT BUBBLE INITIALIZATION ===', {
+    elementType,
+    existingText,
+    initialPromoValues,
+    promoTextValue,
+    promoImageValue
+  });
   const [isPromoTextFocused, setIsPromoTextFocused] = useState(false);
   const [promoResetTrigger, setPromoResetTrigger] = useState(0);
+  // Update promo values when existingText changes (for promo cards)
+  useEffect(() => {
+    console.log('=== PROMO VALUES USEEFFECT TRIGGERED ===', {
+      elementType,
+      existingText,
+      existingTextLength: existingText?.length,
+      isPromoCard: elementType === 'promo-card',
+      hasExistingText: !!existingText,
+      isVisible
+    });
+    
+    if (elementType === 'promo-card' && existingText && isVisible) {
+      const newPromoValues = initializePromoValues(elementType, existingText, elementData, selectedFlightSegment, selectedDates, selectedFlightPhase);
+      console.log('=== UPDATING PROMO VALUES FROM EXISTING TEXT ===', {
+        existingText,
+        newPromoValues,
+        currentPromoTextValue: promoTextValue,
+        currentPromoImageValue: promoImageValue
+      });
+      setPromoTextValue(newPromoValues.text);
+      setPromoImageValue(newPromoValues.image);
+    }
+  }, [existingText, elementType, elementData, selectedFlightSegment, selectedDates, selectedFlightPhase, isVisible]);
+
+  // Additional useEffect to handle when prompt bubble becomes visible
+  useEffect(() => {
+    if (isVisible && elementType === 'promo-card' && existingText) {
+      console.log('=== PROMPT BUBBLE BECAME VISIBLE ===', {
+        elementType,
+        existingText,
+        isVisible
+      });
+      const newPromoValues = initializePromoValues(elementType, existingText, elementData, selectedFlightSegment, selectedDates, selectedFlightPhase);
+      console.log('=== SETTING VALUES ON VISIBILITY ===', {
+        newPromoValues
+      });
+      setPromoTextValue(newPromoValues.text);
+      setPromoImageValue(newPromoValues.image);
+    }
+  }, [isVisible, elementType, existingText, elementData, selectedFlightSegment, selectedDates, selectedFlightPhase]);
+
   // Debug promo state changes
   useEffect(() => {
     console.log('=== PROMO STATE CHANGE ===', {
