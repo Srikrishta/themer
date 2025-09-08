@@ -35,6 +35,8 @@ const PromoCardPlaceholder = ({
   
   // Character limit for text field
   const TEXT_CHAR_LIMIT = 30;
+  // Character limit for image text field
+  const IMAGE_CHAR_LIMIT = 100;
 
   // Function to get accurate text width using canvas measurement
   const getTextWidth = (text) => {
@@ -53,13 +55,12 @@ const PromoCardPlaceholder = ({
     <div style={{ color: textColor, fontSize: '14px', pointerEvents: 'auto', width: '100%' }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px', lineHeight: '1.4', width: '100%' }}>
         <span>Change text to </span>
-        <input
+        <textarea
           ref={textInputRef}
-          type="text"
           value={textValue}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              // Keep input single-line and avoid form submit
+            if (e.key === 'Enter' && !e.shiftKey) {
+              // Allow Shift+Enter for line breaks, prevent Enter from submitting
               e.preventDefault();
             }
           }}
@@ -67,6 +68,9 @@ const PromoCardPlaceholder = ({
             const newValue = e.target.value;
             if (newValue.length <= TEXT_CHAR_LIMIT) {
               onTextChange(newValue);
+              // Auto-resize height
+              e.target.style.height = 'auto';
+              e.target.style.height = e.target.scrollHeight + 'px';
             }
           }}
           onFocus={() => {
@@ -91,24 +95,32 @@ const PromoCardPlaceholder = ({
             maxWidth: `${maxWidth - 60}px`,
             width: `${Math.max(getTextWidth(textValue) + 10, 50)}px`,
             lineHeight: '1.4',
-            cursor: 'text'
+            cursor: 'text',
+            resize: 'none',
+            overflow: 'hidden',
+            minHeight: '20px'
           }}
           placeholder={!textValue && focusedField !== 'text' ? '••••••••••' : ''}
+          rows={1}
         />
         
         <span>and image to </span>
-        <input
+        <textarea
           ref={imageInputRef}
-          type="text"
           value={imageValue}
+          maxLength={IMAGE_CHAR_LIMIT}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              // Keep input single-line and avoid form submit
+            if (e.key === 'Enter' && !e.shiftKey) {
+              // Allow Shift+Enter for line breaks, prevent Enter from submitting
               e.preventDefault();
             }
           }}
           onChange={(e) => {
-            onImageTextChange(e.target.value);
+            const newValue = e.target.value;
+            onImageTextChange(newValue.length <= IMAGE_CHAR_LIMIT ? newValue : newValue.slice(0, IMAGE_CHAR_LIMIT));
+            // Auto-resize height
+            e.target.style.height = 'auto';
+            e.target.style.height = e.target.scrollHeight + 'px';
           }}
           onFocus={() => {
             handleFieldFocus('image');
@@ -132,9 +144,13 @@ const PromoCardPlaceholder = ({
             maxWidth: `${maxWidth - 60}px`,
             width: `${Math.max(getTextWidth(imageValue) + 10, 50)}px`,
             lineHeight: '1.4',
-            cursor: 'text'
+            cursor: 'text',
+            resize: 'none',
+            overflow: 'hidden',
+            minHeight: '20px'
           }}
           placeholder={!imageValue && focusedField !== 'image' ? '••••••••••' : ''}
+          rows={1}
         />
         
       </div>

@@ -62,6 +62,18 @@ export default function Component3Cards({
     });
   }, [colorPromptSaved, selectedFlightPhase, origin, destination, themeColor, selectedDates]);
 
+  // Debug when promoCardContents changes
+  useEffect(() => {
+    console.log('=== COMPONENT3CARDS PROMOCARDCONTENTS CHANGED ===', {
+      currentRouteKey,
+      selectedFlightPhase,
+      promoCardContents,
+      routeContents: currentRouteKey ? promoCardContents[currentRouteKey] : null,
+      phaseKey: currentRouteKey && selectedFlightPhase ? `${currentRouteKey}-${selectedFlightPhase}` : null,
+      phaseContents: (currentRouteKey && selectedFlightPhase) ? promoCardContents[`${currentRouteKey}-${selectedFlightPhase}`] : null
+    });
+  }, [promoCardContents, currentRouteKey, selectedFlightPhase]);
+
 
 
 
@@ -90,13 +102,40 @@ export default function Component3Cards({
 
   // Helper function for default card content
   const getDefaultCardContent = (cardIndex) => {
-    // First, check if we have saved content for this route and card
-    if (currentRouteKey && promoCardContents[currentRouteKey] && promoCardContents[currentRouteKey][cardIndex]) {
-      const savedContent = promoCardContents[currentRouteKey][cardIndex];
+    console.log('=== GETDEFAULTCARDCONTENT CALLED ===', {
+      cardIndex,
+      currentRouteKey,
+      selectedFlightPhase,
+      promoCardContents,
+      hasRouteKey: !!currentRouteKey,
+      hasRouteContents: !!(currentRouteKey && promoCardContents[currentRouteKey]),
+      hasCardContent: !!(currentRouteKey && promoCardContents[currentRouteKey] && promoCardContents[currentRouteKey][cardIndex])
+    });
+
+    // Prefer content saved for the current phase, then fallback to route-level saved content
+    const phaseKey = (currentRouteKey && selectedFlightPhase)
+      ? `${currentRouteKey}-${selectedFlightPhase}`
+      : null;
+
+    const savedForPhase = phaseKey && promoCardContents[phaseKey]
+      ? promoCardContents[phaseKey][cardIndex]
+      : undefined;
+
+    const savedForRoute = (currentRouteKey && promoCardContents[currentRouteKey])
+      ? promoCardContents[currentRouteKey][cardIndex]
+      : undefined;
+
+    const savedContent = savedForPhase || savedForRoute;
+
+    if (savedContent) {
       console.log('=== USING SAVED PROMO CARD CONTENT ===', {
         currentRouteKey,
+        phaseKey,
         cardIndex,
-        savedContent
+        from: savedForPhase ? 'phase' : 'route',
+        savedContent,
+        textValue: savedContent.text,
+        imageValue: savedContent.image
       });
       return {
         text: savedContent.text || "Add experience",

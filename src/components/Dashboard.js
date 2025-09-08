@@ -1715,10 +1715,29 @@ export default function Dashboard() {
       
         // Update the promo card content for the current route
         const routeKey = getCurrentRouteKey();
+        console.log('=== DEBUGGING PROMO CARD SAVE ===', {
+          routeKey,
+          elementData,
+          textContent,
+          imageContent,
+          origin,
+          destination
+        });
+        
         if (routeKey) {
           setPromoCardContents(prev => {
             const routeContents = prev[routeKey] || {};
             const existingContent = routeContents[elementData.cardIndex] || {};
+            
+            console.log('=== BEFORE SAVE STATE ===', {
+              routeKey,
+              cardIndex: elementData.cardIndex,
+              prevState: prev,
+              routeContents,
+              existingContent,
+              textContent,
+              imageContent
+            });
             
             // Update the specific card that was edited
             const updatedRouteContents = {
@@ -1731,38 +1750,40 @@ export default function Dashboard() {
               }
             };
             
-            
-            // If this is the first time saving content for this route, populate all flight phase cards
-            const hasAnyUpdatedCards = Object.values(routeContents).some(card => card.updated);
-            if (!hasAnyUpdatedCards) {
-              // Promo cards now show empty content - no default text
-            }
-            
-            const newContent = {
+            const newState = {
               ...prev,
               [routeKey]: updatedRouteContents
             };
             
-            console.log('=== UPDATING ROUTE-SPECIFIC PROMO CARD CONTENTS ===', {
+            console.log('=== AFTER SAVE STATE ===', {
               routeKey,
               cardIndex: elementData.cardIndex,
-              textContent,
-              imageContent,
-              previousRouteContents: routeContents,
-              newRouteContents: updatedRouteContents,
-              allRoutes: Object.keys(prev),
-              hasAnyUpdatedCards,
-              populatedAllCards: !hasAnyUpdatedCards
+              newState,
+              updatedRouteContents
             });
-            return newContent;
+            
+            return newState;
           });
+          
+          console.log('=== PROMO CARD CONTENT UPDATED ===', { 
+            cardIndex: elementData.cardIndex, 
+            textContent, 
+            imageContent 
+          });
+          
+          // Force a re-render by updating a dummy state to test if the issue is with React updates
+          setTimeout(() => {
+            console.log('=== CHECKING PROMO CARD CONTENTS AFTER SAVE ===', {
+              routeKey,
+              cardIndex: elementData.cardIndex,
+              promoCardContents: promoCardContents,
+              routeContents: promoCardContents[routeKey],
+              cardContent: promoCardContents[routeKey]?.[elementData.cardIndex]
+            });
+          }, 100);
+        } else {
+          console.log('=== NO ROUTE KEY FOUND ===', { routeKey, origin, destination });
         }
-      
-      console.log('=== PROMO CARD CONTENT UPDATED ===', { 
-        cardIndex: elementData.cardIndex, 
-        textContent, 
-        imageContent 
-      });
       }
     }
     

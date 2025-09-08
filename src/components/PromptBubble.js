@@ -87,10 +87,11 @@ export default function PromptBubble({
   const [isPromoTextFocused, setIsPromoTextFocused] = useState(false);
   const [isPromoImageFocused, setIsPromoImageFocused] = useState(false);
   const [promoResetTrigger, setPromoResetTrigger] = useState(0);
+  const [promoEdited, setPromoEdited] = useState(false);
   // Update promo values when existingText changes (for promo cards)
   useEffect(() => {
     // Do not overwrite user edits while either field is focused
-    if (isPromoTextFocused || isPromoImageFocused) return;
+    if (isPromoTextFocused || isPromoImageFocused || promoEdited) return;
     console.log('=== PROMO VALUES USEEFFECT TRIGGERED ===', {
       elementType,
       existingText,
@@ -111,12 +112,12 @@ export default function PromptBubble({
       setPromoTextValue(newPromoValues.text);
       setPromoImageValue(newPromoValues.image);
     }
-  }, [existingText, elementType, elementData, selectedFlightSegment, selectedDates, selectedFlightPhase, isVisible, isPromoTextFocused, isPromoImageFocused]);
+  }, [existingText, elementType, elementData, selectedFlightSegment, selectedDates, selectedFlightPhase, isVisible, isPromoTextFocused, isPromoImageFocused, promoEdited]);
 
   // Additional useEffect to handle when prompt bubble becomes visible
   useEffect(() => {
     // Do not overwrite user edits while either field is focused
-    if (isPromoTextFocused || isPromoImageFocused) return;
+    if (isPromoTextFocused || isPromoImageFocused || promoEdited) return;
     if (isVisible && elementType === 'promo-card' && existingText) {
       console.log('=== PROMPT BUBBLE BECAME VISIBLE ===', {
         elementType,
@@ -130,7 +131,7 @@ export default function PromptBubble({
       setPromoTextValue(newPromoValues.text);
       setPromoImageValue(newPromoValues.image);
     }
-  }, [isVisible, elementType, existingText, elementData, selectedFlightSegment, selectedDates, selectedFlightPhase, isPromoTextFocused, isPromoImageFocused]);
+  }, [isVisible, elementType, existingText, elementData, selectedFlightSegment, selectedDates, selectedFlightPhase, isPromoTextFocused, isPromoImageFocused, promoEdited]);
 
   // Debug promo state changes
   useEffect(() => {
@@ -740,7 +741,7 @@ export default function PromptBubble({
       const newHeight = calculateRequiredHeight(promoTextValue, promoImageValue);
       setContentHeight(newHeight);
     }
-  }, [promoTextValue, promoImageValue, elementType]);
+  }, [promoTextValue, promoImageValue, elementType, bubbleWidth]);
   // Notify parent component when loading state changes
   useEffect(() => {
     if (onLoadingStateChange && elementType === 'promo-card') {
@@ -834,6 +835,7 @@ export default function PromptBubble({
         setPromoTextValue('');
         setPromoImageValue('');
         setPromoResetTrigger(prev => prev + 1); // Trigger reset of focus state
+        setPromoEdited(false);
       } else {
         setPromptText('');
       }
@@ -897,6 +899,7 @@ export default function PromptBubble({
             setPromoTextValue('');
             setPromoImageValue('');
             setPromoResetTrigger(prev => prev + 1); // Trigger reset of focus state
+            setPromoEdited(false);
           } else {
             setPromptText('');
           }
@@ -1107,8 +1110,8 @@ export default function PromptBubble({
             >
               <PromoCardPlaceholder 
                 textColor={useLightText ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)'}
-                onTextChange={setPromoTextValue}
-                onImageTextChange={setPromoImageValue}
+                onTextChange={(v) => { setPromoEdited(true); setPromoTextValue(v); }}
+                onImageTextChange={(v) => { setPromoEdited(true); setPromoImageValue(v); }}
                 textValue={promoTextValue}
                 imageValue={promoImageValue}
                 onTextFocus={() => setIsPromoTextFocused(true)}
@@ -1612,18 +1615,21 @@ export default function PromptBubble({
         )}
         {(elementType === 'promo-card' || elementType === 'content-card') && (
           <div className="flex items-center gap-3 justify-between">
-            {/* Character counter - only show when text field is focused */}
-            {isPromoTextFocused && (
+            {/* Character counter - show when either field is focused */}
+            {(isPromoTextFocused || isPromoImageFocused) && (
               <span style={{ 
                 fontSize: '12px', 
                 color: useLightText ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)',
                 opacity: 0.7
               }}>
-                {30 - (promoTextValue ? promoTextValue.length : 0)} characters left
+                {isPromoTextFocused 
+                  ? `${30 - (promoTextValue ? promoTextValue.length : 0)} characters left`
+                  : `${100 - (promoImageValue ? promoImageValue.length : 0)} characters left`
+                }
               </span>
             )}
             {/* Spacer when counter is not shown */}
-            {!isPromoTextFocused && <div></div>}
+            {!isPromoTextFocused && !isPromoImageFocused && <div></div>}
             {/* Right side: Image Icon + Save Button */}
             <div className="flex items-center gap-3">
               {/* Image Icon */}
