@@ -222,7 +222,14 @@ const PromoCardPlaceholder = ({
         {/* Remix button */}
         {elementData && (
           <button
-            onClick={() => onRemix?.(elementData)}
+            type="button"
+            title="Remix image"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('=== REMIX BUTTON UI CLICKED ===', { elementData });
+              onRemix?.(elementData);
+            }}
             disabled={isRemixLoading}
             style={{
               background: 'transparent',
