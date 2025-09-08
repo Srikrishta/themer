@@ -274,9 +274,8 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         
         {/* Bottom rectangle with text field */}
         <div 
-          className="absolute left-0 right-0 z-10 p-2 backdrop-blur-md backdrop-filter shadow-none"
+          className="absolute bottom-0 left-0 right-0 z-10 p-2 backdrop-blur-md backdrop-filter shadow-none"
           style={{ 
-            bottom: '0px',
             backgroundColor: getReadableOnColor(themeColor) + 'CC',
             minHeight: '40px',
             display: 'flex',
@@ -612,38 +611,11 @@ export default function Dashboard() {
   // Handle analytics click
   const handleAnalyticsClick = (e, elementData) => {
     e.stopPropagation();
-    console.log('=== ANALYTICS CLICKED ===', { elementData });
+    console.log('=== ANALYTICS CLICKED - DISABLED ===', { elementData });
     
-    // Do NOT close the prompt bubble; we want it to remain open while showing analytics
-    
-    // Use the hover tip's position instead of click coordinates
-    let hoverTipPosition = { x: 0, y: 0 };
-    
-    if (elementData.cardType === 'content-card') {
-      // Use content card hover tip position
-      hoverTipPosition = { x: ccHoverTip.x, y: ccHoverTip.y };
-    } else {
-      // Use promo card hover tip position
-      hoverTipPosition = { x: promoCardHoverTip.x, y: promoCardHoverTip.y };
-    }
-    
-    // Small delay to prevent flickering
-    setTimeout(() => {
-      // Show analytics bubble at the same position as the hover tip
-      setAnalyticsBubble({
-        visible: true,
-        x: hoverTipPosition.x - 150, // Offset to center the bubble
-        y: hoverTipPosition.y - 200, // Offset above the hover tip position
-        elementData: elementData
-      });
-      
-      // Keep the hover tip visible when analytics bubble is open
-      if (elementData.cardType === 'content-card') {
-        setCCHoverTip(prev => ({ ...prev, visible: true }));
-      } else {
-        setPromoCardHoverTip(prev => ({ ...prev, visible: true }));
-      }
-    }, 50);
+    // Analytics bubble is currently disabled
+    // Do nothing - analytics functionality is turned off
+    return;
   };
 
   // Close analytics bubble
@@ -658,6 +630,16 @@ export default function Dashboard() {
     // If we have a fixed position (user clicked), ignore hover events
     if (pcFixedPosition) {
       console.log('=== IGNORING PROMO CARD HOVER - FIXED POSITION ACTIVE ===', { pcFixedPosition });
+      return;
+    }
+    
+    // Don't show promo card hover tip if other UI elements are active
+    if (fjbHoverTip.visible || getCurrentRoutePromptBubble() || showPlusIcon) {
+      console.log('=== IGNORING PROMO CARD HOVER - OTHER UI ACTIVE ===', { 
+        fjbHoverTipVisible: fjbHoverTip.visible, 
+        promptBubbleOpen: !!getCurrentRoutePromptBubble(),
+        showPlusIcon 
+      });
       return;
     }
     
@@ -741,7 +723,7 @@ export default function Dashboard() {
       // Open prompt bubble at the correct position
       setCurrentRoutePromptBubble({
         x: hoverTipPosition.x,
-        y: hoverTipPosition.y + 60, // Position below hover tip
+        y: hoverTipPosition.y + 50, // Position below hover tip (consistent with promo card click)
         elementType: elementData.cardType === 'content-card' ? 'content-card' : 'promo-card',
         elementData: elementData,
         existingText: '',
@@ -1973,6 +1955,16 @@ export default function Dashboard() {
     if (fjbFixedPosition) {
       console.log('=== BLOCKING CONTENT CARD HOVER - FJB FIXED POSITION ===');
       setCCHoverTip({ visible: false, x: 0, y: 0, elementData: null });
+      return;
+    }
+    
+    // Don't show content card hover tip if other UI elements are active
+    if (fjbHoverTip.visible || getCurrentRoutePromptBubble() || showPlusIcon) {
+      console.log('=== IGNORING CONTENT CARD HOVER - OTHER UI ACTIVE ===', { 
+        fjbHoverTipVisible: fjbHoverTip.visible, 
+        promptBubbleOpen: !!getCurrentRoutePromptBubble(),
+        showPlusIcon 
+      });
       return;
     }
     
