@@ -33,9 +33,9 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
   );
 
   return (
-    <div className="w-full flex justify-center">
+    <div className="w-full flex justify-center select-none">
       <div
-        className="box-border content-stretch flex flex-row gap-8 items-center justify-between p-0 relative mx-auto w-full"
+        className="box-border content-stretch flex flex-row gap-8 items-center justify-between p-0 relative mx-auto w-full select-none"
         data-name="flight journey bar"
         id="node-77_5469"
         onMouseEnter={(e) => {
@@ -455,7 +455,7 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
                 </div>
               </div>
             </div>
-            <div className="absolute border border-[rgba(0,0,0,0.2)] border-solid inset-0 pointer-events-none rounded-2xl" />
+            <div className="absolute border border-[rgba(0,0,0,0.2)] border-solid inset-0 pointer-events-none rounded-2xl select-none" />
           </div>
           )}
           {!origin || !destination ? (
@@ -487,7 +487,7 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
                 </p>
               </div>
             </div>
-            <div className="absolute border border-[rgba(0,0,0,0.2)] border-solid inset-0 pointer-events-none rounded-2xl" />
+            <div className="absolute border border-[rgba(0,0,0,0.2)] border-solid inset-0 pointer-events-none rounded-2xl select-none" />
           </div>
           )}
           {!destination ? (
@@ -665,7 +665,7 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
                 </div>
               </div>
             </div>
-            <div className="absolute border border-[rgba(0,0,0,0.2)] border-solid inset-0 pointer-events-none rounded-2xl" />
+            <div className="absolute border border-[rgba(0,0,0,0.2)] border-solid inset-0 pointer-events-none rounded-2xl select-none" />
           </div>
           )}
         </div>

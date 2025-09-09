@@ -559,8 +559,6 @@ export default function Dashboard() {
   const [selectedSegment, setSelectedSegment] = useState(null);
   // NEW: State for current theme color
   const [currentThemeColor, setCurrentThemeColor] = useState('#1E72AE'); // Always Discover blue for flights view
-  // NEW: State to track fixed hover button position for FJB
-  const [fjbFixedPosition, setFjbFixedPosition] = useState(null);
   // NEW: State to track fixed hover tip positions for promo cards and content cards
   const [pcFixedPosition, setPcFixedPosition] = useState(null);
   const [ccFixedPosition, setCcFixedPosition] = useState(null);
@@ -595,8 +593,11 @@ export default function Dashboard() {
   
   // Mouse pointer state
   const [showMousePointer, setShowMousePointer] = useState(false);
-  // Hover hint bubble for FJB ("add theme")
-  const [fjbHoverTip, setFjbHoverTip] = useState({ visible: false, x: 0, y: 0 });
+  // Profiles dropdown state
+  const [profilesDropdown, setProfilesDropdown] = useState({ visible: false, x: 0, y: 0 });
+  // Selected profile item
+  const [selectedProfile, setSelectedProfile] = useState(null);
+
   // Theme chips (colors) exposed from ThemeCreator for the active flight
   const [fjbThemeChips, setFjbThemeChips] = useState([]);
   // Track the currently selected theme chip for logo animation
@@ -739,6 +740,33 @@ export default function Dashboard() {
     console.log('🎯 getCurrentRouteKey called:', { origin, destination, routeKey });
     return routeKey;
   };
+
+  // Close profiles dropdown when clicking outside or when other prompt bubbles are opened
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profilesDropdown.visible) {
+        const isDropdown = event.target.closest('[data-dropdown="true"]');
+        const isProfilesButton = event.target.closest('[data-profiles-button="true"]');
+        if (!isDropdown && !isProfilesButton) {
+          setProfilesDropdown({ visible: false, x: 0, y: 0 });
+        }
+      }
+    };
+
+    // Close profiles dropdown when other prompt bubbles are opened
+    const currentBubble = getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey);
+    if (profilesDropdown.visible && currentBubble && currentBubble.elementType !== 'flight-journey-bar') {
+      setProfilesDropdown({ visible: false, x: 0, y: 0 });
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [profilesDropdown.visible, routePromptBubbles]);
+
+  // Keep FJB hover tip pinned while Profiles dropdown is open
+  useEffect(() => {
+    // Profiles dropdown positioning is handled in the render
+  }, [profilesDropdown.visible]);
 
   // Helper functions for route-specific colorPromptSaved
   const getRouteColorPromptSaved = () => {
@@ -1054,6 +1082,28 @@ export default function Dashboard() {
   const [isFlightContentSticky, setIsFlightContentSticky] = useState(false);
   const [darkContainerHeight, setDarkContainerHeight] = useState(0);
 
+  // Fixed position for FJB hover tip (always visible) - computed value
+  const fjbHoverTip = { 
+    visible: true, 
+    x: window.innerWidth / 2, 
+    y: isFlightContentSticky ? 160 : window.innerHeight / 2 - 300 
+  };
+
+  // Anchor for aligning dropdowns and prompt bubbles to the hover tip's left edge
+  const hoverTipRef = useRef(null);
+  const [hoverAnchor, setHoverAnchor] = useState({ x: 0, y: 0 });
+  useEffect(() => {
+    if (!isPromptMode || !showInFlightPreview) return;
+    const updateAnchor = () => {
+      if (!hoverTipRef.current) return;
+      const rect = hoverTipRef.current.getBoundingClientRect();
+      setHoverAnchor({ x: rect.left, y: rect.bottom });
+    };
+    updateAnchor();
+    window.addEventListener('resize', updateAnchor, { passive: true });
+    return () => window.removeEventListener('resize', updateAnchor);
+  }, [isPromptMode, showInFlightPreview, isFlightContentSticky]);
+
   // DEBUG: Track recommendedContentCards changes
   useEffect(() => {
     console.log('🎯 recommendedContentCards state changed:', recommendedContentCards);
@@ -1155,6 +1205,11 @@ export default function Dashboard() {
     // position: { x, y } cursor position
     console.log('=== HANDLE PROMPT HOVER ===', { isHovering, elementType, isPromptMode, colorPromptClosedWithoutSave });
     if (!isPromptMode) return;
+    // When Profiles dropdown is open, ignore non-FJB hover updates and ignore hide events
+    if (profilesDropdown.visible) {
+      // During dropdown open, ignore hover updates
+      return;
+    }
     
     // Check if there's an active FJB prompt bubble
     const currentPromptBubble = getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey);
@@ -1180,6 +1235,10 @@ export default function Dashboard() {
       colorPromptClosedWithoutSave,
       isPromptMode
     });
+    // When Profiles dropdown is open, do not modify hover state for non-FJB elements
+    if (profilesDropdown.visible && elementType !== 'flight-journey-bar' && elementType !== 'flight-journey-bar-animation') {
+      return;
+    }
     
     // Check if there's an active FJB prompt bubble
     const currentPromptBubble = getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey);
@@ -1198,32 +1257,8 @@ export default function Dashboard() {
     }
     
     
-    // For FJB: do NOT show the icon-only plus; show hover bubble with "+ add theme"
+    // FJB hover logic removed - hover tip is now always visible
     if (elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation') {
-      if (!getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)) {
-        // Avoid flicker by only updating when moved enough pixels
-        setShowPlusIcon(false);
-        setFjbHoverTip(prev => {
-          if (!isHovering) return { visible: false, x: 0, y: 0 };
-          
-          // If we have a fixed position, use it instead of following mouse
-          // The fixed position is already the hover button position (50px above click)
-          const targetPosition = fjbFixedPosition || position;
-          
-          // Prevent flickering by only updating position if there's a significant change
-          const dx = Math.abs(prev.x - targetPosition.x);
-          const dy = Math.abs(prev.y - targetPosition.y);
-          if (!prev.visible || dx > 4 || dy > 4) {
-            return { visible: true, x: targetPosition.x, y: targetPosition.y };
-          }
-          return prev;
-        });
-      } else {
-        // When prompt bubble is open, keep hover tip visible at fixed position
-        if (fjbFixedPosition) {
-          setFjbHoverTip({ visible: true, x: fjbFixedPosition.x, y: fjbFixedPosition.y });
-        }
-      }
       return;
     }
     if (elementType === 'flight-icon') {
@@ -1323,9 +1358,9 @@ export default function Dashboard() {
       return;
     }
     
-    // Only allow prompt clicks if the current route has been modified (Add button clicked)
-    if (!isCurrentRouteModified()) {
-      console.log('🎯 Prompt click ignored - route not modified (Add button not clicked)');
+    // Only allow prompt clicks if the current route has been modified (Add button clicked) OR we're in in-flight preview mode
+    if (!isCurrentRouteModified() && !showInFlightPreview) {
+      console.log('🎯 Prompt click ignored - route not modified and not in in-flight preview');
       return;
     }
     
@@ -1362,10 +1397,6 @@ export default function Dashboard() {
     // Clear the closed without save state when opening a new color prompt
     if (elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation') {
       setColorPromptClosedWithoutSave(false);
-      // Set the fixed position for the hover button at the click position
-      setFjbFixedPosition({ x: position.x, y: position.y });
-      // Immediately show hover tip at fixed position
-      setFjbHoverTip({ visible: true, x: position.x, y: position.y });
     }
     
     // Set fixed positions for promo cards and content cards
@@ -1480,9 +1511,7 @@ export default function Dashboard() {
     setShowPlusIcon(false); // Hide plus icon when bubble appears
     
     // Ensure hover tips remain visible at fixed positions when prompt bubbles open
-    if ((elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation') && fjbFixedPosition) {
-      setFjbHoverTip({ visible: true, x: fjbFixedPosition.x, y: fjbFixedPosition.y });
-    } else if (elementType === 'promo-card' && pcFixedPosition) {
+    if (elementType === 'promo-card' && pcFixedPosition) {
       setPromoCardHoverTip({ visible: true, x: pcFixedPosition.x, y: pcFixedPosition.y, elementData });
     }
   };
@@ -1522,20 +1551,17 @@ export default function Dashboard() {
     setActiveSegmentId(null);
     setCurrentRoutePromptBubble(null);
     setShowPlusIcon(false);
-    // Clear all fixed positions when exiting prompt mode
-    setFjbFixedPosition(null);
+    // Clear content card fixed positions when exiting prompt mode
     setCcFixedPosition(null);
   };
 
   const handlePromptBubbleClose = () => {
     setCurrentRoutePromptBubble(null);
     setShowPlusIcon(false); // Ensure plus icon is hidden when bubble closes
-    // Only hide hover tips when prompt bubble is actually closed (not when switching between bubbles)
-    setFjbHoverTip({ visible: false, x: 0, y: 0 });
+    // Hover tip is now always visible, no need to hide it
     setPromoCardHoverTip({ visible: false, x: 0, y: 0, elementData: null });
     setCCHoverTip({ visible: false, x: 0, y: 0, elementData: null });
-    // Clear all fixed positions when prompt bubble closes
-    setFjbFixedPosition(null);
+    // Clear promo card fixed positions when prompt bubble closes
     setPcFixedPosition(null);
     setCcFixedPosition(null);
   };
@@ -1767,7 +1793,6 @@ export default function Dashboard() {
       elementType, 
       elementData, 
       position, 
-      fjbFixedPosition,
       ccFixedPosition,
       isPromptMode,
       colorPromptSaved: getRouteColorPromptSaved()
@@ -1781,12 +1806,7 @@ export default function Dashboard() {
       return;
     }
     
-    // Don't show content card hover tips if there's a fixed flight journey bar hover tip
-    if (fjbFixedPosition) {
-      console.log('=== BLOCKING CONTENT CARD HOVER - FJB FIXED POSITION ===');
-      setCCHoverTip({ visible: false, x: 0, y: 0, elementData: null });
-      return;
-    }
+    // Content card hover logic remains the same
     
     // Don't show content card hover tip if other UI elements are active
     if (fjbHoverTip.visible || promoCardHoverTip.visible || getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey) || showPlusIcon) {
@@ -2227,10 +2247,7 @@ export default function Dashboard() {
         onCloseWithoutSave={() => {
           console.log('=== COLOR PROMPT CLOSED WITHOUT SAVE ===');
           setColorPromptClosedWithoutSave(true);
-          // Clear fixed position to prevent position shifting on next interaction
-          setFjbFixedPosition(null);
-          // Hide hover tip to prevent flickering
-          setFjbHoverTip({ visible: false, x: 0, y: 0 });
+          // Hover tip is now always visible, no need to hide it
         }}
         themeColor={activeThemeColor}
         isThemeBuildStarted={isThemeBuildStarted}
@@ -2279,10 +2296,7 @@ export default function Dashboard() {
             setColorPromptClosedWithoutSave(false);
             setRouteColorPromptSavedValue(true);
             
-            // Clear fixed position so hover tip follows cursor again
-            setFjbFixedPosition(null);
-            // Hide the hover tip immediately after saving
-            setFjbHoverTip({ visible: false, x: 0, y: 0 });
+            // Hover tip remains visible at fixed position
             
             // Update selected theme chip and apply logo animation
             if (chipData && chipData.label) {
@@ -2391,22 +2405,58 @@ export default function Dashboard() {
       {/* REMOVED: Dummy change theme button that was showing as overlay */}
 
       {/* FJB hover tip bubble: shows label and plus; click opens color PB */}
-      {isCurrentRouteModified() && isPromptMode && fjbHoverTip.visible && (
+      {isPromptMode && showInFlightPreview && (
         <div
           key={`fjb-hover-${activeThemeColor}`}
           className="fixed"
           data-hover-tip="true"
-          style={{ left: fjbHoverTip.x, top: fjbHoverTip.y, transform: 'translateY(-100%)', pointerEvents: 'none', zIndex: 999999999 }}
+          style={{ 
+            left: '50%', 
+            top: isFlightContentSticky ? '160px' : 'calc(50% - 300px)', 
+            transform: 'translateX(-50%)', 
+            pointerEvents: 'auto', 
+            zIndex: 999999999 
+          }}
         >
           <div
+            ref={hoverTipRef}
             className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
             style={{
               backgroundColor: '#1f2937', // Dark container color
-              borderColor: hoverBorderColor,
+              borderColor: 'rgba(255, 255, 255, 0.2)',
               opacity: 1,
               borderTopLeftRadius: 0
             }}
           >
+            <span 
+              className="text-xs font-bold cursor-pointer hover:bg-white/10 px-2 py-1 rounded flex items-center gap-1"
+              data-profiles-button="true"
+              style={{ 
+                color: '#FFFFFF', 
+                pointerEvents: 'auto',
+                backgroundColor: profilesDropdown.visible ? 'rgba(255, 255, 255, 0.2)' : 'transparent'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                
+                // Close any existing prompt bubbles first
+                setRoutePromptBubbles({});
+                
+                const willOpen = !profilesDropdown.visible;
+                setProfilesDropdown({
+                  visible: willOpen,
+                  x: 0,
+                  y: 0
+                });
+                // Dropdown state is managed by profilesDropdown.visible
+              }}
+            >
+              {selectedProfile || 'Profiles'}
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </span>
+            <div className="w-px h-4 bg-white/30"></div>
             <span 
               className="text-xs font-bold cursor-pointer hover:bg-white/10 px-2 py-1 rounded"
               style={{ 
@@ -2417,12 +2467,12 @@ export default function Dashboard() {
               onClick={(e) => {
                 e.stopPropagation();
                 console.log('=== ADD THEME CLICKED ===');
-                // Ensure hover tip stays visible when opening prompt bubble
-                if (fjbFixedPosition) {
-                  setFjbHoverTip({ visible: true, x: fjbFixedPosition.x, y: fjbFixedPosition.y });
-                }
-                // Use the original click coordinates for consistent positioning
-                handlePromptClick('flight-journey-bar', { themeColor: activeThemeColor }, { x: fjbHoverTip.x, y: fjbHoverTip.y });
+                
+                // Close profiles dropdown if it's open
+                setProfilesDropdown({ visible: false, x: 0, y: 0 });
+                
+                // Use hover tip's left/bottom anchor for alignment
+                handlePromptClick('flight-journey-bar', { themeColor: activeThemeColor }, { x: hoverAnchor.x, y: hoverAnchor.y + 8 });
               }}
             >
               Add theme
@@ -2438,33 +2488,57 @@ export default function Dashboard() {
               onClick={(e) => {
                 e.stopPropagation();
                 console.log('=== ANIMATION CLICKED ===');
-                // Ensure hover tip stays visible when opening prompt bubble
-                if (fjbFixedPosition) {
-                  setFjbHoverTip({ visible: true, x: fjbFixedPosition.x, y: fjbFixedPosition.y });
-                }
-                // Use the original click coordinates for consistent positioning
-                handlePromptClick('flight-journey-bar-animation', { themeColor: activeThemeColor }, { x: fjbHoverTip.x, y: fjbHoverTip.y });
+                
+                // Close profiles dropdown if it's open
+                setProfilesDropdown({ visible: false, x: 0, y: 0 });
+                
+                // Use hover tip's left/bottom anchor for alignment
+                handlePromptClick('flight-journey-bar-animation', { themeColor: activeThemeColor }, { x: hoverAnchor.x, y: hoverAnchor.y + 8 });
               }}
             >
               Animation
             </span>
-            <div className="w-px h-4 bg-white/30"></div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                // Close the prompt bubble if it's open
-                setRoutePromptBubbles({});
-                // Clear fixed position to prevent position shifting
-                setFjbFixedPosition(null);
-                // Hide only the FJB hover tip
-                setFjbHoverTip({ visible: false, x: 0, y: 0 });
-              }}
-              className="w-4 h-4 flex items-center justify-center ml-1"
-              style={{ pointerEvents: 'auto', color: '#FFFFFF' }}
-              title="Close"
-            >
-              ×
-            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Profiles dropdown */}
+        {profilesDropdown.visible && (
+          <div
+            className="fixed"
+            data-dropdown="true"
+            style={{
+              left: hoverAnchor.x, // Align left edge with hover tip
+              top: hoverAnchor.y + 8, // Position just below hover tip
+              pointerEvents: 'auto',
+              zIndex: 999999999
+            }}
+          >
+          <div
+            className="bg-[#1f2937] border border-white/20 rounded-lg shadow-lg py-1 min-w-[120px]"
+            style={{
+              backgroundColor: '#1f2937',
+              borderColor: 'rgba(255, 255, 255, 0.2)'
+            }}
+          >
+            {['Business', 'Economy', 'Under 18', 'Holiday'].map((item, index) => (
+              <div
+                key={item}
+                className="px-3 py-2 text-xs font-medium text-white hover:bg-white/10 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  console.log(`=== PROFILE SELECTED: ${item} ===`);
+                  
+                  // Set the selected profile
+                  setSelectedProfile(item);
+                  
+                  // Close the dropdown after selection
+                  setProfilesDropdown({ visible: false, x: 0, y: 0 });
+                }}
+              >
+                {item}
+              </div>
+            ))}
           </div>
         </div>
       )}
