@@ -45,8 +45,8 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
             // Only trigger hover for the flight journey bar itself, not areas below it
             const rect = e.currentTarget.getBoundingClientRect();
             const relativeY = e.clientY - rect.top;
-            // Only trigger if we're in the top portion of the flight journey bar (not below it)
-            if (relativeY <= rect.height * 0.8) { // Only top 80% of the bar
+            // Only trigger if we're within the actual bounds of the flight journey bar
+            if (relativeY >= 0 && relativeY <= rect.height) {
               onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
             }
           }
@@ -61,8 +61,8 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
             // Only trigger hover for the flight journey bar itself, not areas below it
             const rect = e.currentTarget.getBoundingClientRect();
             const relativeY = e.clientY - rect.top;
-            // Only trigger if we're in the top portion of the flight journey bar (not below it)
-            if (relativeY <= rect.height * 0.8) { // Only top 80% of the bar
+            // Only trigger if we're within the actual bounds of the flight journey bar
+            if (relativeY >= 0 && relativeY <= rect.height) {
               onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
             } else {
               onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
@@ -82,8 +82,8 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
             // Only trigger click for the flight journey bar itself, not areas below it
             const rect = e.currentTarget.getBoundingClientRect();
             const relativeY = e.clientY - rect.top;
-            // Only trigger if we're in the top portion of the flight journey bar (not below it)
-            if (relativeY <= rect.height * 0.8) { // Only top 80% of the bar
+            // Only trigger if we're within the actual bounds of the flight journey bar
+            if (relativeY >= 0 && relativeY <= rect.height) {
               onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
             }
           }
@@ -97,7 +97,11 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               className="absolute left-0 top-0 bottom-0 w-[120px] z-0"
               onMouseEnter={(e) => {
                 if (onPromptHover) {
-                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const relativeY = e.clientY - rect.top;
+                  if (relativeY >= 0 && relativeY <= rect.height) {
+                    onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  }
                 }
               }}
               onMouseLeave={(e) => {
@@ -107,12 +111,22 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               }}
               onMouseMove={(e) => {
                 if (onPromptHover) {
-                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const relativeY = e.clientY - rect.top;
+                  if (relativeY >= 0 && relativeY <= rect.height) {
+                    onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  } else {
+                    onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  }
                 }
               }}
               onClick={(e) => {
                 if (onPromptClick) {
-                  onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const relativeY = e.clientY - rect.top;
+                  if (relativeY >= 0 && relativeY <= rect.height) {
+                    onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
+                  }
                 }
               }}
             />
@@ -122,7 +136,11 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               className="absolute left-[128px] top-0 bottom-0 w-6 z-0"
               onMouseEnter={(e) => {
                 if (onPromptHover) {
-                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const relativeY = e.clientY - rect.top;
+                  if (relativeY >= 0 && relativeY <= rect.height) {
+                    onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  }
                 }
               }}
               onMouseLeave={(e) => {
@@ -132,12 +150,22 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               }}
               onMouseMove={(e) => {
                 if (onPromptHover) {
-                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const relativeY = e.clientY - rect.top;
+                  if (relativeY >= 0 && relativeY <= rect.height) {
+                    onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  } else {
+                    onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  }
                 }
               }}
               onClick={(e) => {
                 if (onPromptClick) {
-                  onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const relativeY = e.clientY - rect.top;
+                  if (relativeY >= 0 && relativeY <= rect.height) {
+                    onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
+                  }
                 }
               }}
             />
@@ -146,7 +174,11 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               className="absolute left-[534px] top-0 bottom-0 w-6 z-0"
               onMouseEnter={(e) => {
                 if (onPromptHover) {
-                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const relativeY = e.clientY - rect.top;
+                  if (relativeY >= 0 && relativeY <= rect.height) {
+                    onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  }
                 }
               }}
               onMouseLeave={(e) => {
@@ -156,12 +188,22 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               }}
               onMouseMove={(e) => {
                 if (onPromptHover) {
-                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const relativeY = e.clientY - rect.top;
+                  if (relativeY >= 0 && relativeY <= rect.height) {
+                    onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  } else {
+                    onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  }
                 }
               }}
               onClick={(e) => {
                 if (onPromptClick) {
-                  onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const relativeY = e.clientY - rect.top;
+                  if (relativeY >= 0 && relativeY <= rect.height) {
+                    onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
+                  }
                 }
               }}
             />
@@ -170,7 +212,11 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               className="absolute left-[834px] top-0 bottom-0 w-6 z-0"
               onMouseEnter={(e) => {
                 if (onPromptHover) {
-                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const relativeY = e.clientY - rect.top;
+                  if (relativeY >= 0 && relativeY <= rect.height) {
+                    onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  }
                 }
               }}
               onMouseLeave={(e) => {
@@ -180,12 +226,22 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               }}
               onMouseMove={(e) => {
                 if (onPromptHover) {
-                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const relativeY = e.clientY - rect.top;
+                  if (relativeY >= 0 && relativeY <= rect.height) {
+                    onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  } else {
+                    onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  }
                 }
               }}
               onClick={(e) => {
                 if (onPromptClick) {
-                  onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const relativeY = e.clientY - rect.top;
+                  if (relativeY >= 0 && relativeY <= rect.height) {
+                    onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
+                  }
                 }
               }}
             />
@@ -195,7 +251,11 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               className="absolute left-0 right-0 top-0 h-2 z-0"
               onMouseEnter={(e) => {
                 if (onPromptHover) {
-                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const relativeY = e.clientY - rect.top;
+                  if (relativeY >= 0 && relativeY <= rect.height) {
+                    onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  }
                 }
               }}
               onMouseLeave={(e) => {
@@ -205,12 +265,22 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               }}
               onMouseMove={(e) => {
                 if (onPromptHover) {
-                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const relativeY = e.clientY - rect.top;
+                  if (relativeY >= 0 && relativeY <= rect.height) {
+                    onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  } else {
+                    onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  }
                 }
               }}
               onClick={(e) => {
                 if (onPromptClick) {
-                  onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const relativeY = e.clientY - rect.top;
+                  if (relativeY >= 0 && relativeY <= rect.height) {
+                    onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
+                  }
                 }
               }}
             />
@@ -219,7 +289,11 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               className="absolute left-0 right-0 bottom-0 h-2 z-0"
               onMouseEnter={(e) => {
                 if (onPromptHover) {
-                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const relativeY = e.clientY - rect.top;
+                  if (relativeY >= 0 && relativeY <= rect.height) {
+                    onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  }
                 }
               }}
               onMouseLeave={(e) => {
@@ -229,12 +303,22 @@ export default function FlightJourneyBar({ origin, destination, minutesLeft, the
               }}
               onMouseMove={(e) => {
                 if (onPromptHover) {
-                  onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const relativeY = e.clientY - rect.top;
+                  if (relativeY >= 0 && relativeY <= rect.height) {
+                    onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  } else {
+                    onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
+                  }
                 }
               }}
               onClick={(e) => {
                 if (onPromptClick) {
-                  onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const relativeY = e.clientY - rect.top;
+                  if (relativeY >= 0 && relativeY <= rect.height) {
+                    onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
+                  }
                 }
               }}
             />

@@ -42,8 +42,12 @@ export default function Component3Cards({
   // State for tracking editable image descriptions
   const [editableDescriptions, setEditableDescriptions] = useState({});
   
+  // State for tracking editable card titles
+  const [editableTitles, setEditableTitles] = useState({});
+  
   // State for tracking saved descriptions (to compare with current edits)
   const [savedDescriptions, setSavedDescriptions] = useState({});
+  
 
   // Helper functions for image loading state management
   const setImageLoading = (cardIndex, isLoading) => {
@@ -248,6 +252,9 @@ export default function Component3Cards({
     // Simple card content - always show "Add experience"
     const cardContent = getDefaultCardContent(originalCardIndex);
     
+    // Use edited title if available, otherwise use original card content
+    const displayTitle = editableTitles[originalCardIndex] || cardContent.text;
+    
     console.log('=== RENDER CARD DEBUG ===', {
       originalCardIndex,
       displayPosition,
@@ -406,7 +413,7 @@ export default function Component3Cards({
                      : { color: themeColor }
                    )
                  }}>
-                {cardContent.text}
+                {displayTitle}
               </p>
             </div>
           </div>
@@ -449,74 +456,162 @@ export default function Component3Cards({
               width: '416px'
             }}
           >
-            <input
-              type="text"
-              value={editableDescriptions[0] || (() => {
-                const cardContent = getDefaultCardContent(0);
-                return cardContent.image || cardContent.text || 'in-flight experience';
-              })()}
-              onChange={(e) => {
-                setEditableDescriptions(prev => ({
-                  ...prev,
-                  0: e.target.value
-                }));
-              }}
-              onFocus={(e) => {
-                // Select all text when focused for easy editing
-                setTimeout(() => {
-                  e.target.select();
-                }, 0);
-              }}
-              onMouseUp={(e) => {
-                // Prevent default mouse up behavior to keep text selected
-                e.preventDefault();
-              }}
-              onKeyDown={(e) => {
-                // Allow Enter key to trigger save
-                if (e.key === 'Enter') {
+            {/* Title Input Field */}
+            <div className="flex items-center gap-2 w-full">
+              <label className="text-xs text-gray-300 font-medium" style={{ minWidth: '40px' }}>
+                Title:
+              </label>
+              <input
+                type="text"
+                value={editableTitles[0] !== undefined ? editableTitles[0] : (() => {
+                  const cardContent = getDefaultCardContent(0);
+                  return cardContent.text || 'Add experience';
+                })()}
+                onChange={(e) => {
+                  setEditableTitles(prev => ({
+                    ...prev,
+                    0: e.target.value
+                  }));
+                }}
+                onFocus={(e) => {
+                  setTimeout(() => {
+                    e.target.select();
+                  }, 0);
+                }}
+                onMouseUp={(e) => {
                   e.preventDefault();
-                  const saveButton = e.target.parentElement.querySelector('button[style*="10B981"]');
-                  if (saveButton && !saveButton.disabled) {
-                    saveButton.click();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const saveButton = e.target.closest('.flex.flex-col').querySelector('button[style*="10B981"]');
+                    if (saveButton && !saveButton.disabled) {
+                      saveButton.click();
+                    }
                   }
-                }
-                // Allow Escape key to reset to original
-                if (e.key === 'Escape') {
-                  e.preventDefault();
+                  if ((e.key === 'Delete' || e.key === 'Backspace') && e.target.selectionStart === 0 && e.target.selectionEnd === e.target.value.length) {
+                    setEditableTitles(prev => ({
+                      ...prev,
+                      0: ''
+                    }));
+                    e.preventDefault();
+                  }
+                }}
+                className="text-xs text-white text-center bg-transparent border border-gray-500 outline-none flex-1 focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+                style={{ 
+                  margin: 0,
+                  padding: '6px 8px',
+                  borderRadius: '6px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  color: 'white',
+                  fontSize: '12px',
+                  textAlign: 'center',
+                  minHeight: '32px',
+                  transition: 'all 0.2s ease'
+                }}
+                placeholder="Enter card title..."
+                spellCheck="false"
+                autoComplete="off"
+                maxLength="50"
+              />
+            </div>
+            
+            {/* Image Description Input Field */}
+            <div className="flex items-center gap-2 w-full">
+              <button
+                className="px-2 py-1 rounded text-xs font-semibold transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: '#6B7280',
+                  color: 'white',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  minWidth: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                disabled={true}
+                onClick={() => {
                   const cardContent = getDefaultCardContent(0);
                   const originalText = cardContent.image || cardContent.text || 'in-flight experience';
                   setEditableDescriptions(prev => ({
                     ...prev,
                     0: originalText
                   }));
-                }
-                // Handle Delete and Backspace to ensure proper text clearing
-                if ((e.key === 'Delete' || e.key === 'Backspace') && e.target.selectionStart === 0 && e.target.selectionEnd === e.target.value.length) {
-                  // Text is fully selected, clear it
+                }}
+                title="Reset to original text"
+              >
+                ←
+              </button>
+              <input
+                type="text"
+                value={editableDescriptions[0] !== undefined ? editableDescriptions[0] : (() => {
+                  const cardContent = getDefaultCardContent(0);
+                  return cardContent.image || cardContent.text || 'in-flight experience';
+                })()}
+                onChange={(e) => {
                   setEditableDescriptions(prev => ({
                     ...prev,
-                    0: ''
+                    0: e.target.value
                   }));
+                }}
+                onFocus={(e) => {
+                  // Select all text when focused for easy editing
+                  setTimeout(() => {
+                    e.target.select();
+                  }, 0);
+                }}
+                onMouseUp={(e) => {
+                  // Prevent default mouse up behavior to keep text selected
                   e.preventDefault();
-                }
-              }}
-              className="text-xs text-white text-center bg-transparent border border-gray-500 outline-none w-full focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
-              style={{ 
-                margin: 0,
-                padding: '6px 8px',
-                borderRadius: '6px',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                color: 'white',
-                fontSize: '12px',
-                textAlign: 'center',
-                minHeight: '32px',
-                transition: 'all 0.2s ease'
-              }}
-              placeholder="Enter image description..."
-              spellCheck="false"
-              autoComplete="off"
-              maxLength="100"
-            />
+                }}
+                onKeyDown={(e) => {
+                  // Allow Enter key to trigger save
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const saveButton = e.target.closest('.flex.flex-col').querySelector('button[style*="10B981"]');
+                    if (saveButton && !saveButton.disabled) {
+                      saveButton.click();
+                    }
+                  }
+                  // Allow Escape key to reset to original
+                  if (e.key === 'Escape') {
+                    e.preventDefault();
+                    const cardContent = getDefaultCardContent(0);
+                    const originalText = cardContent.image || cardContent.text || 'in-flight experience';
+                    setEditableDescriptions(prev => ({
+                      ...prev,
+                      0: originalText
+                    }));
+                  }
+                  // Handle Delete and Backspace to ensure proper text clearing
+                  if ((e.key === 'Delete' || e.key === 'Backspace') && e.target.selectionStart === 0 && e.target.selectionEnd === e.target.value.length) {
+                    // Text is fully selected, clear it
+                    setEditableDescriptions(prev => ({
+                      ...prev,
+                      0: ''
+                    }));
+                    e.preventDefault();
+                  }
+                }}
+                className="text-xs text-white text-center bg-transparent border border-gray-500 outline-none flex-1 focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+                style={{ 
+                  margin: 0,
+                  padding: '6px 8px',
+                  borderRadius: '6px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  color: 'white',
+                  fontSize: '12px',
+                  textAlign: 'center',
+                  minHeight: '32px',
+                  transition: 'all 0.2s ease'
+                }}
+                placeholder="Enter image description..."
+                spellCheck="false"
+                autoComplete="off"
+                maxLength="100"
+              />
+            </div>
             <div className="flex gap-2">
               <button
                 className="px-4 py-2 rounded-lg font-semibold text-xs uppercase transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -530,20 +625,29 @@ export default function Component3Cards({
                     const cardContent = getDefaultCardContent(0);
                     return cardContent.image || cardContent.text || 'in-flight experience';
                   })();
+                  const currentTitle = editableTitles[0] || (() => {
+                    const cardContent = getDefaultCardContent(0);
+                    return cardContent.text || 'Add experience';
+                  })();
                   const savedDescription = savedDescriptions[0];
-                  return currentDescription === savedDescription;
+                  const savedTitle = savedDescriptions[0]; // We'll track both in the same state for now
+                  return currentDescription === savedDescription && currentTitle === savedTitle;
                 })()}
                 onClick={() => {
                   console.log('=== SAVE BUTTON CLICKED ===', {
                     editedDescription: editableDescriptions[0],
+                    editedTitle: editableTitles[0],
                     cardIndex: 0
                   });
                   
                   // Generate new image based on the edited description
                   const editedDescription = editableDescriptions[0];
+                  const editedTitle = editableTitles[0];
+                  
                   if (editedDescription) {
                     console.log('=== GENERATING SAVED IMAGE ===', {
                       editedDescription,
+                      editedTitle,
                       themeColor
                     });
                     
@@ -559,7 +663,7 @@ export default function Component3Cards({
                     // Set loading state for the card
                     setImageLoading(0, true);
                     
-                    // Mark this description as saved
+                    // Mark both description and title as saved
                     setSavedDescriptions(prev => ({
                       ...prev,
                       0: editedDescription
@@ -568,12 +672,13 @@ export default function Component3Cards({
                     console.log('=== SAVE COMPLETE ===', {
                       newImageUrl,
                       editedDescription,
+                      editedTitle,
                       savedDescription: editedDescription
                     });
                   }
                 }}
               >
-                💾 Save Image
+                💾 Save
               </button>
               <button
                 className="px-4 py-2 rounded-lg font-semibold text-xs uppercase transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -632,6 +737,7 @@ export default function Component3Cards({
                         console.log('=== NEW REMIXED IMAGES STATE ===', newState);
                         return newState;
                       });
+                      
                       
                       // Set loading state for the card
                       setImageLoading(0, true);
