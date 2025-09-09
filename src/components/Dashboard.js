@@ -3,6 +3,8 @@ import { getReadableOnColor, getLightCardBackgroundColor } from '../utils/color'
 import { getContentCardContent } from '../utils/festivalUtils';
 import { getNonFestiveCardContent } from '../data/festivalContent';
 import { getPollinationsImage } from '../utils/unsplash';
+import { useIsolatedState } from '../hooks/useIsolatedState';
+import { generateContextKey } from '../utils/contextValidation';
 import ThemeCreator from './ThemeCreator';
 import FlightJourneyBar from './FlightJourneyBar';
 import FlightProgress from './FlightProgress';
@@ -593,8 +595,6 @@ export default function Dashboard() {
   const [showMousePointer, setShowMousePointer] = useState(false);
   // Profiles dropdown state
   const [profilesDropdown, setProfilesDropdown] = useState({ visible: false, x: 0, y: 0 });
-  // Selected profile item
-  const [selectedProfile, setSelectedProfile] = useState(null);
 
   // Theme chips (colors) exposed from ThemeCreator for the active flight
   const [fjbThemeChips, setFjbThemeChips] = useState([]);
@@ -1023,6 +1023,43 @@ export default function Dashboard() {
   
   // Use the current flight's theme instead of global theme
   const activeThemeColor = getCurrentFlightTheme();
+
+  // Store profile selections per route (persistent across context changes)
+  const [routeProfiles, setRouteProfiles] = useState({});
+  
+  // Get the current route's selected profile
+  const getCurrentRouteProfile = () => {
+    const routeKey = getCurrentRouteKey();
+    return routeKey ? routeProfiles[routeKey] || null : null;
+  };
+  
+  // Set the current route's selected profile
+  const setCurrentRouteProfile = (profile) => {
+    const routeKey = getCurrentRouteKey();
+    if (!routeKey) return;
+    
+    setRouteProfiles(prev => ({
+      ...prev,
+      [routeKey]: profile
+    }));
+    
+    console.log('🔄 PROFILE STORED FOR ROUTE', {
+      routeKey,
+      profile,
+      allRouteProfiles: { ...routeProfiles, [routeKey]: profile }
+    });
+  };
+  
+  const selectedProfile = getCurrentRouteProfile();
+  
+  // Debug logging for profile state changes
+  useEffect(() => {
+    console.log('🔄 PROFILE STATE CHANGED', {
+      selectedProfile,
+      routeKey: getCurrentRouteKey(),
+      allRouteProfiles: routeProfiles
+    });
+  }, [selectedProfile, routeProfiles]);
 
   // Debug when routeColorPromptSaved changes
   useEffect(() => {
@@ -2596,8 +2633,9 @@ export default function Dashboard() {
                   e.stopPropagation();
                   console.log(`=== PROFILE SELECTED: ${item} ===`);
                   
-                  // Set the selected profile
-                  setSelectedProfile(item);
+                  // Store the selected profile for the current route
+                  // This persists the profile selection per route without leaking to other routes
+                  setCurrentRouteProfile(item);
                   
                   // Close the dropdown after selection
                   setProfilesDropdown({ visible: false, x: 0, y: 0 });
