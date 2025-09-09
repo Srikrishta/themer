@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { getReadableOnColor, getLightCardBackgroundColor } from '../utils/color';
 import { getContentCardContent } from '../utils/festivalUtils';
 import { getNonFestiveCardContent } from '../data/festivalContent';
@@ -1027,6 +1027,7 @@ export default function Dashboard() {
   // Store profile selections per route (persistent across context changes)
   const [routeProfiles, setRouteProfiles] = useState({});
   
+  
   // Get the current route's selected profile
   const getCurrentRouteProfile = () => {
     const routeKey = getCurrentRouteKey();
@@ -1050,7 +1051,12 @@ export default function Dashboard() {
     });
   };
   
-  const selectedProfile = getCurrentRouteProfile();
+  
+  // Make selectedProfile reactive to routeProfiles changes
+  const selectedProfile = useMemo(() => {
+    return getCurrentRouteProfile();
+  }, [routeProfiles, getCurrentRouteKey]);
+  
   
   // Debug logging for profile state changes
   useEffect(() => {
@@ -1060,6 +1066,7 @@ export default function Dashboard() {
       allRouteProfiles: routeProfiles
     });
   }, [selectedProfile, routeProfiles]);
+  
 
   // Debug when routeColorPromptSaved changes
   useEffect(() => {
@@ -1121,7 +1128,7 @@ export default function Dashboard() {
   const fjbHoverTip = { 
     visible: true, 
     x: window.innerWidth / 2, 
-    y: isFlightContentSticky ? 160 : window.innerHeight / 2 - 300 
+    y: isFlightContentSticky ? 136 : window.innerHeight / 2 - 324 
   };
 
   // Anchor for aligning dropdowns and prompt bubbles to the hover tip's left edge
@@ -1151,7 +1158,7 @@ export default function Dashboard() {
       }
     } catch {}
     // Fallback estimate if hover tip not yet in DOM
-    const fallbackY = isFlightContentSticky ? 160 : (typeof window !== 'undefined' ? (window.innerHeight / 2 - 300) : 0);
+    const fallbackY = isFlightContentSticky ? 136 : (typeof window !== 'undefined' ? (window.innerHeight / 2 - 324) : 0);
     const fallbackX = typeof window !== 'undefined' ? Math.max(0, Math.floor(window.innerWidth / 2 - 120)) : 0;
     return { x: fallbackX, y: fallbackY + 40 };
   };
@@ -2043,6 +2050,9 @@ export default function Dashboard() {
             // Mark the current route as modified when Add button is clicked
             console.log('🎯 Add button clicked - marking route as modified');
             markCurrentRouteAsModified();
+            
+            // Set "Add theme" as selected in the hover tip
+            setSelectedHoverItem('add-theme');
           }}
           onDatesChange={(dates) => {
             setSelectedDates(dates);
@@ -2513,7 +2523,7 @@ export default function Dashboard() {
           data-hover-tip="true"
           style={{ 
             left: '50%', 
-            top: isFlightContentSticky ? '160px' : 'calc(50% - 300px)', 
+            top: isFlightContentSticky ? '136px' : 'calc(50% - 324px)', 
             transform: 'translateX(-50%)', 
             pointerEvents: 'auto', 
             zIndex: 999999999 
@@ -2536,7 +2546,7 @@ export default function Dashboard() {
               style={{ 
                 color: '#FFFFFF', 
                 pointerEvents: 'auto',
-                backgroundColor: profilesDropdown.visible ? 'rgba(255, 255, 255, 0.2)' : 'transparent'
+                backgroundColor: selectedHoverItem === 'profiles' ? 'rgba(255, 255, 255, 0.2)' : 'transparent'
               }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -2550,7 +2560,9 @@ export default function Dashboard() {
                   x: 0,
                   y: 0
                 });
-                // Dropdown state is managed by profilesDropdown.visible
+                
+                // Update selected hover item to ensure only one nav item is highlighted
+                setSelectedHoverItem(willOpen ? 'profiles' : null);
               }}
             >
               {selectedProfile || 'Profiles'}
@@ -2625,25 +2637,39 @@ export default function Dashboard() {
               borderColor: 'rgba(255, 255, 255, 0.2)'
             }}
           >
-            {['Business', 'Economy', 'Under 18', 'Holiday'].map((item, index) => (
-              <div
-                key={item}
-                className="px-3 py-2 text-xs font-medium text-white hover:bg-white/10 cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  console.log(`=== PROFILE SELECTED: ${item} ===`);
-                  
-                  // Store the selected profile for the current route
-                  // This persists the profile selection per route without leaking to other routes
-                  setCurrentRouteProfile(item);
-                  
-                  // Close the dropdown after selection
-                  setProfilesDropdown({ visible: false, x: 0, y: 0 });
-                }}
-              >
-                {item}
-              </div>
-            ))}
+            {['Business', 'Economy', 'Under 18', 'Holiday'].map((item, index) => {
+              const isSelected = selectedProfile === item;
+              return (
+                <div
+                  key={item}
+                  className={`px-3 py-2 text-xs font-medium cursor-pointer transition-colors ${
+                    isSelected 
+                      ? 'bg-blue-600 text-white' 
+                      : 'text-white hover:bg-white/10'
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log(`=== PROFILE SELECTED: ${item} ===`);
+                    
+                    // Store the selected profile for the current route
+                    // This persists the profile selection per route without leaking to other routes
+                    setCurrentRouteProfile(item);
+                    
+                    // Close the dropdown after selection
+                    setProfilesDropdown({ visible: false, x: 0, y: 0 });
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>{item}</span>
+                    {isSelected && (
+                      <svg className="w-3 h-3 ml-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
