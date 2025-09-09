@@ -44,7 +44,16 @@ function formatTime(minutes) {
   return `LANDING IN ${h}H ${m.toString().padStart(2, '0')}M`;
 }
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, onContentCardHover, colorPromptClosedWithoutSave, getRouteColorPromptSaved, recommendedContentCards, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, handleContentCardHover, selectedDates = [], isCurrentThemeFestive, getRouteSelectedThemeChip, handlePromoCardHover }) {
+// Helper function to get current route's prompt bubble
+const getCurrentRoutePromptBubble = (routePromptBubbles, getCurrentRouteKey) => {
+  const routeKey = getCurrentRouteKey();
+  if (!routeKey) return null;
+  const bubble = routePromptBubbles[routeKey] || null;
+  console.log('🎯 Getting prompt bubble for route:', { routeKey, bubble, allBubbles: routePromptBubbles });
+  return bubble;
+};
+
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, onContentCardHover, colorPromptClosedWithoutSave, getRouteColorPromptSaved, recommendedContentCards, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, handleContentCardHover, selectedDates = [], isCurrentThemeFestive, getRouteSelectedThemeChip, handlePromoCardHover, routePromptBubbles }) {
 
   // State for tracking content card image loading
   const [contentImageLoadingStates, setContentImageLoadingStates] = useState({});
@@ -339,23 +348,21 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         }}
         onMouseEnter={(e) => {
           if (!isPromptMode) return;
-          // Only trigger hover for actual FJB/FPS components, not empty areas or flight phase chips
+          // Strict: Only allow FJB container to trigger FJB hover tip
           const isOverFJB = e.target.closest('[data-name="flight journey bar"]') || e.target.closest('[data-name="logo placeholder"]');
-          const isOverFPS = e.target.closest('.flight-progress-bar-container') || e.target.closest('.flight-progress-icon');
           const isOverFlightPhaseChip = e.target.closest('.flight-phase-label') || e.target.closest('.flightPhase-label');
-          
-          if ((isOverFJB || isOverFPS) && !isOverFlightPhaseChip && typeof onPromptHover === 'function') {
+
+          if (isOverFJB && !isOverFlightPhaseChip && typeof onPromptHover === 'function') {
             onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
           }
         }}
         onMouseMove={(e) => {
           if (!isPromptMode) return;
-          // Only trigger hover for actual FJB/FPS components, not empty areas or flight phase chips
+          // Strict: Only allow FJB container to trigger FJB hover tip
           const isOverFJB = e.target.closest('[data-name="flight journey bar"]') || e.target.closest('[data-name="logo placeholder"]');
-          const isOverFPS = e.target.closest('.flight-progress-bar-container') || e.target.closest('.flight-progress-icon');
           const isOverFlightPhaseChip = e.target.closest('.flight-phase-label') || e.target.closest('.flightPhase-label');
-          
-          if ((isOverFJB || isOverFPS) && !isOverFlightPhaseChip && typeof onPromptHover === 'function') {
+
+          if (isOverFJB && !isOverFlightPhaseChip && typeof onPromptHover === 'function') {
             onPromptHover(true, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
           } else if (typeof onPromptHover === 'function') {
             onPromptHover(false, 'flight-journey-bar', { themeColor }, { x: e.clientX, y: e.clientY });
@@ -369,23 +376,35 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         }}
         onClick={(e) => {
           if (!isPromptMode || typeof onPromptClick !== 'function') return;
-          // Only trigger click for actual FJB/FPS components, not empty areas
+
+          // Check if there's already an active FJB prompt bubble
+          const currentPromptBubble = getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey);
+          if (currentPromptBubble && (currentPromptBubble.elementType === 'flight-journey-bar' || currentPromptBubble.elementType === 'flight-journey-bar-animation')) {
+            // If FJB prompt bubble is open, only allow clicks within FJB container
+            const isOverFJBActive = e.target.closest('[data-name="flight journey bar"]') || e.target.closest('[data-name="logo placeholder"]');
+            if (!isOverFJBActive) {
+              // Click is outside FJB container, ignore it
+              console.log('=== IGNORING CLICK OUTSIDE FJB CONTAINER - FJB PROMPT BUBBLE ACTIVE ===');
+              return;
+            }
+          }
+
+          // Strict: Only allow FJB container to open FJB color prompt bubble
           const isOverFJB = e.target.closest('[data-name="flight journey bar"]') || e.target.closest('[data-name="logo placeholder"]');
-          const isOverFPS = e.target.closest('.flight-progress-bar-container') || e.target.closest('.flight-progress-icon');
           const isOverLogoPlaceholder = e.target.closest('[data-name="logo placeholder"]');
           const isOverFlightPhaseChip = e.target.closest('.flight-phase-label') || e.target.closest('.flightPhase-label');
-          
+
           if (isOverLogoPlaceholder) {
             // Let the logo-placeholder element handle its own click to open the correct PB
             return;
           }
-          
+
           if (isOverFlightPhaseChip) {
             // Ignore clicks on flight phase chips - they should only select flight phases
             return;
           }
-          
-          if (isOverFJB || isOverFPS) {
+
+          if (isOverFJB) {
             onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
           }
         }}
@@ -618,10 +637,10 @@ export default function Dashboard() {
     }
     
     // Don't show promo card hover tip if other UI elements are active
-    if (fjbHoverTip.visible || getCurrentRoutePromptBubble() || showPlusIcon) {
+    if (fjbHoverTip.visible || getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey) || showPlusIcon) {
       console.log('=== IGNORING PROMO CARD HOVER - OTHER UI ACTIVE ===', { 
         fjbHoverTipVisible: fjbHoverTip.visible, 
-        promptBubbleOpen: !!getCurrentRoutePromptBubble(),
+        promptBubbleOpen: !!getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey),
         showPlusIcon 
       });
       return;
@@ -920,14 +939,6 @@ export default function Dashboard() {
     }));
   };
   
-  // Helper function to get current route's prompt bubble
-  const getCurrentRoutePromptBubble = () => {
-    const routeKey = getCurrentRouteKey();
-    if (!routeKey) return null;
-    const bubble = routePromptBubbles[routeKey] || null;
-    console.log('🎯 Getting prompt bubble for route:', { routeKey, bubble, allBubbles: routePromptBubbles });
-    return bubble;
-  };
   
   // Helper function to set current route's prompt bubble
   const setCurrentRoutePromptBubble = (bubbleData) => {
@@ -1128,6 +1139,16 @@ export default function Dashboard() {
     console.log('=== HANDLE PROMPT HOVER ===', { isHovering, elementType, isPromptMode, colorPromptClosedWithoutSave });
     if (!isPromptMode) return;
     
+    // Check if there's an active FJB prompt bubble
+    const currentPromptBubble = getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey);
+    if (currentPromptBubble && (currentPromptBubble.elementType === 'flight-journey-bar' || currentPromptBubble.elementType === 'flight-journey-bar-animation')) {
+      // If FJB prompt bubble is active, only allow FJB hover events
+      if (elementType !== 'flight-journey-bar' && elementType !== 'flight-journey-bar-animation') {
+        console.log('=== BLOCKING HOVER EVENT - FJB PROMPT BUBBLE ACTIVE ===', { elementType });
+        return;
+      }
+    }
+    
     // Process hover event directly since we removed excessive mouse move events
     processHoverEvent(isHovering, elementType, elementData, position);
   };
@@ -1143,6 +1164,16 @@ export default function Dashboard() {
       isPromptMode
     });
     
+    // Check if there's an active FJB prompt bubble
+    const currentPromptBubble = getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey);
+    if (currentPromptBubble && (currentPromptBubble.elementType === 'flight-journey-bar' || currentPromptBubble.elementType === 'flight-journey-bar-animation')) {
+      // If FJB prompt bubble is active, only allow FJB hover events
+      if (elementType !== 'flight-journey-bar' && elementType !== 'flight-journey-bar-animation') {
+        console.log('=== BLOCKING HOVER EVENT - FJB PROMPT BUBBLE ACTIVE ===', { elementType });
+        return;
+      }
+    }
+    
     // If color prompt hasn't been saved, only allow flight-journey-bar hovers
     if (!getRouteColorPromptSaved() && elementType !== 'flight-journey-bar') {
       console.log('🎯 Prompt hover ignored - color prompt not saved, only FJB allowed');
@@ -1152,7 +1183,7 @@ export default function Dashboard() {
     
     // For FJB: do NOT show the icon-only plus; show hover bubble with "+ add theme"
     if (elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation') {
-      if (!getCurrentRoutePromptBubble()) {
+      if (!getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)) {
         // Avoid flicker by only updating when moved enough pixels
         setShowPlusIcon(false);
         setFjbHoverTip(prev => {
@@ -1179,7 +1210,7 @@ export default function Dashboard() {
       return;
     }
     if (elementType === 'flight-icon') {
-      if (!getCurrentRoutePromptBubble()) {
+      if (!getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)) {
         // Replace cursor plus with hover tip for FPS
         setShowPlusIcon(false);
         setFpsHoverTip(prev => {
@@ -1199,7 +1230,7 @@ export default function Dashboard() {
 
 
     if (elementType === 'promo-card') {
-      if (!getCurrentRoutePromptBubble()) {
+      if (!getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)) {
         setShowPlusIcon(false);
         setPromoCardHoverTip(prev => {
           // If we have a fixed position (user clicked), ignore mouse movements and keep hover tip visible
@@ -1233,7 +1264,7 @@ export default function Dashboard() {
     }
 
     if (elementType === 'content-card') {
-      if (!getCurrentRoutePromptBubble()) {
+      if (!getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)) {
         setShowPlusIcon(false);
         setCCHoverTip(prev => {
           if (!isHovering) return { visible: false, x: 0, y: 0, elementData: null };
@@ -1253,7 +1284,7 @@ export default function Dashboard() {
       }
       return;
     }
-    if (getCurrentRoutePromptBubble()) return;
+    if (getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)) return;
     // Default behavior for other elements (none for now)
     console.log('Prompt hover:', isHovering, elementType, elementData, position);
   };
@@ -1285,6 +1316,16 @@ export default function Dashboard() {
     if (!getRouteColorPromptSaved() && elementType !== 'flight-journey-bar' && elementType !== 'flight-journey-bar-animation') {
       console.log('🎯 Prompt click ignored - color prompt not saved, only FJB allowed');
       return;
+    }
+    
+    // Check if there's already an active FJB prompt bubble
+    const currentPromptBubble = getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey);
+    if (currentPromptBubble && (currentPromptBubble.elementType === 'flight-journey-bar' || currentPromptBubble.elementType === 'flight-journey-bar-animation')) {
+      // If FJB prompt bubble is active, only allow FJB-related clicks
+      if (elementType !== 'flight-journey-bar' && elementType !== 'flight-journey-bar-animation') {
+        console.log('=== IGNORING CLICK - FJB PROMPT BUBBLE ACTIVE ===', { elementType });
+        return;
+      }
     }
     
     // Ensure prompt mode is active before opening any prompt bubble
@@ -1715,6 +1756,14 @@ export default function Dashboard() {
       colorPromptSaved: getRouteColorPromptSaved()
     });
     
+    // Check if there's an active FJB prompt bubble
+    const currentPromptBubble = getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey);
+    if (currentPromptBubble && (currentPromptBubble.elementType === 'flight-journey-bar' || currentPromptBubble.elementType === 'flight-journey-bar-animation')) {
+      console.log('=== BLOCKING CONTENT CARD HOVER - FJB PROMPT BUBBLE ACTIVE ===');
+      setCCHoverTip({ visible: false, x: 0, y: 0, elementData: null });
+      return;
+    }
+    
     // Don't show content card hover tips if there's a fixed flight journey bar hover tip
     if (fjbFixedPosition) {
       console.log('=== BLOCKING CONTENT CARD HOVER - FJB FIXED POSITION ===');
@@ -1723,11 +1772,11 @@ export default function Dashboard() {
     }
     
     // Don't show content card hover tip if other UI elements are active
-    if (fjbHoverTip.visible || promoCardHoverTip.visible || getCurrentRoutePromptBubble() || showPlusIcon) {
+    if (fjbHoverTip.visible || promoCardHoverTip.visible || getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey) || showPlusIcon) {
       console.log('=== IGNORING CONTENT CARD HOVER - OTHER UI ACTIVE ===', { 
         fjbHoverTipVisible: fjbHoverTip.visible, 
         promoCardHoverTipVisible: promoCardHoverTip.visible,
-        promptBubbleOpen: !!getCurrentRoutePromptBubble(),
+        promptBubbleOpen: !!getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey),
         showPlusIcon 
       });
       return;
@@ -1741,7 +1790,7 @@ export default function Dashboard() {
     } else {
       console.log('=== HIDING CONTENT CARD HOVER TIP ===');
       // Only hide if no prompt bubble is open
-      if (!getCurrentRoutePromptBubble()) {
+      if (!getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)) {
         setCCHoverTip({ visible: false, x: 0, y: 0, elementData: null });
       } else {
         // When prompt bubble is open, keep hover tip visible at fixed position
@@ -2102,6 +2151,7 @@ export default function Dashboard() {
               isCurrentThemeFestive={isCurrentThemeFestive}
               getRouteSelectedThemeChip={getRouteSelectedThemeChip}
               handlePromoCardHover={handlePromoCardHover}
+              routePromptBubbles={routePromptBubbles}
             />
           </div>
         </div>
@@ -2138,11 +2188,11 @@ export default function Dashboard() {
 
       {/* Prompt Bubble */}
       <PromptBubble
-        key={`${getCurrentRoutePromptBubble()?.elementType}-${getCurrentRoutePromptBubble()?.positionKey}-${getCurrentRoutePromptBubble()?.existingText?.length || 0}`}
-        isVisible={!!getCurrentRoutePromptBubble()}
-        position={getCurrentRoutePromptBubble() || { x: 0, y: 0 }}
-        elementType={getCurrentRoutePromptBubble()?.elementType}
-        elementData={getCurrentRoutePromptBubble()?.elementData}
+        key={`${getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)?.elementType}-${getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)?.positionKey}-${getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)?.existingText?.length || 0}`}
+        isVisible={!!getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)}
+        position={getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey) || { x: 0, y: 0 }}
+        elementType={getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)?.elementType}
+        elementData={getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)?.elementData}
         onClose={handlePromptBubbleClose}
         onSubmit={handlePromptBubbleSubmit}
         onCloseWithoutSave={() => {
@@ -2156,7 +2206,7 @@ export default function Dashboard() {
         themeColor={activeThemeColor}
         isThemeBuildStarted={isThemeBuildStarted}
         existingText={(() => {
-          const bubble = getCurrentRoutePromptBubble();
+          const bubble = getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey);
           const existingText = bubble?.existingText || '';
           console.log('=== RENDERING PROMPT BUBBLE WITH EXISTING TEXT ===', {
             bubble,
@@ -2166,7 +2216,7 @@ export default function Dashboard() {
           });
           return existingText;
         })()}
-        positionKey={getCurrentRoutePromptBubble()?.positionKey}
+        positionKey={getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)?.positionKey}
         fpsPrompts={fpsPrompts}
         onThemeColorChange={(color, chipData) => {
           if (typeof color === 'string' && color.length > 0) {
@@ -2271,7 +2321,7 @@ export default function Dashboard() {
             setCurrentRoutePromptBubble(null);
           }
         }}
-        themeChips={getCurrentRoutePromptBubble()?.elementType === 'flight-journey-bar' ? fjbThemeChips : []}
+        themeChips={getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)?.elementType === 'flight-journey-bar' ? fjbThemeChips : []}
         selectedLogo={selectedLogo}
         onLogoSelect={(info) => {
           setSelectedLogo(info);
@@ -2333,7 +2383,7 @@ export default function Dashboard() {
               style={{ 
                 color: '#FFFFFF', 
                 pointerEvents: 'auto',
-                backgroundColor: getCurrentRoutePromptBubble()?.elementType === 'flight-journey-bar' ? 'rgba(255, 255, 255, 0.2)' : 'transparent'
+                backgroundColor: getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)?.elementType === 'flight-journey-bar' ? 'rgba(255, 255, 255, 0.2)' : 'transparent'
               }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -2354,7 +2404,7 @@ export default function Dashboard() {
               style={{ 
                 color: '#FFFFFF', 
                 pointerEvents: 'auto',
-                backgroundColor: getCurrentRoutePromptBubble()?.elementType === 'flight-journey-bar-animation' ? 'rgba(255, 255, 255, 0.2)' : 'transparent'
+                backgroundColor: getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)?.elementType === 'flight-journey-bar-animation' ? 'rgba(255, 255, 255, 0.2)' : 'transparent'
               }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -2391,7 +2441,7 @@ export default function Dashboard() {
       )}
 
       {/* FPS hover tip bubble: shows label and plus; click opens FPS PB */}
-      {isCurrentRouteModified() && isPromptMode && fpsHoverTip.visible && !getCurrentRoutePromptBubble() && (
+      {isCurrentRouteModified() && isPromptMode && fpsHoverTip.visible && !getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey) && (
         <div
           key={`fps-hover-${activeThemeColor}`}
           className="fixed"
@@ -2588,7 +2638,7 @@ export default function Dashboard() {
               style={{ 
                 color: '#FFFFFF', 
                 pointerEvents: 'auto',
-                backgroundColor: getCurrentRoutePromptBubble()?.elementType === 'promo-card' ? 'rgba(255, 255, 255, 0.2)' : 'transparent'
+                backgroundColor: getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)?.elementType === 'promo-card' ? 'rgba(255, 255, 255, 0.2)' : 'transparent'
               }}
               onClick={(e) => {
                 e.stopPropagation();
