@@ -404,8 +404,9 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
             return;
           }
 
+          // Do not open color prompt from FJB clicks anymore
           if (isOverFJB) {
-            onPromptClick('flight-journey-bar', { themeColor, origin, destination }, { x: e.clientX, y: e.clientY });
+            return;
           }
         }}
       >
@@ -415,9 +416,6 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
             destination={destination} 
             minutesLeft={minutesLeft} 
             themeColor={themeColor} 
-            isPromptMode={isPromptMode}
-            onPromptHover={onPromptHover}
-            onPromptClick={onPromptClick}
             selectedLogo={selectedLogo}
           />
           <FlightProgress 
@@ -1092,6 +1090,7 @@ export default function Dashboard() {
   // Anchor for aligning dropdowns and prompt bubbles to the hover tip's left edge
   const hoverTipRef = useRef(null);
   const [hoverAnchor, setHoverAnchor] = useState({ x: 0, y: 0 });
+  const [selectedHoverItem, setSelectedHoverItem] = useState(null); // Track which hover tip item is selected
   useEffect(() => {
     if (!isPromptMode || !showInFlightPreview) return;
     const updateAnchor = () => {
@@ -1103,6 +1102,65 @@ export default function Dashboard() {
     window.addEventListener('resize', updateAnchor, { passive: true });
     return () => window.removeEventListener('resize', updateAnchor);
   }, [isPromptMode, showInFlightPreview, isFlightContentSticky]);
+
+  // Helper: compute hover tip anchor on demand to avoid timing races
+  const getHoverAnchorNow = () => {
+    try {
+      const el = hoverTipRef.current || document.querySelector('[data-fjb-hover-tip="true"]') || document.querySelector('[data-hover-tip]');
+      if (el) {
+        const r = el.getBoundingClientRect();
+        // Use left edge of the hover tip so bubble can left-align to it
+        return { x: r.left, y: r.bottom };
+      }
+    } catch {}
+    // Fallback estimate if hover tip not yet in DOM
+    const fallbackY = isFlightContentSticky ? 160 : (typeof window !== 'undefined' ? (window.innerHeight / 2 - 300) : 0);
+    const fallbackX = typeof window !== 'undefined' ? Math.max(0, Math.floor(window.innerWidth / 2 - 120)) : 0;
+    return { x: fallbackX, y: fallbackY + 40 };
+  };
+
+  const openFjbPromptBelowHoverTip = (elementType) => {
+    // Deterministically wait for the hover tip to be present and stable
+    const start = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const timeoutMs = 2000; // hard cap
+    let lastRect = null;
+    let stableCount = 0;
+    const requiredStableFrames = 3;
+
+    const loop = () => {
+      const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      const el = hoverTipRef.current || document.querySelector('[data-fjb-hover-tip="true"]') || document.querySelector('[data-hover-tip]');
+      if (el) {
+        const r = el.getBoundingClientRect();
+        const style = window.getComputedStyle ? window.getComputedStyle(el) : null;
+        const visible = !style || (style.visibility !== 'hidden' && parseFloat(style.opacity || '1') > 0.8);
+        const hasSize = r.width > 0 && r.height > 0;
+        if (visible && hasSize) {
+          if (lastRect && Math.abs(lastRect.left - r.left) < 0.5 && Math.abs(lastRect.bottom - r.bottom) < 0.5) {
+            stableCount += 1;
+          } else {
+            stableCount = 0;
+            lastRect = r;
+          }
+          if (stableCount >= requiredStableFrames) {
+            const anchor = { x: r.left, y: r.bottom };
+            handlePromptClick(elementType, { themeColor: activeThemeColor }, { x: anchor.x, y: anchor.y + 8 });
+            return;
+          }
+        }
+      }
+      if (now - start < timeoutMs) {
+        requestAnimationFrame(loop);
+      } else if (lastRect) {
+        const anchor = { x: lastRect.left, y: lastRect.bottom };
+        handlePromptClick(elementType, { themeColor: activeThemeColor }, { x: anchor.x, y: anchor.y + 8 });
+      } else {
+        // As a last resort, don’t open until we can anchor correctly
+        requestAnimationFrame(loop);
+      }
+    };
+    requestAnimationFrame(loop);
+  };
 
   // DEBUG: Track recommendedContentCards changes
   useEffect(() => {
@@ -1558,6 +1616,8 @@ export default function Dashboard() {
   const handlePromptBubbleClose = () => {
     setCurrentRoutePromptBubble(null);
     setShowPlusIcon(false); // Ensure plus icon is hidden when bubble closes
+    // Clear selected hover item when prompt bubble closes
+    setSelectedHoverItem(null);
     // Hover tip is now always visible, no need to hide it
     setPromoCardHoverTip({ visible: false, x: 0, y: 0, elementData: null });
     setCCHoverTip({ visible: false, x: 0, y: 0, elementData: null });
@@ -1997,10 +2057,17 @@ export default function Dashboard() {
               setShowInFlightPreview(true);
               setShowIFEFrame(true);
               setIsPromptMode(true);
+              
+              // Select "Add theme" in hover tip
+              setSelectedHoverItem('add-theme');
+              
               // Notify components that layout has changed
               setTimeout(() => {
                 window.dispatchEvent(new CustomEvent('layoutChanged', { detail: { type: 'ifePreviewShown' } }));
-              }, 300);
+                
+                // Wait for hover tip to be mounted, then compute anchor at the moment of opening
+                setTimeout(() => openFjbPromptBelowHoverTip('flight-journey-bar'), 80);
+              }, 240);
             }, 250);
           }}
           isRouteModified={isCurrentRouteModified()}
@@ -2145,12 +2212,7 @@ export default function Dashboard() {
                 target.title?.includes('Change theme')
               );
               
-              if (isChangeThemeButton && isPromptMode) {
-                console.log('🎯 Global IFE frame click delegation caught Change Theme button');
-                e.stopPropagation();
-                handlePromptClick('flight-journey-bar', { themeColor: ifeFrameThemeColor }, { x: e.clientX, y: e.clientY });
-                return;
-              }
+              // Removed: IFE Change Theme triggers color prompt
             }}
           >
             {/* IFE Frame SVG */}
@@ -2247,6 +2309,8 @@ export default function Dashboard() {
         onCloseWithoutSave={() => {
           console.log('=== COLOR PROMPT CLOSED WITHOUT SAVE ===');
           setColorPromptClosedWithoutSave(true);
+          // Clear selected hover item when prompt bubble closes without save
+          setSelectedHoverItem(null);
           // Hover tip is now always visible, no need to hide it
         }}
         themeColor={activeThemeColor}
@@ -2420,6 +2484,7 @@ export default function Dashboard() {
         >
           <div
             ref={hoverTipRef}
+            data-fjb-hover-tip="true"
             className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
             style={{
               backgroundColor: '#1f2937', // Dark container color
@@ -2462,7 +2527,7 @@ export default function Dashboard() {
               style={{ 
                 color: '#FFFFFF', 
                 pointerEvents: 'auto',
-                backgroundColor: getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)?.elementType === 'flight-journey-bar' ? 'rgba(255, 255, 255, 0.2)' : 'transparent'
+                backgroundColor: selectedHoverItem === 'add-theme' ? 'rgba(255, 255, 255, 0.2)' : 'transparent'
               }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -2471,8 +2536,9 @@ export default function Dashboard() {
                 // Close profiles dropdown if it's open
                 setProfilesDropdown({ visible: false, x: 0, y: 0 });
                 
-                // Use hover tip's left/bottom anchor for alignment
-                handlePromptClick('flight-journey-bar', { themeColor: activeThemeColor }, { x: hoverAnchor.x, y: hoverAnchor.y + 8 });
+                // Select this item and show prompt bubble using fresh anchor
+                setSelectedHoverItem('add-theme');
+                openFjbPromptBelowHoverTip('flight-journey-bar');
               }}
             >
               Add theme
@@ -2483,7 +2549,7 @@ export default function Dashboard() {
               style={{ 
                 color: '#FFFFFF', 
                 pointerEvents: 'auto',
-                backgroundColor: getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)?.elementType === 'flight-journey-bar-animation' ? 'rgba(255, 255, 255, 0.2)' : 'transparent'
+                backgroundColor: selectedHoverItem === 'animation' ? 'rgba(255, 255, 255, 0.2)' : 'transparent'
               }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -2492,8 +2558,9 @@ export default function Dashboard() {
                 // Close profiles dropdown if it's open
                 setProfilesDropdown({ visible: false, x: 0, y: 0 });
                 
-                // Use hover tip's left/bottom anchor for alignment
-                handlePromptClick('flight-journey-bar-animation', { themeColor: activeThemeColor }, { x: hoverAnchor.x, y: hoverAnchor.y + 8 });
+                // Select this item and show prompt bubble using fresh anchor
+                setSelectedHoverItem('animation');
+                openFjbPromptBelowHoverTip('flight-journey-bar-animation');
               }}
             >
               Animation
@@ -2668,27 +2735,7 @@ export default function Dashboard() {
                       >
                         <PhotoIcon className="w-4 h-4" />
                       </button>
-                      <button 
-                        type="button" 
-                        className="inline-flex items-center rounded-[24px] bg-white/10 text-white hover:bg-white/15 h-9 w-9 justify-center px-0 shrink-0" 
-                        title="Change Theme"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (isPromptMode && typeof handlePromptClick === 'function') {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            const position = { x: rect.left, y: rect.top };
-                            handlePromptClick('flight-journey-bar', { themeColor: activeThemeColor }, position);
-                          }
-                    }}
-                  >
-                    <div
-                          className="w-4 h-4 rounded-full"
-                      style={{
-                            background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, #10b981 100%)',
-                            backgroundSize: '200% 200%'
-                          }}
-                        />
-                      </button>
+                      {/* Removed: FJB Change Theme button that opened color prompt */}
                       <button 
                         type="button" 
                         className="inline-flex items-center rounded-[24px] bg-white/10 text-white hover:bg-white/15 h-9 w-9 justify-center px-0 shrink-0" 

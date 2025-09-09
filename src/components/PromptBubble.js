@@ -444,14 +444,15 @@ export default function PromptBubble({
       // For FJB clicks, position the bubble below the hover button
       let finalX, finalY;
       if (elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation' || positionKey === 'fjb-demo' || positionKey === 'fjb-landing') {
-        // For FJB, position below the hover button
-        // The hover button is positioned 50px above the click point, so we position the bubble below the hover button
+        // For FJB, position directly below the hover tip and align left with the tip
+        // viewportX is the anchor X (left edge of hover tip); keep X as-is
         finalX = viewportX;
-        finalY = viewportY - 50 + 60; // 50px above click point (hover button) + 60px below hover button for better spacing
+        // Maintain an 8px vertical gap between hover tip and bubble
+        finalY = viewportY + 8;
         // Ensure the bubble doesn't go off-screen
         if (finalY + 200 > window.innerHeight) {
-          // If bubble would go below viewport, position it above the hover button instead
-          finalY = viewportY - 50 - 220;
+          // If bubble would go below viewport, position it above the hover tip instead
+          finalY = Math.max(4, viewportY - 220);
         }
         if (finalX + bubbleWidth > window.innerWidth) {
           // If bubble would go off right edge, adjust X position
@@ -493,6 +494,31 @@ export default function PromptBubble({
       window.removeEventListener('resize', handleScroll);
     };
   }, [isVisible, stickyPosition]);
+  // Keep FJB prompt bubble tethered to the hover tip even during transitions/animations
+  useEffect(() => {
+    if (!isVisible) return;
+    if (!(elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation')) return;
+    let rafId;
+    const updateToHoverTip = () => {
+      const el = document.querySelector('[data-fjb-hover-tip="true"]') || document.querySelector('[data-hover-tip]');
+      if (el && bubbleRef.current) {
+        const r = el.getBoundingClientRect();
+        // Left-align to hover tip; keep 8px gap
+        let x = r.left;
+        let y = r.bottom + 8;
+        // Clamp horizontally
+        if (x + bubbleWidth > window.innerWidth) x = window.innerWidth - bubbleWidth - 10;
+        if (x < 10) x = 10;
+        // Clamp vertically to stay in viewport; if overflow, place above tip
+        if (y + 200 > window.innerHeight) y = Math.max(4, r.bottom - 220);
+        bubbleRef.current.style.left = `${x}px`;
+        bubbleRef.current.style.top = `${y}px`;
+      }
+      rafId = requestAnimationFrame(updateToHoverTip);
+    };
+    rafId = requestAnimationFrame(updateToHoverTip);
+    return () => cancelAnimationFrame(rafId);
+  }, [isVisible, elementType, bubbleWidth]);
   // Auto-typing effect for middle card landing page and FJB landing page
   useEffect(() => {
     if (isVisible && ((positionKey === 'middle-card-landing' && elementType === 'promo-card') || (positionKey === 'fjb-landing' && (elementType === 'flight-journey-bar' || elementType === 'flight-journey-bar-animation'))) && !autoTyping) {

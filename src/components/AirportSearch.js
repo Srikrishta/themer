@@ -1410,23 +1410,11 @@ function AirportSearchCore({ routes = [], setRoutes, usedAirports = [], selected
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        console.log('Modify flight card clicked - enabling hover tips and triggering change theme prompt');
+                        console.log('Add button clicked - triggering onBuildThemeClicked');
                         
-                        // Mark this flight card as modified
-                        markFlightCardAsModified(selectedFlightCard);
-                        
-                        // Show progress bar
-                        setIsModifyInProgress(true);
-                        
-                        // Enable hover tip buttons for change theme and edit promo card
-                        if (typeof onModifyClicked === 'function') {
-                          onModifyClicked();
-                        }
-                        
-                        // Trigger the change theme prompt bubble automatically
-                        if (typeof onTriggerPromptBubble === 'function') {
-                          const position = { x: window.innerWidth / 2, y: 400 };
-                          onTriggerPromptBubble('flight-journey-bar', { themeColor }, position);
+                        // Call onBuildThemeClicked to trigger the new hover tip system
+                        if (typeof onBuildThemeClicked === 'function') {
+                          onBuildThemeClicked(selectedFlightCard.index, selectedFlightCard.segment);
                         }
                       }}
                     >
