@@ -1941,11 +1941,17 @@ export default function PromptBubble({
                   // Create a key for the modified chip color using the original color
                   const originalChipColor = selectedChipData.originalColor || selectedChipData.color;
                   const chipKey = `${selectedChipData.label}-${originalChipColor}`;
-                  // Store the modified color
-                  setModifiedChipColors(prev => ({
-                    ...prev,
-                    [chipKey]: pendingColor.color
-                  }));
+                  // Store the modified color (supports route-scoped setter from parent)
+                  try {
+                    // If parent provided a route-scoped helper, it may accept (chipKey, color)
+                    setModifiedChipColors(chipKey, pendingColor.color);
+                  } catch (e) {
+                    // Fallback to object-updater signature
+                    setModifiedChipColors(prev => ({
+                      ...prev,
+                      [chipKey]: pendingColor.color
+                    }));
+                  }
                   // Update the chip's color with the new color
                   const updatedChip = { ...selectedChipData, color: pendingColor.color };
                   // Set the selected color to the new color

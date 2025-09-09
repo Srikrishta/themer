@@ -614,8 +614,25 @@ export default function Dashboard() {
   const [flightCardProgress, setFlightCardProgress] = useState({});
   // Route-specific recommended content cards: { [routeKey]: contentCards }
   const [recommendedContentCards, setRecommendedContentCards] = useState({});
-  // Modified chip colors for persistence across prompt bubble reopenings: { [chipKey]: color }
+  // Modified chip colors are stored per-route to avoid leakage: { [routeKey]: { [chipKey]: color } }
   const [modifiedChipColors, setModifiedChipColors] = useState({});
+
+  const getRouteModifiedChipColors = () => {
+    const routeKey = getCurrentRouteKey();
+    return (routeKey && modifiedChipColors[routeKey]) ? modifiedChipColors[routeKey] : {};
+  };
+
+  const setRouteModifiedChipColor = (chipKey, color) => {
+    const routeKey = getCurrentRouteKey();
+    if (!routeKey) return;
+    setModifiedChipColors(prev => ({
+      ...prev,
+      [routeKey]: {
+        ...(prev[routeKey] || {}),
+        [chipKey]: color
+      }
+    }));
+  };
   // Hover hint bubble for FPS ("Select flight phase")
   const [fpsHoverTip, setFpsHoverTip] = useState({ visible: false, x: 0, y: 0, progress: 0 });
   // Hover hint bubble for Promo Cards ("Edit promo card")
@@ -2354,8 +2371,8 @@ export default function Dashboard() {
         onFlightPhaseSelect={handleFlightPhaseSelect}
         selectedFlightSegment={selectedFlightSegment}
         selectedDates={selectedDates}
-        modifiedChipColors={modifiedChipColors}
-        setModifiedChipColors={setModifiedChipColors}
+        modifiedChipColors={getRouteModifiedChipColors()}
+        setModifiedChipColors={setRouteModifiedChipColor}
       />
 
       {/* Change Theme Button - Shows when hovering IFE frame after color prompt was closed without save */}

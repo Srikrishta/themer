@@ -34,7 +34,30 @@ export default function Component3Cards({
   onPromoCardHover
 }) {
   // Generate unique context key for state isolation
-  const contextKey = generateContextKey(currentRouteKey, selectedFlightPhase, themeColor, selectedDates);
+  // Include a themeVariantKey so that per-route theme tweaks (like chip selection or modified colors)
+  // never leak across routes or phases
+  const themeVariantKey = (() => {
+    try {
+      // Prefer selected theme chip label if available via prop function
+      if (typeof getRouteSelectedThemeChip === 'function') {
+        const chip = getRouteSelectedThemeChip();
+        if (chip && (chip.label || chip.id)) {
+          const label = (chip.label || chip.id || '').toString().toLowerCase();
+          const color = (chip.color || '').toString().toLowerCase();
+          return `chip:${label}|color:${color}`;
+        }
+      }
+    } catch {}
+    return 'no-variant';
+  })();
+
+  const contextKey = generateContextKey(
+    currentRouteKey,
+    selectedFlightPhase,
+    themeColor,
+    selectedDates,
+    themeVariantKey
+  );
   
   // Use isolated state management to prevent leakage
   const {

@@ -7,23 +7,26 @@ import { useRef, useEffect } from 'react';
 
 /**
  * Generate a unique context key for state isolation
- * This key changes whenever route, flight phase, or theme changes
+ * This key changes whenever route, flight phase, theme, or theme variant changes
  * 
  * @param {string} routeKey - Current route key
  * @param {string} flightPhase - Current flight phase
  * @param {string} themeColor - Current theme color
  * @param {Array} selectedDates - Selected dates array
+ * @param {string} themeVariantKey - Optional key to distinguish theme variants (e.g., selected chip/modified color)
  * @returns {string} Unique context key
  */
-export const generateContextKey = (routeKey, flightPhase, themeColor, selectedDates = []) => {
+export const generateContextKey = (routeKey, flightPhase, themeColor, selectedDates = [], themeVariantKey = 'no-variant') => {
   const datesKey = selectedDates.length > 0 ? selectedDates.join('-') : 'no-dates';
-  const contextKey = `${routeKey || 'no-route'}-${flightPhase || 'no-phase'}-${themeColor || 'no-theme'}-${datesKey}`;
+  const variantKey = themeVariantKey || 'no-variant';
+  const contextKey = `${routeKey || 'no-route'}-${flightPhase || 'no-phase'}-${themeColor || 'no-theme'}-${datesKey}-${variantKey}`;
   
   console.log('🔑 GENERATED CONTEXT KEY', {
     routeKey,
     flightPhase,
     themeColor,
     selectedDates,
+    themeVariantKey: variantKey,
     contextKey
   });
   
