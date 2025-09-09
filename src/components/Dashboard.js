@@ -2051,6 +2051,12 @@ export default function Dashboard() {
           <div 
             style={{ position: 'relative', width: 1400, height: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', transform: 'scale(0.8)', transformOrigin: 'top center' }}
                           onMouseEnter={(e) => {
+                // Check if there's already an active FJB prompt bubble - if so, ignore all IFE frame hovers
+                const currentPromptBubble = getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey);
+                if (currentPromptBubble && (currentPromptBubble.elementType === 'flight-journey-bar' || currentPromptBubble.elementType === 'flight-journey-bar-animation')) {
+                  return;
+                }
+                
                 // Check if hover is on promo or content card to avoid triggering hover effects
                 const target = e.target;
                 const isPromoOrContentCard = (
@@ -2063,6 +2069,12 @@ export default function Dashboard() {
                 }
               }}
               onMouseMove={(e) => {
+                // Check if there's already an active FJB prompt bubble - if so, ignore all IFE frame hovers
+                const currentPromptBubble = getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey);
+                if (currentPromptBubble && (currentPromptBubble.elementType === 'flight-journey-bar' || currentPromptBubble.elementType === 'flight-journey-bar-animation')) {
+                  return;
+                }
+                
                 // Check if hover is on promo or content card to avoid triggering hover effects
                 const target = e.target;
                 const isPromoOrContentCard = (
@@ -2081,6 +2093,13 @@ export default function Dashboard() {
               // Only allow IFE frame clicks if the current route has been modified (Add button clicked)
               if (!isCurrentRouteModified()) {
                 console.log('🎯 IFE frame click ignored - route not modified (Add button not clicked)');
+                return;
+              }
+              
+              // Check if there's already an active FJB prompt bubble - if so, ignore all IFE frame clicks
+              const currentPromptBubble = getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey);
+              if (currentPromptBubble && (currentPromptBubble.elementType === 'flight-journey-bar' || currentPromptBubble.elementType === 'flight-journey-bar-animation')) {
+                console.log('🎯 IFE frame click ignored - FJB prompt bubble is active');
                 return;
               }
               
@@ -2111,13 +2130,6 @@ export default function Dashboard() {
                 e.stopPropagation();
                 handlePromptClick('flight-journey-bar', { themeColor: ifeFrameThemeColor }, { x: e.clientX, y: e.clientY });
                 return;
-              }
-              
-              // If color prompt was closed without save, clicking anywhere in IFE frame should open color prompt
-              if (colorPromptClosedWithoutSave && isPromptMode) {
-                console.log('🎯 IFE frame click - opening color prompt because color was not saved');
-                e.stopPropagation();
-                handlePromptClick('flight-journey-bar', { themeColor: ifeFrameThemeColor }, { x: e.clientX, y: e.clientY });
               }
             }}
           >
