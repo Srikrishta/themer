@@ -1,5 +1,3 @@
-
-
 import LogoAnimationOverlay from './LogoAnimationOverlay';
 import { getReadableOnColor } from '../utils/color';
 const img = "http://localhost:3845/assets/ff3d1da9a24aa2fb4488e3512b8899f58fd11a82.svg";

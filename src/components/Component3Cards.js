@@ -1,9 +1,12 @@
 import { getReadableOnColor, getLightCardBackgroundColor } from '../utils/color';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getPromoCardContent, shouldUseFestivalContent } from '../utils/festivalUtils';
 import { getNonFestiveCardContent } from '../data/festivalContent';
 import { getPollinationsImage } from '../utils/unsplash';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
+import { useImageState } from '../hooks/useIsolatedState';
+import { generateContextKey, useContextValidator, clearAllState, logStateChange } from '../utils/contextValidation';
+import { useStateLeakageDetection } from '../utils/stateLeakageDetector';
 
 
 export default function Component3Cards({ 
@@ -30,33 +33,54 @@ export default function Component3Cards({
   getRouteSelectedThemeChip,
   onPromoCardHover
 }) {
-  // State for tracking image loading
-  const [imageLoadingStates, setImageLoadingStates] = useState({});
+  // Generate unique context key for state isolation
+  const contextKey = generateContextKey(currentRouteKey, selectedFlightPhase, themeColor, selectedDates);
   
-  // State for tracking remix loading
-  const [remixLoading, setRemixLoading] = useState(false);
+  // Use isolated state management to prevent leakage
+  const {
+    remixedImages,
+    editableDescriptions,
+    editableTitles,
+    imageLoadingStates,
+    savedDescriptions,
+    remixLoading,
+    setRemixedImage,
+    setImageLoading,
+    setEditableDescription,
+    setEditableTitle,
+    setRemixLoading,
+    clearState,
+    // Legacy function names for backward compatibility
+    setEditableTitles,
+    setEditableDescriptions
+  } = useImageState(contextKey);
   
-  // State for tracking remixed images
-  const [remixedImages, setRemixedImages] = useState({});
+  // Context validator to ensure proper isolation
+  const { validateContext } = useContextValidator(contextKey, 'Component3Cards');
   
-  // State for tracking editable image descriptions
-  const [editableDescriptions, setEditableDescriptions] = useState({});
+  // State leakage detection
+  const { hasLeakage, warnings } = useStateLeakageDetection('Component3Cards', contextKey, {
+    remixedImages,
+    editableDescriptions,
+    editableTitles,
+    imageLoadingStates,
+    savedDescriptions,
+    remixLoading
+  });
   
-  // State for tracking editable card titles
-  const [editableTitles, setEditableTitles] = useState({});
-  
-  // State for tracking saved descriptions (to compare with current edits)
-  const [savedDescriptions, setSavedDescriptions] = useState({});
+  // Log leakage warnings
+  useEffect(() => {
+    if (hasLeakage) {
+      console.error('🚨 STATE LEAKAGE DETECTED IN COMPONENT3CARDS', {
+        contextKey,
+        warnings,
+        state: { remixedImages, editableDescriptions, editableTitles, imageLoadingStates, savedDescriptions, remixLoading }
+      });
+    }
+  }, [hasLeakage, warnings, contextKey, remixedImages, editableDescriptions, editableTitles, imageLoadingStates, savedDescriptions, remixLoading]);
   
 
   // Helper functions for image loading state management
-  const setImageLoading = (cardIndex, isLoading) => {
-    setImageLoadingStates(prev => ({
-      ...prev,
-      [cardIndex]: isLoading
-    }));
-  };
-
   const isImageLoading = (cardIndex) => {
     return imageLoadingStates[cardIndex] || false;
   };
@@ -76,6 +100,18 @@ export default function Component3Cards({
       hasSelectedDates: !!selectedDates && selectedDates.length > 0
     });
   }, [colorPromptSaved, selectedFlightPhase, origin, destination, themeColor, selectedDates]);
+
+  // Log context changes for debugging
+  useEffect(() => {
+    console.log('🔄 COMPONENT3CARDS CONTEXT CHANGED', {
+      contextKey,
+      currentRouteKey,
+      selectedFlightPhase,
+      themeColor,
+      selectedDates,
+      reason: 'Context change detected - state will be automatically cleared'
+    });
+  }, [contextKey, currentRouteKey, selectedFlightPhase, themeColor, selectedDates]);
 
   // Debug when promoCardContents changes
   useEffect(() => {
@@ -468,10 +504,7 @@ export default function Component3Cards({
                   return cardContent.text || 'Add experience';
                 })()}
                 onChange={(e) => {
-                  setEditableTitles(prev => ({
-                    ...prev,
-                    0: e.target.value
-                  }));
+                  setEditableTitles(0, e.target.value);
                 }}
                 onFocus={(e) => {
                   setTimeout(() => {
@@ -490,10 +523,7 @@ export default function Component3Cards({
                     }
                   }
                   if ((e.key === 'Delete' || e.key === 'Backspace') && e.target.selectionStart === 0 && e.target.selectionEnd === e.target.value.length) {
-                    setEditableTitles(prev => ({
-                      ...prev,
-                      0: ''
-                    }));
+                    setEditableTitles(0, '');
                     e.preventDefault();
                   }
                 }}
@@ -534,10 +564,7 @@ export default function Component3Cards({
                 onClick={() => {
                   const cardContent = getDefaultCardContent(0);
                   const originalText = cardContent.image || cardContent.text || 'in-flight experience';
-                  setEditableDescriptions(prev => ({
-                    ...prev,
-                    0: originalText
-                  }));
+                  setEditableDescriptions(0, originalText);
                 }}
                 title="Reset to original text"
               >
@@ -550,10 +577,7 @@ export default function Component3Cards({
                   return cardContent.image || cardContent.text || 'in-flight experience';
                 })()}
                 onChange={(e) => {
-                  setEditableDescriptions(prev => ({
-                    ...prev,
-                    0: e.target.value
-                  }));
+                  setEditableDescriptions(0, e.target.value);
                 }}
                 onFocus={(e) => {
                   // Select all text when focused for easy editing
@@ -579,18 +603,12 @@ export default function Component3Cards({
                     e.preventDefault();
                     const cardContent = getDefaultCardContent(0);
                     const originalText = cardContent.image || cardContent.text || 'in-flight experience';
-                    setEditableDescriptions(prev => ({
-                      ...prev,
-                      0: originalText
-                    }));
+                    setEditableDescriptions(0, originalText);
                   }
                   // Handle Delete and Backspace to ensure proper text clearing
                   if ((e.key === 'Delete' || e.key === 'Backspace') && e.target.selectionStart === 0 && e.target.selectionEnd === e.target.value.length) {
                     // Text is fully selected, clear it
-                    setEditableDescriptions(prev => ({
-                      ...prev,
-                      0: ''
-                    }));
+                    setEditableDescriptions(0, '');
                     e.preventDefault();
                   }
                 }}
@@ -655,19 +673,10 @@ export default function Component3Cards({
                     const newImageUrl = getPollinationsImage(editedDescription, themeColor, { randomize: true });
                     
                     // Update the remixed images state to show the new image
-                    setRemixedImages(prev => ({
-                      ...prev,
-                      0: newImageUrl
-                    }));
-                    
-                    // Set loading state for the card
+                    // Use isolated state management
+                    setRemixedImage(0, newImageUrl);
                     setImageLoading(0, true);
-                    
-                    // Mark both description and title as saved
-                    setSavedDescriptions(prev => ({
-                      ...prev,
-                      0: editedDescription
-                    }));
+                    setEditableDescription(0, editedDescription);
                     
                     console.log('=== SAVE COMPLETE ===', {
                       newImageUrl,
@@ -729,13 +738,10 @@ export default function Component3Cards({
                       });
                       
                       // Update state to trigger re-render with new image
-                      setRemixedImages(prev => {
-                        const newState = {
-                          ...prev,
-                          0: newImageUrlWithCacheBust
-                        };
-                        console.log('=== NEW REMIXED IMAGES STATE ===', newState);
-                        return newState;
+                      setRemixedImage(0, newImageUrlWithCacheBust);
+                      console.log('=== NEW REMIXED IMAGE SET ===', {
+                        cardIndex: 0,
+                        newImageUrl: newImageUrlWithCacheBust
                       });
                       
                       

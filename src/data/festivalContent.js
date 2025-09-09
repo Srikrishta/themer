@@ -273,7 +273,7 @@ export const festivalContent = {
   "Milan Fashion Week (Winter)": {
     takeoff: {
       promo: [
-        { text: "Enjoy your welcome drink", image: "milan fashion week drinks" },
+        { text: "Enjoy your welcome drink", image: "milan fashion week welcome drinks" },
         { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
         { text: "Connect your device", image: "smartphone device" }
       ],
@@ -340,9 +340,9 @@ export const festivalContent = {
   "Milan Fashion Week (Autumn)": {
     takeoff: {
       promo: [
-        { text: "Autumn fashion takeoff", image: "milan fashion week autumn runway" },
-        { text: "Fall style ascent", image: "milan fashion week autumn models" },
-        { text: "Autumn designer magic", image: "milan fashion week autumn couture" }
+        { text: "Enjoy your welcome drink", image: "milan fashion week welcome drinks" },
+        { text: "Check goodies in seat", image: "earphones and snacks in aircraft seat" },
+        { text: "Connect your device", image: "smartphone device" }
       ],
       content: [
         { text: "Milan Autumn Fashion Documentary", image: "milan fashion week autumn film" },
@@ -353,9 +353,9 @@ export const festivalContent = {
     },
     climb: {
       promo: [
-        { text: "Autumn fashion climb", image: "milan fashion week autumn show" },
-        { text: "Fall style journey", image: "milan fashion week autumn collection" },
-        { text: "Autumn designer spirit", image: "milan fashion week autumn glamour" }
+        { text: "Order food", image: "italian osso buco meat dish" },
+        { text: "Offers onboard", image: "milan fashion week offers" },
+        { text: "Latest entertainment", image: "movie that is in market" }
       ],
       content: [
         { text: "Milan Autumn Fashion Traditions", image: "milan fashion week autumn traditions film" },
@@ -366,9 +366,9 @@ export const festivalContent = {
     },
     cruise: {
       promo: [
-        { text: "Autumn fashion cruise", image: "milan fashion week autumn elegance" },
-        { text: "Fall style magic", image: "milan fashion week autumn luxury" },
-        { text: "Autumn designer journey", image: "milan fashion week autumn sophistication" }
+        { text: "Popcorn with movie", image: "milan fashion week popcorn bowl" },
+        { text: "Buy gifts", image: "gifts of the festivals" },
+        { text: "Latest entertainment", image: "movie" }
       ],
       content: [
         { text: "Milan Autumn Fashion Highlights", image: "milan fashion week autumn highlights" },
@@ -379,9 +379,9 @@ export const festivalContent = {
     },
     descent: {
       promo: [
-        { text: "Autumn fashion landing", image: "milan fashion week autumn arrival" },
-        { text: "Fall style descent", image: "milan fashion week autumn welcome" },
-        { text: "Autumn designer greeting", image: "milan fashion week autumn celebration" }
+        { text: "Buy guides at discount", image: "get your guide related to festivals in the place" },
+        { text: "Buy gifts", image: "gifts for festival" },
+        { text: "Save on your next flight", image: "flight ticket offer" }
       ],
       content: [
         { text: "Milan Autumn Fashion Arrival", image: "milan fashion week autumn arrival film" },
@@ -392,9 +392,9 @@ export const festivalContent = {
     },
     landing: {
       promo: [
-        { text: "Autumn fashion welcome", image: "milan fashion week autumn terminal" },
-        { text: "Fall style arrival", image: "milan fashion week autumn spirit" },
-        { text: "Autumn designer celebration", image: "milan fashion week autumn joy" }
+        { text: "Thank you for flying with us", image: "Thank you" },
+        { text: "Save on your next flight", image: "flight booking" },
+        { text: "Shop duty free", image: "duty free shop in airport" }
       ],
       content: [
         { text: "Milan Autumn Fashion Celebration", image: "milan fashion week autumn celebration film" },
