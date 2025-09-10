@@ -13,6 +13,7 @@ export default function AnalyticsBubble({
   const { x, y } = position;
   const cardType = elementData?.cardType || 'promo-card';
   const cardIndex = elementData?.cardIndex || 0;
+  const analyticsType = elementData?.analyticsType || 'default';
 
   return (
     <div
@@ -46,28 +47,53 @@ export default function AnalyticsBubble({
 
         {/* Content */}
         <div className="space-y-4">
-          {/* Performance Metrics */}
-          <div className="bg-white/10 rounded-lg p-3">
-            <h4 className="font-semibold mb-2">Performance Metrics</h4>
-            <div className="text-sm space-y-2">
-              <div className="flex justify-between">
-                <span className="opacity-70">Impressions:</span>
-                <span className="font-mono">12,847</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="opacity-70">Clicks:</span>
-                <span className="font-mono">1,234</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="opacity-70">CTR:</span>
-                <span className="font-mono text-green-400">9.6%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="opacity-70">Engagement:</span>
-                <span className="font-mono text-blue-400">87.3%</span>
+          {analyticsType === 'content-divider' ? (
+            /* Content Divider Analytics */
+            <div className="bg-white/10 rounded-lg p-3">
+              <h4 className="font-semibold mb-2">Content Divider Analytics</h4>
+              <div className="text-sm space-y-2">
+                <div className="flex justify-between">
+                  <span className="opacity-70">Content Type:</span>
+                  <span className="font-mono">Promo Card</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="opacity-70">Position:</span>
+                  <span className="font-mono">Left Card</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="opacity-70">Divider Type:</span>
+                  <span className="font-mono text-green-400">Content Separator</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="opacity-70">Analytics Status:</span>
+                  <span className="font-mono text-blue-400">Active</span>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            /* Default Performance Metrics */
+            <div className="bg-white/10 rounded-lg p-3">
+              <h4 className="font-semibold mb-2">Performance Metrics</h4>
+              <div className="text-sm space-y-2">
+                <div className="flex justify-between">
+                  <span className="opacity-70">Impressions:</span>
+                  <span className="font-mono">12,847</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="opacity-70">Clicks:</span>
+                  <span className="font-mono">1,234</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="opacity-70">CTR:</span>
+                  <span className="font-mono text-green-400">9.6%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="opacity-70">Engagement:</span>
+                  <span className="font-mono text-blue-400">87.3%</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

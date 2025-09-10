@@ -31,7 +31,8 @@ export default function Component3Cards({
   selectedDates,
   isCurrentThemeFestive,
   getRouteSelectedThemeChip,
-  onPromoCardHover
+  onPromoCardHover,
+  onAnalyticsClick
 }) {
   // Generate unique context key for state isolation
   // Include a themeVariantKey so that per-route theme tweaks (like chip selection or modified colors)
@@ -468,6 +469,26 @@ export default function Component3Cards({
             onPromoCardHover(false, 'promo-card', { cardIndex: originalCardIndex, cardType: cardInfo.type }, { x: 0, y: 0 });
           }
         }}
+        onClick={(e) => {
+          // Only handle click for left promo card (index 0) and when analytics handler is available
+          if (originalCardIndex === 0 && onAnalyticsClick) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Calculate position 8px below the left promo card
+            const cardRect = e.currentTarget.getBoundingClientRect();
+            const position = {
+              x: cardRect.left + cardRect.width / 2, // Center horizontally
+              y: cardRect.bottom + 8 // 8px below the card
+            };
+            
+            onAnalyticsClick(position, {
+              cardIndex: originalCardIndex,
+              cardType: cardInfo.type,
+              currentContent: cardContent
+            });
+          }
+        }}
       >
           <div className="relative h-full w-full">
             
@@ -601,16 +622,17 @@ export default function Component3Cards({
         {/* Remix controls - only show for left card (index 0) after theme is saved */}
         {colorPromptSaved && (
           <div 
-            className="px-4 py-3 rounded-lg flex flex-col items-center space-y-2"
+            className="px-4 py-3 rounded-lg flex flex-col items-center"
             style={{
               backgroundColor: '#1C1C1C',
               border: '1px solid rgba(255, 255, 255, 0.2)',
-              width: '416px'
+              width: '312px',
+              gap: '40px'
             }}
           >
             {/* Continuous inline paragraph using contenteditable spans (inline flow, natural wrapping) */}
             <div className="w-full">
-              <p className="whitespace-pre-wrap break-words text-sm leading-5 text-white m-0">
+              <p className="whitespace-pre-wrap break-words text-lg leading-5 text-white m-0">
                 <span
                   className="text-gray-300 select-none"
                   style={{ marginRight: 8 }}

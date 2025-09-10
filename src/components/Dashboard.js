@@ -456,6 +456,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         isCurrentThemeFestive={isCurrentThemeFestive}
         getRouteSelectedThemeChip={getRouteSelectedThemeChip}
         onPromoCardHover={handlePromoCardHover}
+        onAnalyticsClick={handleAnalyticsClick}
       />
       
       {/* Recommended for you section */}
@@ -669,19 +670,22 @@ export default function Dashboard() {
     }
   };
 
-  // Handle analytics click
-  const handleAnalyticsClick = (e, elementData) => {
-    e.stopPropagation();
-    console.log('=== ANALYTICS CLICKED - DISABLED ===', { elementData });
-    
-    // Analytics bubble is currently disabled
-    // Do nothing - analytics functionality is turned off
-    return;
-  };
-
   // Close analytics bubble
   const handleCloseAnalytics = () => {
     setAnalyticsBubble({ visible: false, x: 0, y: 0, elementData: null });
+  };
+
+  // Handle analytics click from promo cards
+  const handleAnalyticsClick = (position, elementData) => {
+    setAnalyticsBubble({
+      visible: true,
+      x: position.x,
+      y: position.y,
+      elementData: {
+        ...elementData,
+        analyticsType: 'content-divider'
+      }
+    });
   };
 
 
