@@ -102,6 +102,23 @@ export default function Component3Cards({
     }
   }, [hasLeakage, warnings, contextKey, remixedImages, editableDescriptions, editableTitles, imageLoadingStates, savedDescriptions, remixLoading]);
   
+  // Measure label width to indent the first line of the textarea so that
+  // subsequent wrapped lines start at the container's left edge (under the label)
+  const titleLabelRef = useRef(null);
+  const [titleLabelIndent, setTitleLabelIndent] = useState(0);
+  useEffect(() => {
+    const computeIndent = () => {
+      try {
+        const width = titleLabelRef?.current?.offsetWidth || 0;
+        // Add an 8px gap between label and first text character
+        setTitleLabelIndent(width + 8);
+      } catch {}
+    };
+    computeIndent();
+    window.addEventListener('resize', computeIndent);
+    return () => window.removeEventListener('resize', computeIndent);
+  }, []);
+  
 
   // Helper functions for image loading state management
   const isImageLoading = (cardIndex) => {
@@ -516,83 +533,96 @@ export default function Component3Cards({
             }}
           >
             {/* Title Input Field */}
-            <div className="flex items-center gap-2 w-full">
-              <label className="text-xs text-gray-300 font-medium" style={{ minWidth: '40px' }}>
-                Title:
-              </label>
-              <input
-                type="text"
-                value={editableTitles[0] !== undefined ? editableTitles[0] : (() => {
-                  const cardContent = getDefaultCardContent(0);
-                  return cardContent.text || 'Add experience';
-                })()}
-                onChange={(e) => {
-                  setEditableTitles(0, e.target.value);
-                }}
-                onFocus={(e) => {
-                  setTimeout(() => {
-                    e.target.select();
-                  }, 0);
-                }}
-                onMouseUp={(e) => {
-                  e.preventDefault();
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
+            <div className="w-full">
+              {/* Block-level field: label + textarea share the row. The textarea uses textIndent
+                  equal to the label's width so the first line starts after the label and
+                  wrapped lines realign with the container's left edge. */}
+              <div className="relative w-full">
+                <span
+                  ref={titleLabelRef}
+                  className="absolute left-0 top-0 text-sm text-gray-300 font-medium select-none"
+                  style={{ lineHeight: '1.25' }}
+                >
+                  Change title to
+                </span>
+                {/* Underline mirror spans the full width; its first line is indented by the label width */}
+                <div
+                  aria-hidden
+                  className="absolute inset-x-0 top-0 whitespace-pre-wrap break-words pointer-events-none text-sm"
+                  style={{
+                    color: 'transparent',
+                    textDecoration: 'underline dotted',
+                    textDecorationColor: 'rgba(156,163,175,0.8)',
+                    textUnderlineOffset: 6,
+                    lineHeight: '1.25',
+                    textIndent: `${titleLabelIndent}px`,
+                    paddingRight: '4px'
+                  }}
+                >
+                  {(editableTitles[0] !== undefined ? editableTitles[0] : (() => {
+                    const cardContent = getDefaultCardContent(0);
+                    return cardContent.text || 'Enter card title...';
+                  })()) || 'Enter card title...'}
+                </div>
+                <textarea
+                  value={editableTitles[0] !== undefined ? editableTitles[0] : (() => {
+                    const cardContent = getDefaultCardContent(0);
+                    return cardContent.text || '';
+                  })()}
+                  onChange={(e) => {
+                    setEditableTitles(0, e.target.value);
+                  }}
+                  onInput={(e) => {
+                    // Auto-resize height to content and prevent scrollbars
+                    e.target.style.height = 'auto';
+                    e.target.style.height = `${e.target.scrollHeight}px`;
+                  }}
+                  onFocus={(e) => {
+                    setTimeout(() => {
+                      e.target.select();
+                    }, 0);
+                  }}
+                  onMouseUp={(e) => {
                     e.preventDefault();
-                    const saveButton = e.target.closest('.flex.flex-col').querySelector('button[style*="10B981"]');
-                    if (saveButton && !saveButton.disabled) {
-                      saveButton.click();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const saveButton = e.target.closest('.flex.flex-col').querySelector('button[style*="10B981"]');
+                      if (saveButton && !saveButton.disabled) {
+                        saveButton.click();
+                      }
                     }
-                  }
-                  if ((e.key === 'Delete' || e.key === 'Backspace') && e.target.selectionStart === 0 && e.target.selectionEnd === e.target.value.length) {
-                    setEditableTitles(0, '');
-                    e.preventDefault();
-                  }
-                }}
-                className="text-xs text-white text-center bg-transparent border border-gray-500 outline-none flex-1 focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
-                style={{ 
-                  margin: 0,
-                  padding: '6px 8px',
-                  borderRadius: '6px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  color: 'white',
-                  fontSize: '12px',
-                  textAlign: 'center',
-                  minHeight: '32px',
-                  transition: 'all 0.2s ease'
-                }}
-                placeholder="Enter card title..."
-                spellCheck="false"
-                autoComplete="off"
-                maxLength="50"
-              />
+                    if ((e.key === 'Delete' || e.key === 'Backspace') && e.target.selectionStart === 0 && e.target.selectionEnd === e.target.value.length) {
+                      setEditableTitles(0, '');
+                      e.preventDefault();
+                    }
+                  }}
+                  className="w-full p-0 text-sm text-white bg-transparent outline-none border-0 resize-none leading-5"
+                  style={{
+                    minHeight: '20px',
+                    overflow: 'hidden',
+                    textIndent: `${titleLabelIndent}px`,
+                    paddingRight: '4px'
+                  }}
+                  placeholder="Enter card title..."
+                  spellCheck="false"
+                  autoComplete="off"
+                  maxLength="50"
+                  rows={1}
+                />
+              </div>
+            </div>
+            
+            {/* Image Description Label */}
+            <div className="w-full">
+              <span className="text-sm text-gray-300 font-medium">
+                Describe image of
+              </span>
             </div>
             
             {/* Image Description Input Field */}
             <div className="flex items-center gap-2 w-full">
-              <button
-                className="px-2 py-1 rounded text-xs font-semibold transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{
-                  backgroundColor: '#6B7280',
-                  color: 'white',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  minWidth: '32px',
-                  height: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-                disabled={true}
-                onClick={() => {
-                  const cardContent = getDefaultCardContent(0);
-                  const originalText = cardContent.image || cardContent.text || 'in-flight experience';
-                  setEditableDescriptions(0, originalText);
-                }}
-                title="Reset to original text"
-              >
-                ←
-              </button>
               <input
                 type="text"
                 value={editableDescriptions[0] !== undefined ? editableDescriptions[0] : (() => {
@@ -710,17 +740,17 @@ export default function Component3Cards({
                   }
                 }}
               >
-                💾 Save
+                🎲 Remix Style
               </button>
               <button
                 className="px-4 py-2 rounded-lg font-semibold text-xs uppercase transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
-                  backgroundColor: themeColor.includes('gradient') ? 'rgba(255, 255, 255, 0.9)' : themeColor,
-                  color: themeColor.includes('gradient') ? '#1E1E1E' : getReadableOnColor(themeColor),
+                  backgroundColor: '#10B981',
+                  color: 'white',
                   border: '1px solid rgba(255, 255, 255, 0.3)',
                   backdropFilter: 'blur(10px)'
                 }}
-                disabled={remixLoading}
+                disabled={false}
                 onClick={async () => {
                   console.log('=== REMIX BUTTON CLICKED ===');
                   setRemixLoading(true);
@@ -794,7 +824,7 @@ export default function Component3Cards({
                     <span>Remixing...</span>
                   </div>
                 ) : (
-                  '🎲 Remix Style'
+                  '💾 Save'
                 )}
               </button>
             </div>
