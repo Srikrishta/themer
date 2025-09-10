@@ -30,9 +30,7 @@ export default function Component3Cards({
   isModifyClicked,
   selectedDates,
   isCurrentThemeFestive,
-  getRouteSelectedThemeChip,
-  onPromoCardHover,
-  onAnalyticsClick
+  getRouteSelectedThemeChip
 }) {
   // Generate unique context key for state isolation
   // Include a themeVariantKey so that per-route theme tweaks (like chip selection or modified colors)
@@ -91,6 +89,9 @@ export default function Component3Cards({
     savedDescriptions,
     remixLoading
   });
+
+  // Track if tooltip is locked so we can hide built-in remix panel
+  const [tooltipLocked, setTooltipLocked] = useState(false);
   
   // Log leakage warnings
   useEffect(() => {
@@ -429,66 +430,174 @@ export default function Component3Cards({
     
     const cardStyle = {
       width: '416px',
-      background: cardContent.bgColor
+      background: cardContent.bgColor,
+      boxSizing: 'border-box'
     };
 
     return (
       <div
         key={`card-${originalCardIndex}-${displayPosition}`}
-        className="h-[200px] overflow-clip relative shrink-0 flex items-center justify-center rounded-lg"
+        className="h-[200px] relative shrink-0 flex items-center justify-center rounded-lg cursor-pointer hover:shadow-[0_0_0_3px_#1E1E1E] group"
+        onMouseEnter={(e) => {
+          if (window.__tooltipLocked) return; // prevent new tooltips while locked
+          // Create a lightweight, fixed-position tooltip that follows the cursor
+          const tooltip = document.createElement('div');
+          tooltip.style.cssText = `
+            position: fixed;
+            background: #1E1E1E;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 2147483647;
+            pointer-events: auto;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            left: ${e.clientX + 18}px;
+            top: ${e.clientY + 18}px;
+          `;
+          tooltip.id = 'custom-tooltip';
+          tooltip.innerHTML = `
+            <span>content</span>
+            <span style="width:1px;height:14px;display:inline-block;background:rgba(255,255,255,0.35)"></span>
+            <button id="custom-tooltip-close" aria-label="Close" style="background:transparent;border:none;color:white;opacity:.85;cursor:pointer;padding:0 2px;line-height:1">✕</button>
+          `;
+
+          // Remove any existing tooltip to avoid duplicates
+          const existing = document.getElementById('custom-tooltip');
+          if (existing) existing.remove();
+
+          document.body.appendChild(tooltip);
+          const closeBtn = document.getElementById('custom-tooltip-close');
+          if (closeBtn) {
+            closeBtn.addEventListener('click', (ev) => {
+              ev.stopPropagation();
+              const t = document.getElementById('custom-tooltip');
+              if (t) t.remove();
+              const p = document.getElementById('remix-panel');
+              if (p) p.remove();
+              window.__tooltipLocked = false;
+              try { setTooltipLocked(false); } catch {}
+            });
+          }
+          // No-op: keep existing lock state
+        }}
+        onMouseMove={(e) => {
+          // Keep tooltip anchored to the mouse pointer
+          const tooltip = document.getElementById('custom-tooltip');
+          if (!tooltip || window.__tooltipLocked) return;
+          tooltip.style.left = `${e.clientX + 18}px`;
+          tooltip.style.top = `${e.clientY + 18}px`;
+        }}
+        onMouseLeave={() => {
+          const tooltip = document.getElementById('custom-tooltip');
+          if (tooltip && !window.__tooltipLocked) {
+            tooltip.remove();
+          }
+        }}
+        onClick={(e) => {
+          // Lock the tooltip at the click position
+          const tooltip = document.getElementById('custom-tooltip');
+          if (tooltip) {
+            tooltip.style.left = `${e.clientX + 12}px`;
+            tooltip.style.top = `${e.clientY + 12}px`;
+          }
+          window.__tooltipLocked = true;
+          try { setTooltipLocked(true); } catch {}
+          // Create or update remix panel below the tooltip, left-aligned
+          try {
+            const existingPanel = document.getElementById('remix-panel');
+            if (existingPanel) existingPanel.remove();
+            const t = document.getElementById('custom-tooltip');
+            if (!t) return;
+            const rect = t.getBoundingClientRect();
+            const panel = document.createElement('div');
+            panel.id = 'remix-panel';
+            panel.style.cssText = `
+              position: fixed;
+              left: ${rect.left}px;
+              top: ${rect.bottom + 8}px;
+              width: 312px;
+              background: #1C1C1C;
+              color: white;
+              border: 1px solid rgba(255,255,255,0.2);
+              border-radius: 8px;
+              padding: 12px 16px;
+              z-index: 2147483647;
+              box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+            `;
+
+            const cardContent = getDefaultCardContent(originalCardIndex);
+            const displayTitle = (editableTitles && editableTitles[originalCardIndex]) || cardContent.text || 'Add experience';
+            const displayDesc = (editableDescriptions && editableDescriptions[originalCardIndex]) || cardContent.image || cardContent.text || 'in-flight experience';
+
+            panel.innerHTML = `
+              <div class="px-4 py-3 rounded-lg flex flex-col items-center" 
+                   style="background-color:#1C1C1C;border:1px solid rgba(255,255,255,0.2);width:312px;gap:40px;">
+                <div class="w-full">
+                  <p class="whitespace-pre-wrap break-words text-lg leading-5 text-white m-0">
+                    <span class="text-gray-300 select-none" style="margin-right:8px;">Change title to</span>
+                    <span id="remix-title" role="textbox" aria-label="title" contenteditable="true" 
+                          class="outline-none" spellcheck="false"
+                          style="text-decoration:underline dotted rgba(156,163,175,0.8);text-underline-offset:6px;caret-color:transparent;margin-right:8px;">${displayTitle.replace(/</g,'&lt;')}</span>
+                    <span class="text-gray-300 select-none" style="margin-right:8px;">describe image of</span>
+                    <span id="remix-desc" role="textbox" aria-label="image description" contenteditable="true" 
+                          class="outline-none" spellcheck="false"
+                          style="text-decoration:underline dotted rgba(156,163,175,0.8);text-underline-offset:6px;caret-color:auto;">${(displayDesc || '').toString().replace(/</g,'&lt;')}</span>
+                  </p>
+                </div>
+                <div class="flex gap-2">
+                  <button id="remix-style" class="px-4 py-2 rounded-lg font-semibold text-xs uppercase transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" 
+                          style="background-color:#10B981;color:white;border:1px solid rgba(255,255,255,0.3);">🎲 Remix Style</button>
+                  <button id="remix-save" class="px-4 py-2 rounded-lg font-semibold text-xs uppercase transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" 
+                          style="background-color:#10B981;color:white;border:1px solid rgba(255,255,255,0.3);backdrop-filter:blur(10px);">💾 Save</button>
+                </div>
+              </div>
+            `;
+
+            document.body.appendChild(panel);
+
+            const titleEl = panel.querySelector('#remix-title');
+            const descEl = panel.querySelector('#remix-desc');
+            const remixBtn = panel.querySelector('#remix-style');
+            const saveBtn = panel.querySelector('#remix-save');
+
+            if (titleEl) {
+              titleEl.addEventListener('input', () => {
+                try { setEditableTitles(originalCardIndex, titleEl.innerText.slice(0,50)); } catch {}
+              });
+            }
+            if (descEl) {
+              descEl.addEventListener('input', () => {
+                try { setEditableDescriptions(originalCardIndex, descEl.innerText.slice(0,100)); } catch {}
+              });
+            }
+
+            const triggerRemix = () => {
+              try {
+                const imageDescription = (descEl?.innerText || displayDesc || 'in-flight experience');
+                const newImageUrl = getPollinationsImage(imageDescription, themeColor, { randomize: true });
+                const timestamp = Date.now();
+                const separator = newImageUrl.includes('?') ? '&' : '?';
+                const newUrl = `${newImageUrl}${separator}t=${timestamp}`;
+                setRemixedImage(originalCardIndex, newUrl);
+                setImageLoading(originalCardIndex, true);
+                setEditableDescription(originalCardIndex, imageDescription);
+                console.log('Remix generated from panel', { originalCardIndex, imageDescription, newUrl });
+              } catch (err) { console.error('Remix failed', err); }
+            };
+
+            if (remixBtn) remixBtn.addEventListener('click', (ev) => { ev.stopPropagation(); triggerRemix(); });
+            if (saveBtn) saveBtn.addEventListener('click', (ev) => { ev.stopPropagation(); triggerRemix(); });
+          } catch {}
+          // Tooltip stays until explicit close button is clicked
+        }}
         style={cardStyle}
         data-name={cardInfo.name}
         data-card-index={originalCardIndex}
         id={cardInfo.id}
-        onMouseEnter={(e) => {
-          if (isPromptMode && colorPromptSaved && onPromoCardHover) {
-            // Use actual mouse cursor position like FlightJourneyBar does
-            const position = { x: e.clientX, y: e.clientY };
-            onPromoCardHover(
-              true,
-              'promo-card',
-              { cardIndex: originalCardIndex, cardType: cardInfo.type, currentContent: cardContent },
-              position
-            );
-          }
-        }}
-        onMouseMove={(e) => {
-          if (isPromptMode && colorPromptSaved && onPromoCardHover) {
-            // Continuously update position as mouse moves within the card
-            const position = { x: e.clientX, y: e.clientY };
-            onPromoCardHover(
-              true,
-              'promo-card',
-              { cardIndex: originalCardIndex, cardType: cardInfo.type, currentContent: cardContent },
-              position
-            );
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (isPromptMode && colorPromptSaved && onPromoCardHover) {
-            onPromoCardHover(false, 'promo-card', { cardIndex: originalCardIndex, cardType: cardInfo.type }, { x: 0, y: 0 });
-          }
-        }}
-        onClick={(e) => {
-          // Only handle click for left promo card (index 0) and when analytics handler is available
-          if (originalCardIndex === 0 && onAnalyticsClick) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // Calculate position 8px below the left promo card
-            const cardRect = e.currentTarget.getBoundingClientRect();
-            const position = {
-              x: cardRect.left + cardRect.width / 2, // Center horizontally
-              y: cardRect.bottom + 8 // 8px below the card
-            };
-            
-            onAnalyticsClick(position, {
-              cardIndex: originalCardIndex,
-              cardType: cardInfo.type,
-              currentContent: cardContent
-            });
-          }
-        }}
       >
           <div className="relative h-full w-full">
             
@@ -619,8 +728,8 @@ export default function Component3Cards({
           )}
         </div>
         
-        {/* Remix controls - only show for left card (index 0) after theme is saved */}
-        {colorPromptSaved && (
+        {/* Remix controls - only show for left card (index 0) after theme is saved and tooltip not locked */}
+        {colorPromptSaved && !tooltipLocked && (
           <div 
             className="px-4 py-3 rounded-lg flex flex-col items-center"
             style={{

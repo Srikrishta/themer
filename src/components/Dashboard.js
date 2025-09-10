@@ -55,7 +55,7 @@ const getCurrentRoutePromptBubble = (routePromptBubbles, getCurrentRouteKey) => 
   return bubble;
 };
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, onContentCardHover, colorPromptClosedWithoutSave, getRouteColorPromptSaved, recommendedContentCards, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, handleContentCardHover, selectedDates = [], isCurrentThemeFestive, getRouteSelectedThemeChip, handlePromoCardHover, routePromptBubbles }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, onContentCardHover, colorPromptClosedWithoutSave, getRouteColorPromptSaved, recommendedContentCards, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, selectedDates = [], isCurrentThemeFestive, getRouteSelectedThemeChip, routePromptBubbles }) {
 
   // State for tracking content card image loading
   const [contentImageLoadingStates, setContentImageLoadingStates] = useState({});
@@ -223,26 +223,129 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
     return (
       <div
         key={`content-card-${originalCardIndex}-${displayPosition}`}
-        className="overflow-clip relative shrink-0 flex items-center justify-center backdrop-blur-[10px] backdrop-filter group"
+        className="overflow-clip relative shrink-0 flex items-center justify-center backdrop-blur-[10px] backdrop-filter group hover:shadow-[0_0_0_3px_#1E1E1E] cursor-pointer"
         style={cardStyle}
         onMouseEnter={(e) => {
-          if (isPromptMode && getRouteColorPromptSaved() && handleContentCardHover) {
-            // Use actual mouse cursor position like FlightJourneyBar does
-            const position = { x: e.clientX, y: e.clientY };
-            handleContentCardHover(true, 'content-card', { cardIndex: originalCardIndex, cardType: 'content-card' }, position);
+          if (window.__tooltipLocked) return; // prevent new tooltip while locked
+          const tooltip = document.createElement('div');
+          tooltip.style.cssText = `
+            position: fixed;
+            background: #1E1E1E;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 2147483647;
+            pointer-events: auto;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            left: ${e.clientX + 18}px;
+            top: ${e.clientY + 18}px;
+          `;
+          tooltip.id = 'custom-tooltip';
+          tooltip.innerHTML = `
+            <span>content</span>
+            <span style="width:1px;height:14px;display:inline-block;background:rgba(255,255,255,0.35)"></span>
+            <button id="custom-tooltip-close" aria-label="Close" style="background:transparent;border:none;color:white;opacity:.85;cursor:pointer;padding:0 2px;line-height:1">✕</button>
+          `;
+          const existing = document.getElementById('custom-tooltip');
+          if (existing) existing.remove();
+          document.body.appendChild(tooltip);
+          const closeBtn = document.getElementById('custom-tooltip-close');
+          if (closeBtn) {
+            closeBtn.addEventListener('click', (ev) => {
+              ev.stopPropagation();
+              const t = document.getElementById('custom-tooltip');
+              if (t) t.remove();
+              const p = document.getElementById('remix-panel');
+              if (p) p.remove();
+              window.__tooltipLocked = false;
+            });
           }
+          if (!window.__tooltipLocked) window.__tooltipLocked = false;
         }}
         onMouseMove={(e) => {
-          if (isPromptMode && getRouteColorPromptSaved() && handleContentCardHover) {
-            // Continuously update position as mouse moves within the card
-            const position = { x: e.clientX, y: e.clientY };
-            handleContentCardHover(true, 'content-card', { cardIndex: originalCardIndex, cardType: 'content-card' }, position);
-          }
+          const tooltip = document.getElementById('custom-tooltip');
+          if (!tooltip || window.__tooltipLocked) return;
+          tooltip.style.left = `${e.clientX + 18}px`;
+          tooltip.style.top = `${e.clientY + 18}px`;
         }}
-        onMouseLeave={(e) => {
-          if (isPromptMode && getRouteColorPromptSaved() && handleContentCardHover) {
-            handleContentCardHover(false, 'content-card', { cardIndex: originalCardIndex, cardType: 'content-card' }, { x: 0, y: 0 });
+        onMouseLeave={() => {
+          const tooltip = document.getElementById('custom-tooltip');
+          if (tooltip && !window.__tooltipLocked) tooltip.remove();
+        }}
+        onClick={(e) => {
+          const tooltip = document.getElementById('custom-tooltip');
+          if (tooltip) {
+            tooltip.style.left = `${e.clientX + 12}px`;
+            tooltip.style.top = `${e.clientY + 12}px`;
           }
+          window.__tooltipLocked = true;
+          // Show remix panel UI below tooltip, left-aligned (content cards)
+          try {
+            const existingPanel = document.getElementById('remix-panel');
+            if (existingPanel) existingPanel.remove();
+            const t = document.getElementById('custom-tooltip');
+            if (!t) return;
+            const rect = t.getBoundingClientRect();
+            const panel = document.createElement('div');
+            panel.id = 'remix-panel';
+            panel.style.cssText = `
+              position: fixed;
+              left: ${rect.left}px;
+              top: ${rect.bottom + 8}px;
+              z-index: 2147483647;
+            `;
+            const contentDataLocal = getContentData(originalCardIndex);
+            panel.innerHTML = `
+              <div class="px-4 py-3 rounded-lg flex flex-col items-center" 
+                   style="background-color:#1C1C1C;border:1px solid rgba(255,255,255,0.2);width:312px;gap:40px;">
+                <div class="w-full">
+                  <p class="whitespace-pre-wrap break-words text-lg leading-5 text-white m-0">
+                    <span class="text-gray-300 select-none" style="margin-right:8px;">Change title to</span>
+                    <span id="remix-title" role="textbox" aria-label="title" contenteditable="true" 
+                          class="outline-none" spellcheck="false"
+                          style="text-decoration:underline dotted rgba(156,163,175,0.8);text-underline-offset:6px;caret-color:transparent;margin-right:8px;">${(contentDataLocal.text || 'Add content').replace(/</g,'&lt;')}</span>
+                    <span class="text-gray-300 select-none" style="margin-right:8px;">describe image of</span>
+                    <span id="remix-desc" role="textbox" aria-label="image description" contenteditable="true" 
+                          class="outline-none" spellcheck="false"
+                          style="text-decoration:underline dotted rgba(156,163,175,0.8);text-underline-offset:6px;caret-color:auto;">${((contentDataLocal.image || contentDataLocal.text || '') + '').replace(/</g,'&lt;')}</span>
+                  </p>
+                </div>
+                <div class="flex gap-2">
+                  <button id="remix-style" class="px-4 py-2 rounded-lg font-semibold text-xs uppercase transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" 
+                          style="background-color:#10B981;color:white;border:1px solid rgba(255,255,255,0.3);">🎲 Remix Style</button>
+                  <button id="remix-save" class="px-4 py-2 rounded-lg font-semibold text-xs uppercase transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" 
+                          style="background-color:#10B981;color:white;border:1px solid rgba(255,255,255,0.3);backdrop-filter:blur(10px);">💾 Save</button>
+                </div>
+              </div>
+            `;
+            document.body.appendChild(panel);
+            const closeRemix = document.getElementById('remix-panel-close');
+            if (closeRemix) {
+              closeRemix.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                const p = document.getElementById('remix-panel');
+                if (p) p.remove();
+                const tt = document.getElementById('custom-tooltip');
+                if (tt) tt.remove();
+                window.__tooltipLocked = false;
+              });
+            }
+
+            const titleEl = panel.querySelector('#remix-title');
+            const descEl = panel.querySelector('#remix-desc');
+            const remixBtn = panel.querySelector('#remix-style');
+            const saveBtn = panel.querySelector('#remix-save');
+            if (titleEl) titleEl.addEventListener('input', () => {});
+            if (descEl) descEl.addEventListener('input', () => {});
+            const triggerRemix = () => {};
+            if (remixBtn) remixBtn.addEventListener('click', (ev) => { ev.stopPropagation(); triggerRemix(); });
+            if (saveBtn) saveBtn.addEventListener('click', (ev) => { ev.stopPropagation(); triggerRemix(); });
+          } catch {}
+          // Stays until explicit close button is clicked
         }}
       >
         {/* Image area - show image if available */}
@@ -455,8 +558,6 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         selectedDates={selectedDates}
         isCurrentThemeFestive={isCurrentThemeFestive}
         getRouteSelectedThemeChip={getRouteSelectedThemeChip}
-        onPromoCardHover={handlePromoCardHover}
-        onAnalyticsClick={handleAnalyticsClick}
       />
       
       {/* Recommended for you section */}
@@ -560,9 +661,6 @@ export default function Dashboard() {
   const [selectedSegment, setSelectedSegment] = useState(null);
   // NEW: State for current theme color
   const [currentThemeColor, setCurrentThemeColor] = useState('#1E72AE'); // Always Discover blue for flights view
-  // NEW: State to track fixed hover tip positions for promo cards and content cards
-  const [pcFixedPosition, setPcFixedPosition] = useState(null);
-  const [ccFixedPosition, setCcFixedPosition] = useState(null);
 
   // NEW: Per-flight-route theme tracking
   const [flightThemes, setFlightThemes] = useState({}); // { [flightKey]: themeColor }
@@ -633,59 +731,23 @@ export default function Dashboard() {
       }
     }));
   };
-  // Hover hint bubble for FPS ("Select flight phase")
-  const [fpsHoverTip, setFpsHoverTip] = useState({ visible: false, x: 0, y: 0, progress: 0 });
-  // Hover hint bubble for Promo Cards ("Edit promo card")
-  // State for promo card hover tip
-  const [promoCardHoverTip, setPromoCardHoverTip] = useState({ visible: false, x: 0, y: 0, elementData: null });
-  // Add state for content card hover tip
-  const [ccHoverTip, setCCHoverTip] = useState({ visible: false, x: 0, y: 0, elementData: null });
   // State for analytics bubble
   const [analyticsBubble, setAnalyticsBubble] = useState({ visible: false, x: 0, y: 0, elementData: null });
 
-  // Handle promo card hover
-  const handlePromoCardHover = (isHovering, elementType, elementData, position) => {
-    if (!isPromptMode || !getRouteColorPromptSaved()) return;
+
+  // Handle analytics click
+  const handleAnalyticsClick = (e, elementData) => {
+    e.stopPropagation();
+    console.log('=== ANALYTICS CLICKED - DISABLED ===', { elementData });
     
-    // If we have a fixed position (user clicked), ignore hover events
-    if (pcFixedPosition) {
-      console.log('=== IGNORING PROMO CARD HOVER - FIXED POSITION ACTIVE ===', { pcFixedPosition });
-      return;
-    }
-    
-    // Don't show promo card hover tip if other UI elements are active
-    if (fjbHoverTip.visible || getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey) || showPlusIcon) {
-      console.log('=== IGNORING PROMO CARD HOVER - OTHER UI ACTIVE ===', { 
-        fjbHoverTipVisible: fjbHoverTip.visible, 
-        promptBubbleOpen: !!getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey),
-        showPlusIcon 
-      });
-      return;
-    }
-    
-    if (isHovering) {
-      setPromoCardHoverTip({ visible: true, x: position.x, y: position.y - 50, elementData });
-    } else {
-      setPromoCardHoverTip({ visible: false, x: 0, y: 0, elementData: null });
-    }
+    // Analytics bubble is currently disabled
+    // Do nothing - analytics functionality is turned off
+    return;
   };
 
   // Close analytics bubble
   const handleCloseAnalytics = () => {
     setAnalyticsBubble({ visible: false, x: 0, y: 0, elementData: null });
-  };
-
-  // Handle analytics click from promo cards
-  const handleAnalyticsClick = (position, elementData) => {
-    setAnalyticsBubble({
-      visible: true,
-      x: position.x,
-      y: position.y,
-      elementData: {
-        ...elementData,
-        analyticsType: 'content-divider'
-      }
-    });
   };
 
 
@@ -702,11 +764,7 @@ export default function Dashboard() {
     let hoverTipPosition = { x: 0, y: 0 };
     
     if (elementData.cardType === 'content-card') {
-      // Use content card hover tip position
-      hoverTipPosition = { x: ccHoverTip.x, y: ccHoverTip.y };
-      // Pin hover tip at its position and keep it visible
-      setCcFixedPosition({ x: hoverTipPosition.x, y: hoverTipPosition.y });
-      setCCHoverTip(prev => ({ ...prev, visible: true, x: hoverTipPosition.x, y: hoverTipPosition.y, elementData }));
+      // Content card hover tip removed
     }
     
     // Small delay to prevent flickering
@@ -1369,77 +1427,22 @@ export default function Dashboard() {
     }
     if (elementType === 'flight-icon') {
       if (!getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)) {
-        // Replace cursor plus with hover tip for FPS
+        // FPS hover tip removed
         setShowPlusIcon(false);
-        setFpsHoverTip(prev => {
-          if (!isHovering) return { visible: false, x: 0, y: 0, progress: 0 };
-          const dx = Math.abs(prev.x - position.x);
-          const dy = Math.abs(prev.y - position.y);
-          if (!prev.visible || dx > 4 || dy > 4 || Math.abs((prev.progress || 0) - (elementData?.progress || 0)) > 0.01) {
-            return { visible: true, x: position.x, y: position.y, progress: elementData?.progress || prev.progress || 0 };
-          }
-          return prev;
-        });
       } else {
-        setFpsHoverTip({ visible: false, x: 0, y: 0, progress: 0 });
+        // FPS hover tip removed
       }
       return;
     }
 
 
     if (elementType === 'promo-card') {
-      if (!getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)) {
-        setShowPlusIcon(false);
-        setPromoCardHoverTip(prev => {
-          // If we have a fixed position (user clicked), ignore mouse movements and keep hover tip visible
-          if (pcFixedPosition) {
-            return { visible: true, x: pcFixedPosition.x, y: pcFixedPosition.y, elementData };
-          }
-          
-          // Only hide hover tip if user is not hovering AND there's no fixed position
-          if (!isHovering) return { visible: false, x: 0, y: 0, elementData: null };
-          
-          // If we have a fixed position, use it instead of following mouse
-          const targetPosition = pcFixedPosition || position;
-          
-          // More robust position update logic like FlightJourneyBar
-          const dx = Math.abs(prev.x - targetPosition.x);
-          const dy = Math.abs(prev.y - targetPosition.y);
-          
-          // Only update if position changed significantly or hover tip not visible
-          if (!prev.visible || dx > 2 || dy > 2) {
-            return { visible: true, x: targetPosition.x, y: targetPosition.y, elementData };
-          }
-          return prev;
-        });
-      } else {
-        // When prompt bubble is open, keep hover tip visible at fixed position
-        if (pcFixedPosition) {
-          setPromoCardHoverTip({ visible: true, x: pcFixedPosition.x, y: pcFixedPosition.y, elementData });
-        }
-      }
+      // Promo card hover tip removed
       return;
     }
 
     if (elementType === 'content-card') {
-      if (!getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)) {
-        setShowPlusIcon(false);
-        setCCHoverTip(prev => {
-          if (!isHovering) return { visible: false, x: 0, y: 0, elementData: null };
-          
-          // More robust position update logic like FlightJourneyBar
-          const dx = Math.abs(prev.x - position.x);
-          const dy = Math.abs(prev.y - position.y);
-          
-          // Only update if position changed significantly or hover tip not visible
-          if (!prev.visible || dx > 2 || dy > 2) {
-            return { visible: true, x: position.x, y: position.y, elementData };
-          }
-          return prev;
-        });
-      } else {
-        setCCHoverTip({ visible: false, x: 0, y: 0, elementData: null });
-      }
+      // Content card hover tip removed
       return;
     }
     if (getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)) return;
@@ -1505,20 +1508,7 @@ export default function Dashboard() {
       setColorPromptClosedWithoutSave(false);
     }
     
-    // Set fixed positions for promo cards and content cards
-    if (elementType === 'promo-card') {
-      setPcFixedPosition({ x: position.x, y: position.y });
-      // Immediately show hover tip at fixed position
-      console.log('=== PROMO CARD HOVER POSITION ===', { position, elementData });
-      setPromoCardHoverTip({ visible: true, x: position.x, y: position.y, elementData });
-    }
     
-    if (elementType === 'content-card') {
-      setCcFixedPosition({ x: position.x, y: position.y });
-      // Immediately show hover tip at fixed position
-      console.log('=== CONTENT CARD HOVER POSITION ===', { position, elementData });
-      setCCHoverTip({ visible: true, x: position.x, y: position.y, elementData });
-    }
     
     
     // Generate unique key for different element types
@@ -1617,9 +1607,6 @@ export default function Dashboard() {
     setShowPlusIcon(false); // Hide plus icon when bubble appears
     
     // Ensure hover tips remain visible at fixed positions when prompt bubbles open
-    if (elementType === 'promo-card' && pcFixedPosition) {
-      setPromoCardHoverTip({ visible: true, x: pcFixedPosition.x, y: pcFixedPosition.y, elementData });
-    }
   };
 
   // Listen for prompt events from routes view (inline flight cards)
@@ -1657,8 +1644,6 @@ export default function Dashboard() {
     setActiveSegmentId(null);
     setCurrentRoutePromptBubble(null);
     setShowPlusIcon(false);
-    // Clear content card fixed positions when exiting prompt mode
-    setCcFixedPosition(null);
   };
 
   const handlePromptBubbleClose = () => {
@@ -1667,11 +1652,6 @@ export default function Dashboard() {
     // Clear selected hover item when prompt bubble closes
     setSelectedHoverItem(null);
     // Hover tip is now always visible, no need to hide it
-    setPromoCardHoverTip({ visible: false, x: 0, y: 0, elementData: null });
-    setCCHoverTip({ visible: false, x: 0, y: 0, elementData: null });
-    // Clear promo card fixed positions when prompt bubble closes
-    setPcFixedPosition(null);
-    setCcFixedPosition(null);
   };
 
   const handlePromptBubbleSubmit = (promptText, elementType, elementData, positionKey, options = {}) => {
@@ -1894,57 +1874,6 @@ export default function Dashboard() {
 
   console.log('🎯 Dashboard RENDER: showInFlightPreview =', showInFlightPreview, 'showIFEFrame =', showIFEFrame, 'isPromptMode =', isPromptMode);
   
-  // Add handler for content card hover
-  const handleContentCardHover = (isHovering, elementType, elementData, position) => {
-    console.log('=== HANDLE CONTENT CARD HOVER ===', { 
-      isHovering, 
-      elementType, 
-      elementData, 
-      position, 
-      ccFixedPosition,
-      isPromptMode,
-      colorPromptSaved: getRouteColorPromptSaved()
-    });
-    
-    // Check if there's an active FJB prompt bubble
-    const currentPromptBubble = getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey);
-    if (currentPromptBubble && (currentPromptBubble.elementType === 'flight-journey-bar' || currentPromptBubble.elementType === 'flight-journey-bar-animation')) {
-      console.log('=== BLOCKING CONTENT CARD HOVER - FJB PROMPT BUBBLE ACTIVE ===');
-      setCCHoverTip({ visible: false, x: 0, y: 0, elementData: null });
-      return;
-    }
-    
-    // Content card hover logic remains the same
-    
-    // Don't show content card hover tip if other UI elements are active
-    if (fjbHoverTip.visible || promoCardHoverTip.visible || getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey) || showPlusIcon) {
-      console.log('=== IGNORING CONTENT CARD HOVER - OTHER UI ACTIVE ===', { 
-        fjbHoverTipVisible: fjbHoverTip.visible, 
-        promoCardHoverTipVisible: promoCardHoverTip.visible,
-        promptBubbleOpen: !!getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey),
-        showPlusIcon 
-      });
-      return;
-    }
-    
-    if (isHovering) {
-      // If we have a fixed position, use it instead of following mouse
-      const targetPosition = ccFixedPosition || position;
-      console.log('=== SHOWING CONTENT CARD HOVER TIP ===', { targetPosition, elementData });
-      setCCHoverTip({ visible: true, x: targetPosition.x, y: targetPosition.y, elementData });
-    } else {
-      console.log('=== HIDING CONTENT CARD HOVER TIP ===');
-      // Only hide if no prompt bubble is open
-      if (!getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)) {
-        setCCHoverTip({ visible: false, x: 0, y: 0, elementData: null });
-      } else {
-        // When prompt bubble is open, keep hover tip visible at fixed position
-        if (ccFixedPosition) {
-          setCCHoverTip({ visible: true, x: ccFixedPosition.x, y: ccFixedPosition.y, elementData });
-        }
-      }
-    }
-  };
 
   return (
     <div 
@@ -2308,11 +2237,9 @@ export default function Dashboard() {
               getCurrentRouteKey={getCurrentRouteKey}
               isModifyClicked={isCurrentRouteModified()}
               isCurrentRouteModified={isCurrentRouteModified}
-              handleContentCardHover={handleContentCardHover}
               selectedDates={selectedDates}
               isCurrentThemeFestive={isCurrentThemeFestive}
               getRouteSelectedThemeChip={getRouteSelectedThemeChip}
-              handlePromoCardHover={handlePromoCardHover}
               routePromptBubbles={routePromptBubbles}
             />
           </div>
@@ -2678,52 +2605,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* FPS hover tip bubble: shows label and plus; click opens FPS PB */}
-      {isCurrentRouteModified() && isPromptMode && fpsHoverTip.visible && !getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey) && (
-        <div
-          key={`fps-hover-${activeThemeColor}`}
-          className="fixed"
-          style={{ left: fpsHoverTip.x, top: fpsHoverTip.y, pointerEvents: 'none', zIndex: 999999999 }}
-        >
-          <div
-            className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
-            style={{
-              backgroundColor: '#1f2937', // Dark container color
-              borderColor: hoverBorderColor,
-              opacity: 1,
-              borderTopLeftRadius: 0
-            }}
-          >
-            <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>Select flight phase</span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                // Compute progress for click if available
-                let progress = fpsHoverTip.progress || 0;
-                try {
-                  const container = document.querySelector('.flight-progress-bar-container');
-                  if (container) {
-                    const rect = container.getBoundingClientRect();
-                    const barWidth = 1302;
-                    const offsetX = fpsHoverTip.x - rect.left;
-                    progress = Math.max(0, Math.min(1, offsetX / barWidth));
-                  }
-                } catch {}
-                handlePromptClick('flight-icon', { progress, minutesLeft }, { x: fpsHoverTip.x, y: fpsHoverTip.y });
-              }}
-              className="w-6 h-6 rounded-full border flex items-center justify-center"
-              title="Select flight phase"
-              style={{ pointerEvents: 'auto', borderColor: '#FFFFFF', color: '#FFFFFF' }}
-            >
-              +
-            </button>
-          </div>
-        </div>
-      )}
 
-      {/* Promo Card hover tips removed */}
-
-      {/* Promo Card hover tips removed */}
       
 
 
@@ -2834,143 +2716,7 @@ export default function Dashboard() {
 
 
 
-      {/* Promo Card hover tip: shows Content | Analytics | close button */}
-      {isCurrentRouteModified() && isPromptMode && promoCardHoverTip.visible && (
-        <div
-          key={`promo-hover-${activeThemeColor}`}
-          className="fixed"
-          data-hover-tip="true"
-          style={{ left: promoCardHoverTip.x, top: promoCardHoverTip.y, pointerEvents: 'none', zIndex: 999999999 }}
-        >
-          <div
-            className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
-            style={{
-              backgroundColor: '#1f2937', // Dark container color
-              borderColor: hoverBorderColor,
-              opacity: 1,
-              borderTopLeftRadius: 0
-            }}
-          >
-            <span 
-              className="text-xs font-bold cursor-pointer hover:bg-white/10 px-2 py-1 rounded"
-              style={{ 
-                color: '#FFFFFF', 
-                pointerEvents: 'auto',
-                backgroundColor: getCurrentRoutePromptBubble(routePromptBubbles, getCurrentRouteKey)?.elementType === 'promo-card' ? 'rgba(255, 255, 255, 0.2)' : 'transparent'
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                console.log('=== CONTENT CLICKED ===', { elementData: promoCardHoverTip.elementData });
-                // Open prompt bubble for content editing
-                handleContentClick(e, promoCardHoverTip.elementData);
-              }}
-            >
-              Content
-            </span>
-            <div className="w-px h-4 bg-white/30"></div>
-            <span 
-              className="text-xs font-bold cursor-pointer hover:bg-white/10 px-2 py-1 rounded"
-              style={{ 
-                color: '#FFFFFF', 
-                pointerEvents: 'auto'
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                console.log('=== ANALYTICS CLICKED ===', { elementData: promoCardHoverTip.elementData });
-                // Open analytics bubble
-                handleAnalyticsClick(e, promoCardHoverTip.elementData);
-              }}
-            >
-              Analytics
-            </span>
-            <div className="w-px h-4 bg-white/30"></div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                // Close the prompt bubble if it's open
-                setRoutePromptBubbles({});
-                // Hide only the promo card hover tip
-                setPromoCardHoverTip({ visible: false, x: 0, y: 0, elementData: null });
-                // Clear the fixed position so hover tip can respond to mouse movements again
-                setPcFixedPosition(null);
-              }}
-              className="w-4 h-4 flex items-center justify-center ml-1"
-              style={{ pointerEvents: 'auto', color: '#FFFFFF' }}
-              title="Close"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-      )}
 
-      {/* Content Card hover tip: shows Content | Analytics | close button */}
-      {isCurrentRouteModified() && isPromptMode && ccHoverTip.visible && (
-        <div
-          key={`content-hover-${activeThemeColor}`}
-          className="fixed"
-          data-hover-tip="true"
-          style={{ left: ccHoverTip.x, top: ccHoverTip.y, transform: 'translateY(-100%)', pointerEvents: 'none', zIndex: 999999999 }}
-          data-debug-position={`${ccHoverTip.x},${ccHoverTip.y}`}
-        >
-          <div
-            className="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-md"
-            style={{
-              backgroundColor: '#1f2937', // Dark container color
-              borderColor: hoverBorderColor,
-              opacity: 1,
-              borderTopLeftRadius: 0
-            }}
-          >
-            <span 
-              className="text-xs font-bold cursor-pointer hover:bg-white/10 px-2 py-1 rounded"
-              style={{ 
-                color: '#FFFFFF', 
-                pointerEvents: 'auto'
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                console.log('=== CONTENT CLICKED ===', { elementData: ccHoverTip.elementData });
-                // Open prompt bubble for content editing
-                handleContentClick(e, ccHoverTip.elementData);
-              }}
-            >
-              Content
-            </span>
-            <div className="w-px h-4 bg-white/30"></div>
-            <span 
-              className="text-xs font-bold cursor-pointer hover:bg-white/10 px-2 py-1 rounded"
-              style={{ 
-                color: '#FFFFFF', 
-                pointerEvents: 'auto'
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                console.log('=== ANALYTICS CLICKED ===', { elementData: ccHoverTip.elementData });
-                // Open analytics bubble
-                handleAnalyticsClick(e, ccHoverTip.elementData);
-              }}
-            >
-              Analytics
-            </span>
-            <div className="w-px h-4 bg-white/30"></div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                // Close the prompt bubble if it's open
-                setRoutePromptBubbles({});
-                // Hide only the content card hover tip
-                setCCHoverTip({ visible: false, x: 0, y: 0, elementData: null });
-              }}
-              className="w-4 h-4 flex items-center justify-center ml-1"
-              style={{ pointerEvents: 'auto', color: '#FFFFFF' }}
-              title="Close"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 } 
