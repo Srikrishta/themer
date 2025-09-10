@@ -621,7 +621,7 @@ export default function Component3Cards({
                   ref={titleEditableRef}
                   role="textbox"
                   aria-label="title"
-                  contentEditable={activeEditable === 'title'}
+                  contentEditable
                   suppressContentEditableWarning
                   onInput={(e) => {
                     const el = e.currentTarget;
@@ -656,7 +656,7 @@ export default function Component3Cards({
                   ref={descEditableRef}
                   role="textbox"
                   aria-label="image description"
-                  contentEditable={activeEditable === 'desc'}
+                  contentEditable
                   suppressContentEditableWarning
                   onInput={(e) => {
                     const el = e.currentTarget;
@@ -764,8 +764,13 @@ export default function Component3Cards({
                       imageDescription: currentCardContent.image,
                       text: currentCardContent.text
                     });
-                    
-                    const imageDescription = editableDescriptions[0] || currentCardContent.image || currentCardContent.text || 'in-flight experience';
+                    // Prefer live DOM text to avoid lag between DOM and state
+                    const domDesc = (descEditableRef?.current?.innerText || '').trim();
+                    const imageDescription = domDesc || editableDescriptions[0] || currentCardContent.image || currentCardContent.text || 'in-flight experience';
+                    // Keep state in sync with DOM if user just typed
+                    if (domDesc && domDesc !== editableDescriptions[0]) {
+                      setEditableDescriptions(0, domDesc.slice(0, 100));
+                    }
                     
                     if (imageDescription) {
                       console.log('=== GENERATING NEW IMAGE ===', {
