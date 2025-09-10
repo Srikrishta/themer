@@ -117,24 +117,83 @@ export default function Component3Cards({
     } catch {}
   };
 
+  // Compute linear caret offset within a contentEditable element
+  const getCaretOffset = (el) => {
+    try {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return null;
+      const range = sel.getRangeAt(0).cloneRange();
+      // Ensure the selection is inside the element
+      if (!el.contains(range.endContainer)) return null;
+      const pre = document.createRange();
+      pre.selectNodeContents(el);
+      pre.setEnd(range.endContainer, range.endOffset);
+      return pre.toString().length;
+    } catch {
+      return null;
+    }
+  };
+
+  // Restore caret to a linear offset within a contentEditable element
+  const setCaretOffset = (el, offset) => {
+    try {
+      let remaining = Math.max(0, offset);
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+      let node = walker.nextNode();
+      while (node) {
+        const len = node.nodeValue?.length || 0;
+        if (remaining <= len) {
+          const range = document.createRange();
+          range.setStart(node, remaining);
+          range.collapse(true);
+          const sel = window.getSelection();
+          if (!sel) return;
+          sel.removeAllRanges();
+          sel.addRange(range);
+          return;
+        }
+        remaining -= len;
+        node = walker.nextNode();
+      }
+      // Fallback to end
+      placeCaretAtEnd(el);
+    } catch {}
+  };
+
   // Refs for inline editable spans
   const titleEditableRef = useRef(null);
   const descEditableRef = useRef(null);
   const [activeEditable, setActiveEditable] = useState('title'); // 'title' | 'desc'
 
-  // Initialize editable contents once (or when coming from empty DOM)
+  // Keep DOM in sync with state without disturbing caret when content doesn't change
   useEffect(() => {
-    // Title init
-    if (titleEditableRef.current && titleEditableRef.current.innerText.trim() === '') {
-      const initial = (() => { const c = getDefaultCardContent(0); return editableTitles[0] ?? (c.text || ''); })();
-      titleEditableRef.current.innerText = initial;
+    const el = titleEditableRef.current;
+    if (!el) return;
+    const stateText = editableTitles[0] ?? (() => { const c = getDefaultCardContent(0); return c.text || ''; })();
+    if (el.innerText !== stateText) {
+      const offset = getCaretOffset(el);
+      el.innerText = stateText;
+      // If user is currently editing title, try to keep caret close to previous offset
+      if (activeEditable === 'title' && offset != null) {
+        const newOffset = Math.min(offset, stateText.length);
+        setCaretOffset(el, newOffset);
+      }
     }
-    // Description init
-    if (descEditableRef.current && descEditableRef.current.innerText.trim() === '') {
-      const initial = (() => { const c = getDefaultCardContent(0); return editableDescriptions[0] ?? (c.image || c.text || ''); })();
-      descEditableRef.current.innerText = initial;
+  }, [editableTitles, activeEditable]);
+
+  useEffect(() => {
+    const el = descEditableRef.current;
+    if (!el) return;
+    const stateText = editableDescriptions[0] ?? (() => { const c = getDefaultCardContent(0); return c.image || c.text || ''; })();
+    if (el.innerText !== stateText) {
+      const offset = getCaretOffset(el);
+      el.innerText = stateText;
+      if (activeEditable === 'desc' && offset != null) {
+        const newOffset = Math.min(offset, stateText.length);
+        setCaretOffset(el, newOffset);
+      }
     }
-  }, []);
+  }, [editableDescriptions, activeEditable]);
   
 
   // Helper functions for image loading state management
@@ -565,24 +624,27 @@ export default function Component3Cards({
                   contentEditable={activeEditable === 'title'}
                   suppressContentEditableWarning
                   onInput={(e) => {
-                    const text = (e.currentTarget.innerText || '').slice(0, 50);
-                    if (text !== (editableTitles[0] || '')) setEditableTitles(0, text);
-                    if (e.currentTarget.innerText !== text) {
-                      const sel = window.getSelection();
-                      e.currentTarget.innerText = text;
-                      if (sel) sel.collapse(e.currentTarget.firstChild || e.currentTarget, text.length);
+                    const el = e.currentTarget;
+                    const caretBefore = getCaretOffset(el);
+                    const raw = el.innerText || '';
+                    const clamped = raw.length > 50 ? raw.slice(0, 50) : raw;
+                    const changed = clamped !== raw;
+                    if (changed) {
+                      el.innerText = clamped;
+                    }
+                    if (clamped !== (editableTitles[0] || '')) setEditableTitles(0, clamped);
+                    if (changed) {
+                      const newOffset = Math.min(caretBefore ?? clamped.length, clamped.length);
+                      requestAnimationFrame(() => setCaretOffset(el, newOffset));
                     }
                   }}
-                  onFocus={(e) => { setActiveEditable('title'); placeCaretAtEnd(e.currentTarget); }}
-                  onBeforeInput={(e) => { // ensure caret is at end before browser inserts
-                    placeCaretAtEnd(e.currentTarget);
-                  }}
+                  onFocus={(e) => { setActiveEditable('title'); }}
+                  
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); return; } }}
                   className="outline-none"
                   spellCheck={false}
                   style={{ textDecoration: 'underline dotted', textDecorationColor: 'rgba(156,163,175,0.8)', textUnderlineOffset: 6, caretColor: activeEditable === 'title' ? 'auto' : 'transparent' }}
                 >
-                  {(editableTitles[0] !== undefined ? editableTitles[0] : (() => { const c = getDefaultCardContent(0); return c.text || ''; })())}
                 </span>
                 <span
                   className="text-gray-300 select-none"
@@ -597,22 +659,27 @@ export default function Component3Cards({
                   contentEditable={activeEditable === 'desc'}
                   suppressContentEditableWarning
                   onInput={(e) => {
-                    const text = (e.currentTarget.innerText || '').slice(0, 100);
-                    if (text !== (editableDescriptions[0] || '')) setEditableDescriptions(0, text);
-                    if (e.currentTarget.innerText !== text) {
-                      const sel = window.getSelection();
-                      e.currentTarget.innerText = text;
-                      if (sel) sel.collapse(e.currentTarget.firstChild || e.currentTarget, text.length);
+                    const el = e.currentTarget;
+                    const caretBefore = getCaretOffset(el);
+                    const raw = el.innerText || '';
+                    const clamped = raw.length > 100 ? raw.slice(0, 100) : raw;
+                    const changed = clamped !== raw;
+                    if (changed) {
+                      el.innerText = clamped;
+                    }
+                    if (clamped !== (editableDescriptions[0] || '')) setEditableDescriptions(0, clamped);
+                    if (changed) {
+                      const newOffset = Math.min(caretBefore ?? clamped.length, clamped.length);
+                      requestAnimationFrame(() => setCaretOffset(el, newOffset));
                     }
                   }}
-                  onFocus={(e) => { setActiveEditable('desc'); placeCaretAtEnd(e.currentTarget); }}
-                  onBeforeInput={(e) => { placeCaretAtEnd(e.currentTarget); }}
+                  onFocus={(e) => { setActiveEditable('desc'); }}
+                  
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); return; } }}
                   className="outline-none"
                   spellCheck={false}
                   style={{ textDecoration: 'underline dotted', textDecorationColor: 'rgba(156,163,175,0.8)', textUnderlineOffset: 6, caretColor: activeEditable === 'desc' ? 'auto' : 'transparent' }}
                 >
-                  {(editableDescriptions[0] !== undefined ? editableDescriptions[0] : (() => { const c = getDefaultCardContent(0); return c.image || c.text || ''; })())}
                 </span>
               </p>
             </div>
