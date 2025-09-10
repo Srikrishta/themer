@@ -103,6 +103,38 @@ export default function Component3Cards({
   }, [hasLeakage, warnings, contextKey, remixedImages, editableDescriptions, editableTitles, imageLoadingStates, savedDescriptions, remixLoading]);
   
   // Grid-based layout removes the need for JS measurement
+
+  // Utility: place caret at the end of a contentEditable element
+  const placeCaretAtEnd = (el) => {
+    try {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      const sel = window.getSelection();
+      if (!sel) return;
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } catch {}
+  };
+
+  // Refs for inline editable spans
+  const titleEditableRef = useRef(null);
+  const descEditableRef = useRef(null);
+  const [activeEditable, setActiveEditable] = useState('title'); // 'title' | 'desc'
+
+  // Initialize editable contents once (or when coming from empty DOM)
+  useEffect(() => {
+    // Title init
+    if (titleEditableRef.current && titleEditableRef.current.innerText.trim() === '') {
+      const initial = (() => { const c = getDefaultCardContent(0); return editableTitles[0] ?? (c.text || ''); })();
+      titleEditableRef.current.innerText = initial;
+    }
+    // Description init
+    if (descEditableRef.current && descEditableRef.current.innerText.trim() === '') {
+      const initial = (() => { const c = getDefaultCardContent(0); return editableDescriptions[0] ?? (c.image || c.text || ''); })();
+      descEditableRef.current.innerText = initial;
+    }
+  }, []);
   
 
   // Helper functions for image loading state management
@@ -517,101 +549,72 @@ export default function Component3Cards({
               width: '416px'
             }}
           >
-            {/* Continuous inline row: label + title + label + description */}
-            <div className="w-full flex flex-wrap items-baseline gap-2">
-              <span className="text-sm text-gray-300 font-medium select-none" style={{ lineHeight: '1.25' }}>Change title to</span>
-              {/* Title group */}
-              <div className="relative inline-grid min-w-0" style={{ gridTemplateColumns: '1fr', width: 'fit-content', maxWidth: '100%' }}>
-                {/* Underline mirror aligned as full block in column 2 */}
-                <div
-                  aria-hidden
-                  className="absolute inset-0 whitespace-pre-wrap break-words pointer-events-none text-sm"
-                  style={{
-                    color: 'transparent',
-                    lineHeight: '1.25'
-                  }}
+            {/* Continuous inline paragraph using contenteditable spans (inline flow, natural wrapping) */}
+            <div className="w-full">
+              <p className="whitespace-pre-wrap break-words text-sm leading-5 text-white m-0">
+                <span
+                  className="text-gray-300 select-none"
+                  onMouseDown={(e) => { e.preventDefault(); setActiveEditable('title'); if (titleEditableRef.current) { titleEditableRef.current.focus(); placeCaretAtEnd(titleEditableRef.current); } }}
                 >
-                  <span
-                    style={{
-                      textDecoration: 'underline dotted',
-                      textDecorationColor: 'rgba(156,163,175,0.8)',
-                      textUnderlineOffset: 6
-                    }}
-                  >
-                    {(editableTitles[0] !== undefined ? editableTitles[0] : (() => {
-                      const cardContent = getDefaultCardContent(0);
-                      return cardContent.text || 'Enter card title...';
-                    })()) || 'Enter card title...'}
-                  </span>
-                </div>
-                <textarea
-                  value={editableTitles[0] !== undefined ? editableTitles[0] : (() => {
-                    const cardContent = getDefaultCardContent(0);
-                    return cardContent.text || '';
-                  })()}
-                  onChange={(e) => setEditableTitles(0, e.target.value)}
+                  Change title to 
+                </span>
+                <span
+                  ref={titleEditableRef}
+                  role="textbox"
+                  aria-label="title"
+                  contentEditable={activeEditable === 'title'}
+                  suppressContentEditableWarning
                   onInput={(e) => {
-                    e.target.style.height = 'auto';
-                    e.target.style.height = `${e.target.scrollHeight}px`;
+                    const text = (e.currentTarget.innerText || '').slice(0, 50);
+                    if (text !== (editableTitles[0] || '')) setEditableTitles(0, text);
+                    if (e.currentTarget.innerText !== text) {
+                      const sel = window.getSelection();
+                      e.currentTarget.innerText = text;
+                      if (sel) sel.collapse(e.currentTarget.firstChild || e.currentTarget, text.length);
+                    }
                   }}
-                  onFocus={(e) => { setTimeout(() => { e.target.select(); }, 0); }}
-                  onMouseUp={(e) => { e.preventDefault(); }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') { e.preventDefault(); const saveButton = e.target.closest('.flex.flex-col').querySelector('button[style*="10B981"]'); if (saveButton && !saveButton.disabled) { saveButton.click(); } }
-                    if ((e.key === 'Delete' || e.key === 'Backspace') && e.target.selectionStart === 0 && e.target.selectionEnd === e.target.value.length) { setEditableTitles(0, ''); e.preventDefault(); }
+                  onFocus={(e) => { setActiveEditable('title'); placeCaretAtEnd(e.currentTarget); }}
+                  onBeforeInput={(e) => { // ensure caret is at end before browser inserts
+                    placeCaretAtEnd(e.currentTarget);
                   }}
-                  className="w-full h-full p-0 text-sm text-white bg-transparent outline-none border-0 resize-none leading-5"
-                  style={{ minHeight: '20px', overflow: 'hidden' }}
-                  placeholder="Enter card title..."
-                  spellCheck="false"
-                  autoComplete="off"
-                  maxLength="50"
-                  rows={1}
-                />
-              </div>
-              <span className="text-sm text-gray-300 select-none" style={{ lineHeight: '1.25' }}>describe image of</span>
-              {/* Description group */}
-              <div className="relative inline-grid min-w-0" style={{ gridTemplateColumns: '1fr', width: 'fit-content', maxWidth: '100%' }}>
-                <div
-                  aria-hidden
-                  className="absolute inset-0 whitespace-pre-wrap break-words pointer-events-none text-sm"
-                  style={{ color: 'transparent', lineHeight: '1.25' }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); return; } }}
+                  className="outline-none"
+                  spellCheck={false}
+                  style={{ textDecoration: 'underline dotted', textDecorationColor: 'rgba(156,163,175,0.8)', textUnderlineOffset: 6, caretColor: activeEditable === 'title' ? 'auto' : 'transparent' }}
                 >
-                  <span
-                    style={{
-                      textDecoration: 'underline dotted',
-                      textDecorationColor: 'rgba(156,163,175,0.8)',
-                      textUnderlineOffset: 6
-                    }}
-                  >
-                    {(editableDescriptions[0] !== undefined ? editableDescriptions[0] : (() => {
-                      const cardContent = getDefaultCardContent(0);
-                      return cardContent.image || cardContent.text || 'in-flight experience';
-                    })()) || ''}
-                  </span>
-                </div>
-                <textarea
-                  value={editableDescriptions[0] !== undefined ? editableDescriptions[0] : (() => {
-                    const cardContent = getDefaultCardContent(0);
-                    return cardContent.image || cardContent.text || 'in-flight experience';
-                  })()}
-                  onChange={(e) => setEditableDescriptions(0, e.target.value)}
-                  onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = `${e.target.scrollHeight}px`; }}
-                  onFocus={(e) => { setTimeout(() => { e.target.select(); }, 0); }}
-                  onMouseUp={(e) => { e.preventDefault(); }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') { e.preventDefault(); const saveButton = e.target.closest('.flex.flex-col').querySelector('button[style*="10B981"]'); if (saveButton && !saveButton.disabled) { saveButton.click(); } }
-                    if ((e.key === 'Delete' || e.key === 'Backspace') && e.target.selectionStart === 0 && e.target.selectionEnd === e.target.value.length) { setEditableDescriptions(0, ''); e.preventDefault(); }
+                  {(editableTitles[0] !== undefined ? editableTitles[0] : (() => { const c = getDefaultCardContent(0); return c.text || ''; })())}
+                </span>
+                <span
+                  className="text-gray-300 select-none"
+                  onMouseDown={(e) => { e.preventDefault(); setActiveEditable('desc'); if (descEditableRef.current) { descEditableRef.current.focus(); placeCaretAtEnd(descEditableRef.current); } }}
+                >
+                  describe image of 
+                </span>
+                <span
+                  ref={descEditableRef}
+                  role="textbox"
+                  aria-label="image description"
+                  contentEditable={activeEditable === 'desc'}
+                  suppressContentEditableWarning
+                  onInput={(e) => {
+                    const text = (e.currentTarget.innerText || '').slice(0, 100);
+                    if (text !== (editableDescriptions[0] || '')) setEditableDescriptions(0, text);
+                    if (e.currentTarget.innerText !== text) {
+                      const sel = window.getSelection();
+                      e.currentTarget.innerText = text;
+                      if (sel) sel.collapse(e.currentTarget.firstChild || e.currentTarget, text.length);
+                    }
                   }}
-                  className="w-full h-full p-0 text-sm text-white bg-transparent outline-none border-0 resize-none leading-5"
-                  style={{ minHeight: '20px', overflow: 'hidden' }}
-                  placeholder="describe image of..."
-                  spellCheck="false"
-                  autoComplete="off"
-                  maxLength="100"
-                  rows={1}
-                />
-              </div>
+                  onFocus={(e) => { setActiveEditable('desc'); placeCaretAtEnd(e.currentTarget); }}
+                  onBeforeInput={(e) => { placeCaretAtEnd(e.currentTarget); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); return; } }}
+                  className="outline-none"
+                  spellCheck={false}
+                  style={{ textDecoration: 'underline dotted', textDecorationColor: 'rgba(156,163,175,0.8)', textUnderlineOffset: 6, caretColor: activeEditable === 'desc' ? 'auto' : 'transparent' }}
+                >
+                  {(editableDescriptions[0] !== undefined ? editableDescriptions[0] : (() => { const c = getDefaultCardContent(0); return c.image || c.text || ''; })())}
+                </span>
+              </p>
             </div>
             <div className="flex gap-2">
               <button
