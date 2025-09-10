@@ -487,8 +487,8 @@ export default function Component3Cards({
               ev.stopPropagation();
               const t = document.getElementById('custom-tooltip');
               if (t) t.remove();
-              const p = document.getElementById('remix-panel');
-              if (p) p.remove();
+              const panel = document.getElementById('locked-remix-panel');
+              if (panel && panel.parentNode) panel.parentNode.removeChild(panel);
               window.__tooltipLocked = false;
               try { setTooltipLocked(false); } catch {}
             });
@@ -543,7 +543,7 @@ export default function Component3Cards({
             const textDiv = document.createElement('div');
             textDiv.className = 'w-full';
             const textP = document.createElement('p');
-            textP.className = 'whitespace-pre-wrap break-words text-lg leading-5 text-white m-0';
+            textP.className = 'whitespace-pre-wrap break-words text-md leading-6 text-white m-0';
 
             // "Change title to" span
             const changeTitleSpan = document.createElement('span');
@@ -611,28 +611,7 @@ export default function Component3Cards({
             remixContainer.appendChild(textDiv);
             remixContainer.appendChild(buttonsDiv);
             
-            // Add close button
-            const closeBtn = document.createElement('button');
-            closeBtn.id = 'remix-panel-close';
-            closeBtn.setAttribute('aria-label', 'Close Remix Panel');
-            closeBtn.style.cssText = 'position:absolute;top:8px;right:8px;background:transparent;border:none;color:white;opacity:.85;cursor:pointer;padding:0;line-height:1;font-size:16px';
-            closeBtn.textContent = '✕';
-            remixContainer.appendChild(closeBtn);
-
             document.body.appendChild(remixContainer);
-
-            // Add close button handler
-            const closeRemix = remixContainer.querySelector('#remix-panel-close');
-            if (closeRemix) {
-              closeRemix.addEventListener('click', (ev) => {
-                ev.stopPropagation();
-                const tt = document.getElementById('locked-tooltip');
-                if (tt && tt.parentNode) tt.parentNode.removeChild(tt);
-                const panel = document.getElementById('locked-remix-panel');
-                if (panel && panel.parentNode) panel.parentNode.removeChild(panel);
-                window.__tooltipLocked = false;
-              });
-            }
 
             const titleEl = remixContainer.querySelector('#locked-tooltip-title');
             const descEl = remixContainer.querySelector('#locked-tooltip-desc');
@@ -819,8 +798,8 @@ export default function Component3Cards({
           )}
         </div>
         
-        {/* Remix controls - only show for left card (index 0) after theme is saved and tooltip not locked */}
-        {colorPromptSaved && !tooltipLocked && (
+        {/* Remix controls - DISABLED: only show for left card (index 0) after theme is saved and tooltip not locked */}
+        {false && colorPromptSaved && !tooltipLocked && (
           <div 
             className="px-4 py-3 rounded-lg flex flex-col items-center"
             style={{

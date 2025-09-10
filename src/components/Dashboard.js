@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { useIsolatedState, useImageState } from '../hooks/useIsolatedState';
+import { generateContextKey } from '../utils/contextValidation';
 import { getReadableOnColor, getLightCardBackgroundColor } from '../utils/color';
 import { getContentCardContent } from '../utils/festivalUtils';
 import { getNonFestiveCardContent } from '../data/festivalContent';
 import { getPollinationsImage } from '../utils/unsplash';
-import { useIsolatedState } from '../hooks/useIsolatedState';
-import { generateContextKey } from '../utils/contextValidation';
 import ThemeCreator from './ThemeCreator';
 import FlightJourneyBar from './FlightJourneyBar';
 import FlightProgress from './FlightProgress';
@@ -57,19 +57,52 @@ const getCurrentRoutePromptBubble = (routePromptBubbles, getCurrentRouteKey) => 
 
 function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, onContentCardHover, colorPromptClosedWithoutSave, getRouteColorPromptSaved, recommendedContentCards, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, selectedDates = [], isCurrentThemeFestive, getRouteSelectedThemeChip, routePromptBubbles }) {
 
-  // State for tracking content card image loading
-  const [contentImageLoadingStates, setContentImageLoadingStates] = useState({});
+  // Generate context key for state isolation
+  const contextKey = generateContextKey(getCurrentRouteKey(), selectedFlightPhase, themeColor, selectedDates);
+  
+  // Use isolated state management to prevent state leakage across routes/phases/themes
+  const contentCardImageState = useImageState(contextKey);
+  
+  // Additional isolated state for content card titles
+  const contentCardTitlesState = useIsolatedState(contextKey, {});
 
-  // Helper functions for content card image loading state management
+  // Helper functions using isolated state management
   const setContentImageLoading = (cardIndex, isLoading) => {
-    setContentImageLoadingStates(prev => ({
-      ...prev,
-      [cardIndex]: isLoading
-    }));
+    contentCardImageState.setImageLoading(cardIndex, isLoading);
   };
 
   const isContentImageLoading = (cardIndex) => {
-    return contentImageLoadingStates[cardIndex] || false;
+    return contentCardImageState.imageLoadingStates[cardIndex] || false;
+  };
+
+  // Helper functions for content card title management
+  const setContentCardTitle = (cardIndex, title) => {
+    contentCardTitlesState.setState(prev => ({
+      ...prev,
+      [cardIndex]: title
+    }));
+  };
+
+  const getContentCardTitle = (cardIndex) => {
+    return contentCardTitlesState.state[cardIndex] || null;
+  };
+
+  // Helper functions for content card remixed images
+  const setContentCardRemixedImage = (cardIndex, imageUrl) => {
+    contentCardImageState.setRemixedImage(cardIndex, imageUrl);
+  };
+
+  const getContentCardRemixedImage = (cardIndex) => {
+    return contentCardImageState.remixedImages[cardIndex] || null;
+  };
+
+  // Helper functions for content card image loading states
+  const setContentCardImageLoading = (cardIndex, isLoading) => {
+    contentCardImageState.setImageLoading(cardIndex, isLoading);
+  };
+
+  const isContentCardImageLoading = (cardIndex) => {
+    return contentCardImageState.imageLoadingStates[cardIndex] || false;
   };
 
   // Cleanup function to remove any lingering DOM elements
@@ -270,8 +303,8 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
               ev.stopPropagation();
               const t = document.getElementById('custom-tooltip');
               if (t) t.remove();
-              const p = document.getElementById('remix-panel');
-              if (p) p.remove();
+              const panel = document.getElementById('locked-remix-panel');
+              if (panel && panel.parentNode) panel.parentNode.removeChild(panel);
               window.__tooltipLocked = false;
             });
           }
@@ -310,13 +343,13 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
             const remixContainer = document.createElement('div');
             remixContainer.id = 'locked-remix-panel';
             remixContainer.className = 'px-4 py-3 rounded-lg flex flex-col items-center';
-            remixContainer.style.cssText = 'position:fixed;left:' + rect.left + 'px;top:' + (rect.bottom + 8) + 'px;z-index:2147483647;background-color:#1C1C1C;border:1px solid rgba(255,255,255,0.2);width:312px;gap:40px;box-shadow:rgba(0,0,0,0.35) 0px 8px 20px';
+            remixContainer.style.cssText = 'position:fixed;left:' + rect.left + 'px;top:' + (rect.top - 208) + 'px;z-index:2147483647;background-color:#1C1C1C;border:1px solid rgba(255,255,255,0.2);width:312px;gap:40px;box-shadow:rgba(0,0,0,0.35) 0px 8px 20px';
 
             // Create the text paragraph with contenteditable spans (exact same as built-in)
             const textDiv = document.createElement('div');
             textDiv.className = 'w-full';
             const textP = document.createElement('p');
-            textP.className = 'whitespace-pre-wrap break-words text-lg leading-5 text-white m-0';
+            textP.className = 'whitespace-pre-wrap break-words text-md leading-6 text-white m-0';
 
             // "Change title to" span
             const changeTitleSpan = document.createElement('span');
@@ -333,7 +366,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
             titleSpan.className = 'outline-none';
             titleSpan.spellCheck = false;
             titleSpan.style.cssText = 'text-decoration:underline dotted;text-decoration-color:rgba(156,163,175,0.8);text-underline-offset:6px;caret-color:transparent;margin-right:8px';
-            titleSpan.textContent = contentDataLocal.text || 'Add content';
+            titleSpan.textContent = getContentCardTitle(originalCardIndex) || contentDataLocal.text || 'Add content';
 
             // "describe image of" span
             const describeSpan = document.createElement('span');
@@ -384,26 +417,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
             remixContainer.appendChild(textDiv);
             remixContainer.appendChild(buttonsDiv);
             
-            // Add close button
-            const closeBtn = document.createElement('button');
-            closeBtn.id = 'remix-panel-close';
-            closeBtn.setAttribute('aria-label', 'Close Remix Panel');
-            closeBtn.style.cssText = 'position:absolute;top:8px;right:8px;background:transparent;border:none;color:white;opacity:.85;cursor:pointer;padding:0;line-height:1;font-size:16px';
-            closeBtn.textContent = '✕';
-            remixContainer.appendChild(closeBtn);
-
             document.body.appendChild(remixContainer);
-            const closeRemix = remixContainer.querySelector('#remix-panel-close');
-            if (closeRemix) {
-              closeRemix.addEventListener('click', (ev) => {
-                ev.stopPropagation();
-                const tt = document.getElementById('locked-tooltip');
-                if (tt && tt.parentNode) tt.parentNode.removeChild(tt);
-                const panel = document.getElementById('locked-remix-panel');
-                if (panel && panel.parentNode) panel.parentNode.removeChild(panel);
-                window.__tooltipLocked = false;
-              });
-            }
 
             const titleEl = remixContainer.querySelector('#locked-tooltip-title');
             const descEl = remixContainer.querySelector('#locked-tooltip-desc');
@@ -417,7 +431,8 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                 const raw = el.innerText || '';
                 const clamped = raw.length > 50 ? raw.slice(0, 50) : raw;
                 if (clamped !== raw) el.innerText = clamped;
-                // Content cards don't have editable state management yet
+                // Update the content card title
+                setContentCardTitle(originalCardIndex, clamped);
               });
               titleEl.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') { e.preventDefault(); return; }
@@ -437,8 +452,18 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
             }
             
             const triggerRemix = () => {
-              // Content cards remix functionality - can be wired to your content flow
-              console.log('Content card remix triggered', { originalCardIndex, titleEl: titleEl?.innerText, descEl: descEl?.innerText });
+              try {
+                const imageDescription = (descEl?.innerText || contentDataLocal.image || contentDataLocal.text || 'content');
+                const newImageUrl = getPollinationsImage(imageDescription, themeColor, { randomize: true });
+                const timestamp = Date.now();
+                const separator = newImageUrl.includes('?') ? '&' : '?';
+                const newUrl = `${newImageUrl}${separator}t=${timestamp}`;
+                setContentCardRemixedImage(originalCardIndex, newUrl);
+                setContentCardImageLoading(originalCardIndex, true);
+                console.log('Content card remix generated from panel', { originalCardIndex, imageDescription, newUrl });
+              } catch (err) { 
+                console.error('Content card remix failed', err); 
+              }
             };
             if (remixBtn) remixBtn.addEventListener('click', (ev) => { ev.stopPropagation(); triggerRemix(); });
             if (saveBtn) saveBtn.addEventListener('click', (ev) => { ev.stopPropagation(); triggerRemix(); });
@@ -447,12 +472,12 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
           }, 0); // Close setTimeout
         }}
       >
-        {/* Image area - show image if available */}
-        {contentData.image && (
+        {/* Image area - show image if available OR if we have a remixed image */}
+        {(contentData.image || getContentCardRemixedImage(originalCardIndex)) && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-full h-full relative">
               {/* Loading spinner */}
-              {isContentImageLoading(originalCardIndex) && (
+              {isContentCardImageLoading(originalCardIndex) && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
                   <div className="flex flex-col items-center space-y-2">
                     <ArrowPathIcon className="w-6 h-6 animate-spin text-gray-600" />
@@ -462,25 +487,57 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
               )}
               
               {/* Image */}
-              <img 
-                src={getPollinationsImage(contentData.image, themeColor)}
-                alt={contentData.image}
-                className="w-full h-full object-cover rounded-lg"
-                style={{ display: isContentImageLoading(originalCardIndex) ? 'none' : 'block' }}
-                onLoad={() => {
-                  console.log('=== POLLINATIONS CONTENT CARD IMAGE LOADED ===', { cardIndex: originalCardIndex, alt: contentData.image });
-                  setContentImageLoading(originalCardIndex, false);
-                }}
-                onError={(e) => {
-                  console.log('=== POLLINATIONS CONTENT CARD IMAGE LOAD ERROR ===', { src: e.target.src, alt: contentData.image });
-                  setContentImageLoading(originalCardIndex, false);
-                  e.target.style.display = 'none';
-                }}
-                onLoadStart={() => {
-                  console.log('=== POLLINATIONS CONTENT CARD IMAGE LOAD START ===', { cardIndex: originalCardIndex, alt: contentData.image });
-                  setContentImageLoading(originalCardIndex, true);
-                }}
-              />
+              {(() => {
+                // Use remixed image if available, otherwise use original logic
+                const hasRemixedImage = !!getContentCardRemixedImage(originalCardIndex);
+                const baseDescription = contentData.image || contentData.text || 'content';
+                const imageSrc = getContentCardRemixedImage(originalCardIndex) || 
+                  getPollinationsImage(baseDescription, themeColor);
+                
+                console.log('=== CONTENT CARD IMAGE RENDERING DEBUG ===', {
+                  originalCardIndex,
+                  hasRemixedImage,
+                  imageSrc,
+                  contentDataImage: contentData.image,
+                  isLoading: isContentCardImageLoading(originalCardIndex)
+                });
+                
+                return (
+                  <img 
+                    src={imageSrc}
+                    alt={baseDescription}
+                    className="w-full h-full object-cover rounded-lg"
+                    style={{ display: isContentCardImageLoading(originalCardIndex) ? 'none' : 'block' }}
+                    onLoad={() => {
+                      console.log('=== POLLINATIONS CONTENT CARD IMAGE LOADED ===', { 
+                        cardIndex: originalCardIndex, 
+                        alt: contentData.image, 
+                        src: imageSrc,
+                        wasRemixed: hasRemixedImage
+                      });
+                      setContentCardImageLoading(originalCardIndex, false);
+                    }}
+                    onError={(e) => {
+                      console.log('=== POLLINATIONS CONTENT CARD IMAGE LOAD ERROR ===', { 
+                        src: e.target.src, 
+                        alt: contentData.image,
+                        wasRemixed: hasRemixedImage
+                      });
+                      setContentCardImageLoading(originalCardIndex, false);
+                      e.target.style.display = 'none';
+                    }}
+                    onLoadStart={() => {
+                      console.log('=== POLLINATIONS CONTENT CARD IMAGE LOAD START ===', { 
+                        cardIndex: originalCardIndex, 
+                        alt: contentData.image, 
+                        src: imageSrc,
+                        wasRemixed: hasRemixedImage
+                      });
+                      setContentCardImageLoading(originalCardIndex, true);
+                    }}
+                  />
+                );
+              })()}
             </div>
           </div>
         )}
@@ -509,7 +566,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                  : { color: themeColor }
                )
              }}>
-            {contentData.text}
+{getContentCardTitle(originalCardIndex) || contentData.text}
           </p>
         </div>
         
