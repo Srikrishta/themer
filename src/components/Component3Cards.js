@@ -613,9 +613,10 @@ export default function Component3Cards({
               <p className="whitespace-pre-wrap break-words text-sm leading-5 text-white m-0">
                 <span
                   className="text-gray-300 select-none"
+                  style={{ marginRight: 8 }}
                   onMouseDown={(e) => { e.preventDefault(); setActiveEditable('title'); if (titleEditableRef.current) { titleEditableRef.current.focus(); placeCaretAtEnd(titleEditableRef.current); } }}
                 >
-                  Change title to 
+                  Change title to
                 </span>
                 <span
                   ref={titleEditableRef}
@@ -643,14 +644,15 @@ export default function Component3Cards({
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); return; } }}
                   className="outline-none"
                   spellCheck={false}
-                  style={{ textDecoration: 'underline dotted', textDecorationColor: 'rgba(156,163,175,0.8)', textUnderlineOffset: 6, caretColor: activeEditable === 'title' ? 'auto' : 'transparent' }}
+                  style={{ textDecoration: 'underline dotted', textDecorationColor: 'rgba(156,163,175,0.8)', textUnderlineOffset: 6, caretColor: activeEditable === 'title' ? 'auto' : 'transparent', marginRight: 8 }}
                 >
                 </span>
                 <span
                   className="text-gray-300 select-none"
+                  style={{ marginRight: 8 }}
                   onMouseDown={(e) => { e.preventDefault(); setActiveEditable('desc'); if (descEditableRef.current) { descEditableRef.current.focus(); placeCaretAtEnd(descEditableRef.current); } }}
                 >
-                  describe image of 
+                  describe image of
                 </span>
                 <span
                   ref={descEditableRef}
