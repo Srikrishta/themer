@@ -102,22 +102,7 @@ export default function Component3Cards({
     }
   }, [hasLeakage, warnings, contextKey, remixedImages, editableDescriptions, editableTitles, imageLoadingStates, savedDescriptions, remixLoading]);
   
-  // Measure label width to indent the first line of the textarea so that
-  // subsequent wrapped lines start at the container's left edge (under the label)
-  const titleLabelRef = useRef(null);
-  const [titleLabelIndent, setTitleLabelIndent] = useState(0);
-  useEffect(() => {
-    const computeIndent = () => {
-      try {
-        const width = titleLabelRef?.current?.offsetWidth || 0;
-        // Add an 8px gap between label and first text character
-        setTitleLabelIndent(width + 8);
-      } catch {}
-    };
-    computeIndent();
-    window.addEventListener('resize', computeIndent);
-    return () => window.removeEventListener('resize', computeIndent);
-  }, []);
+  // Grid-based layout removes the need for JS measurement
   
 
   // Helper functions for image loading state management
@@ -532,79 +517,51 @@ export default function Component3Cards({
               width: '416px'
             }}
           >
-            {/* Title Input Field */}
-            <div className="w-full">
-              {/* Block-level field: label + textarea share the row. The textarea uses textIndent
-                  equal to the label's width so the first line starts after the label and
-                  wrapped lines realign with the container's left edge. */}
-              <div className="relative w-full">
-                <span
-                  ref={titleLabelRef}
-                  className="absolute left-0 top-0 text-sm text-gray-300 font-medium select-none"
-                  style={{ lineHeight: '1.25' }}
-                >
-                  Change title to
-                </span>
-                {/* Underline mirror spans the full width; its first line is indented by the label width */}
+            {/* Continuous inline row: label + title + label + description */}
+            <div className="w-full flex flex-wrap items-baseline gap-2">
+              <span className="text-sm text-gray-300 font-medium select-none" style={{ lineHeight: '1.25' }}>Change title to</span>
+              {/* Title group */}
+              <div className="relative inline-grid min-w-0" style={{ gridTemplateColumns: '1fr', width: 'fit-content', maxWidth: '100%' }}>
+                {/* Underline mirror aligned as full block in column 2 */}
                 <div
                   aria-hidden
-                  className="absolute inset-x-0 top-0 whitespace-pre-wrap break-words pointer-events-none text-sm"
+                  className="absolute inset-0 whitespace-pre-wrap break-words pointer-events-none text-sm"
                   style={{
                     color: 'transparent',
-                    textDecoration: 'underline dotted',
-                    textDecorationColor: 'rgba(156,163,175,0.8)',
-                    textUnderlineOffset: 6,
-                    lineHeight: '1.25',
-                    textIndent: `${titleLabelIndent}px`,
-                    paddingRight: '4px'
+                    lineHeight: '1.25'
                   }}
                 >
-                  {(editableTitles[0] !== undefined ? editableTitles[0] : (() => {
-                    const cardContent = getDefaultCardContent(0);
-                    return cardContent.text || 'Enter card title...';
-                  })()) || 'Enter card title...'}
+                  <span
+                    style={{
+                      textDecoration: 'underline dotted',
+                      textDecorationColor: 'rgba(156,163,175,0.8)',
+                      textUnderlineOffset: 6
+                    }}
+                  >
+                    {(editableTitles[0] !== undefined ? editableTitles[0] : (() => {
+                      const cardContent = getDefaultCardContent(0);
+                      return cardContent.text || 'Enter card title...';
+                    })()) || 'Enter card title...'}
+                  </span>
                 </div>
                 <textarea
                   value={editableTitles[0] !== undefined ? editableTitles[0] : (() => {
                     const cardContent = getDefaultCardContent(0);
                     return cardContent.text || '';
                   })()}
-                  onChange={(e) => {
-                    setEditableTitles(0, e.target.value);
-                  }}
+                  onChange={(e) => setEditableTitles(0, e.target.value)}
                   onInput={(e) => {
-                    // Auto-resize height to content and prevent scrollbars
                     e.target.style.height = 'auto';
                     e.target.style.height = `${e.target.scrollHeight}px`;
                   }}
-                  onFocus={(e) => {
-                    setTimeout(() => {
-                      e.target.select();
-                    }, 0);
-                  }}
-                  onMouseUp={(e) => {
-                    e.preventDefault();
-                  }}
+                  onFocus={(e) => { setTimeout(() => { e.target.select(); }, 0); }}
+                  onMouseUp={(e) => { e.preventDefault(); }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      const saveButton = e.target.closest('.flex.flex-col').querySelector('button[style*="10B981"]');
-                      if (saveButton && !saveButton.disabled) {
-                        saveButton.click();
-                      }
-                    }
-                    if ((e.key === 'Delete' || e.key === 'Backspace') && e.target.selectionStart === 0 && e.target.selectionEnd === e.target.value.length) {
-                      setEditableTitles(0, '');
-                      e.preventDefault();
-                    }
+                    if (e.key === 'Enter') { e.preventDefault(); const saveButton = e.target.closest('.flex.flex-col').querySelector('button[style*="10B981"]'); if (saveButton && !saveButton.disabled) { saveButton.click(); } }
+                    if ((e.key === 'Delete' || e.key === 'Backspace') && e.target.selectionStart === 0 && e.target.selectionEnd === e.target.value.length) { setEditableTitles(0, ''); e.preventDefault(); }
                   }}
-                  className="w-full p-0 text-sm text-white bg-transparent outline-none border-0 resize-none leading-5"
-                  style={{
-                    minHeight: '20px',
-                    overflow: 'hidden',
-                    textIndent: `${titleLabelIndent}px`,
-                    paddingRight: '4px'
-                  }}
+                  className="w-full h-full p-0 text-sm text-white bg-transparent outline-none border-0 resize-none leading-5"
+                  style={{ minHeight: '20px', overflow: 'hidden' }}
                   placeholder="Enter card title..."
                   spellCheck="false"
                   autoComplete="off"
@@ -612,76 +569,49 @@ export default function Component3Cards({
                   rows={1}
                 />
               </div>
-            </div>
-            
-            {/* Image Description Label */}
-            <div className="w-full">
-              <span className="text-sm text-gray-300 font-medium">
-                Describe image of
-              </span>
-            </div>
-            
-            {/* Image Description Input Field */}
-            <div className="flex items-center gap-2 w-full">
-              <input
-                type="text"
-                value={editableDescriptions[0] !== undefined ? editableDescriptions[0] : (() => {
-                  const cardContent = getDefaultCardContent(0);
-                  return cardContent.image || cardContent.text || 'in-flight experience';
-                })()}
-                onChange={(e) => {
-                  setEditableDescriptions(0, e.target.value);
-                }}
-                onFocus={(e) => {
-                  // Select all text when focused for easy editing
-                  setTimeout(() => {
-                    e.target.select();
-                  }, 0);
-                }}
-                onMouseUp={(e) => {
-                  // Prevent default mouse up behavior to keep text selected
-                  e.preventDefault();
-                }}
-                onKeyDown={(e) => {
-                  // Allow Enter key to trigger save
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const saveButton = e.target.closest('.flex.flex-col').querySelector('button[style*="10B981"]');
-                    if (saveButton && !saveButton.disabled) {
-                      saveButton.click();
-                    }
-                  }
-                  // Allow Escape key to reset to original
-                  if (e.key === 'Escape') {
-                    e.preventDefault();
+              <span className="text-sm text-gray-300 select-none" style={{ lineHeight: '1.25' }}>describe image of</span>
+              {/* Description group */}
+              <div className="relative inline-grid min-w-0" style={{ gridTemplateColumns: '1fr', width: 'fit-content', maxWidth: '100%' }}>
+                <div
+                  aria-hidden
+                  className="absolute inset-0 whitespace-pre-wrap break-words pointer-events-none text-sm"
+                  style={{ color: 'transparent', lineHeight: '1.25' }}
+                >
+                  <span
+                    style={{
+                      textDecoration: 'underline dotted',
+                      textDecorationColor: 'rgba(156,163,175,0.8)',
+                      textUnderlineOffset: 6
+                    }}
+                  >
+                    {(editableDescriptions[0] !== undefined ? editableDescriptions[0] : (() => {
+                      const cardContent = getDefaultCardContent(0);
+                      return cardContent.image || cardContent.text || 'in-flight experience';
+                    })()) || ''}
+                  </span>
+                </div>
+                <textarea
+                  value={editableDescriptions[0] !== undefined ? editableDescriptions[0] : (() => {
                     const cardContent = getDefaultCardContent(0);
-                    const originalText = cardContent.image || cardContent.text || 'in-flight experience';
-                    setEditableDescriptions(0, originalText);
-                  }
-                  // Handle Delete and Backspace to ensure proper text clearing
-                  if ((e.key === 'Delete' || e.key === 'Backspace') && e.target.selectionStart === 0 && e.target.selectionEnd === e.target.value.length) {
-                    // Text is fully selected, clear it
-                    setEditableDescriptions(0, '');
-                    e.preventDefault();
-                  }
-                }}
-                className="text-xs text-white text-center bg-transparent border border-gray-500 outline-none flex-1 focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
-                style={{ 
-                  margin: 0,
-                  padding: '6px 8px',
-                  borderRadius: '6px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  color: 'white',
-                  fontSize: '12px',
-                  textAlign: 'center',
-                  minHeight: '32px',
-                  transition: 'all 0.2s ease'
-                }}
-                placeholder="Enter image description..."
-                spellCheck="false"
-                autoComplete="off"
-                maxLength="100"
-              />
+                    return cardContent.image || cardContent.text || 'in-flight experience';
+                  })()}
+                  onChange={(e) => setEditableDescriptions(0, e.target.value)}
+                  onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = `${e.target.scrollHeight}px`; }}
+                  onFocus={(e) => { setTimeout(() => { e.target.select(); }, 0); }}
+                  onMouseUp={(e) => { e.preventDefault(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); const saveButton = e.target.closest('.flex.flex-col').querySelector('button[style*="10B981"]'); if (saveButton && !saveButton.disabled) { saveButton.click(); } }
+                    if ((e.key === 'Delete' || e.key === 'Backspace') && e.target.selectionStart === 0 && e.target.selectionEnd === e.target.value.length) { setEditableDescriptions(0, ''); e.preventDefault(); }
+                  }}
+                  className="w-full h-full p-0 text-sm text-white bg-transparent outline-none border-0 resize-none leading-5"
+                  style={{ minHeight: '20px', overflow: 'hidden' }}
+                  placeholder="describe image of..."
+                  spellCheck="false"
+                  autoComplete="off"
+                  maxLength="100"
+                  rows={1}
+                />
+              </div>
             </div>
             <div className="flex gap-2">
               <button
