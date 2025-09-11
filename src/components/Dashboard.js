@@ -60,13 +60,70 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
   // Generate context key for state isolation
   const contextKey = generateContextKey(getCurrentRouteKey(), selectedFlightPhase, themeColor, selectedDates);
   
-  // Use isolated state management to prevent state leakage across routes/phases/themes
+  // Use isolated state management for temporary UI state (clears on context change)
   const contentCardImageState = useImageState(contextKey);
   
-  // Additional isolated state for content card titles
-  const contentCardTitlesState = useIsolatedState(contextKey, {});
+  // Persistent state for user customizations (survives context changes)
+  const [persistentCustomizations, setPersistentCustomizations] = useState(() => {
+    // Initialize from localStorage if available
+    try {
+      const saved = localStorage.getItem('contentCardCustomizations');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
 
-  // Helper functions using isolated state management
+  // Helper functions for persistent customizations
+  const getCustomizationKey = (cardIndex, contentType) => {
+    // Create a unique key that includes route, phase, and card info
+    const routeKey = getCurrentRouteKey();
+    const cardKey = `${routeKey}-${selectedFlightPhase}-${cardIndex}-${contentType}`;
+    return cardKey;
+  };
+
+  const saveCustomization = (cardIndex, contentType, value) => {
+    const key = getCustomizationKey(cardIndex, contentType);
+    console.log('💾 SAVING CONTENT CARD CUSTOMIZATION', {
+      cardIndex,
+      contentType,
+      value,
+      key,
+      routeKey: getCurrentRouteKey(),
+      flightPhase: selectedFlightPhase
+    });
+    
+    setPersistentCustomizations(prev => {
+      const updated = {
+        ...prev,
+        [key]: value
+      };
+      // Save to localStorage
+      try {
+        localStorage.setItem('contentCardCustomizations', JSON.stringify(updated));
+        console.log('✅ Customization saved to localStorage');
+      } catch (err) {
+        console.warn('Failed to save customization to localStorage:', err);
+      }
+      return updated;
+    });
+  };
+
+  const getCustomization = (cardIndex, contentType) => {
+    const key = getCustomizationKey(cardIndex, contentType);
+    const value = persistentCustomizations[key] || null;
+    console.log('🔍 GETTING CONTENT CARD CUSTOMIZATION', {
+      cardIndex,
+      contentType,
+      key,
+      value,
+      routeKey: getCurrentRouteKey(),
+      flightPhase: selectedFlightPhase
+    });
+    return value;
+  };
+
+  // Helper functions using isolated state management for temporary UI state
   const setContentImageLoading = (cardIndex, isLoading) => {
     contentCardImageState.setImageLoading(cardIndex, isLoading);
   };
@@ -75,28 +132,25 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
     return contentCardImageState.imageLoadingStates[cardIndex] || false;
   };
 
-  // Helper functions for content card title management
+  // Helper functions for content card title management (persistent)
   const setContentCardTitle = (cardIndex, title) => {
-    contentCardTitlesState.setState(prev => ({
-      ...prev,
-      [cardIndex]: title
-    }));
+    saveCustomization(cardIndex, 'title', title);
   };
 
   const getContentCardTitle = (cardIndex) => {
-    return contentCardTitlesState.state[cardIndex] || null;
+    return getCustomization(cardIndex, 'title');
   };
 
-  // Helper functions for content card remixed images
+  // Helper functions for content card remixed images (persistent)
   const setContentCardRemixedImage = (cardIndex, imageUrl) => {
-    contentCardImageState.setRemixedImage(cardIndex, imageUrl);
+    saveCustomization(cardIndex, 'remixedImage', imageUrl);
   };
 
   const getContentCardRemixedImage = (cardIndex) => {
-    return contentCardImageState.remixedImages[cardIndex] || null;
+    return getCustomization(cardIndex, 'remixedImage');
   };
 
-  // Helper functions for content card image loading states
+  // Helper functions for content card image loading states (temporary)
   const setContentCardImageLoading = (cardIndex, isLoading) => {
     contentCardImageState.setImageLoading(cardIndex, isLoading);
   };
@@ -506,9 +560,9 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                   <img 
                     src={imageSrc}
                     alt={baseDescription}
-                    className="w-full h-full object-cover rounded-lg"
+                className="w-full h-full object-cover rounded-lg"
                     style={{ display: isContentCardImageLoading(originalCardIndex) ? 'none' : 'block' }}
-                    onLoad={() => {
+                onLoad={() => {
                       console.log('=== POLLINATIONS CONTENT CARD IMAGE LOADED ===', { 
                         cardIndex: originalCardIndex, 
                         alt: contentData.image, 
@@ -516,17 +570,17 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                         wasRemixed: hasRemixedImage
                       });
                       setContentCardImageLoading(originalCardIndex, false);
-                    }}
-                    onError={(e) => {
+                }}
+                onError={(e) => {
                       console.log('=== POLLINATIONS CONTENT CARD IMAGE LOAD ERROR ===', { 
                         src: e.target.src, 
                         alt: contentData.image,
                         wasRemixed: hasRemixedImage
                       });
                       setContentCardImageLoading(originalCardIndex, false);
-                      e.target.style.display = 'none';
-                    }}
-                    onLoadStart={() => {
+                  e.target.style.display = 'none';
+                }}
+                onLoadStart={() => {
                       console.log('=== POLLINATIONS CONTENT CARD IMAGE LOAD START ===', { 
                         cardIndex: originalCardIndex, 
                         alt: contentData.image, 
