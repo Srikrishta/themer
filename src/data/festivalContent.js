@@ -1212,7 +1212,76 @@ export const festivalContent = {
   // Continue with more festivals...
 };
 
-// Non-festive content for airline, city, and origin-destination themes
+// Business profile content for non-festive themes
+export const businessProfileContent = {
+  takeoff: {
+    promo: [
+      { text: "Enjoy your welcome drink", image: "welcome drinks in business lounge" },
+      { text: "Check goodies in seat", image: "earphones and snacks in business class seat" },
+      { text: "Connect your device", image: "smartphone device QR code" }
+    ],
+    content: [
+      { text: "Top Gun: Maverick", image: "top gun maverick movie poster" },
+      { text: "Candy Crush Saga", image: "candy crush mobile game" },
+      { text: "The Joe Rogan Experience", image: "joe rogan podcast" },
+      { text: "Stranger Things Season 4", image: "stranger things netflix series" }
+    ]
+  },
+  climb: {
+    promo: [
+      { text: "Order food", image: "meal in a five star restaurant" },
+      { text: "Offers onboard", image: "offers for shopping perfum" },
+      { text: "Latest entertainment", image: "movie that is in market + virtual reality" }
+    ],
+    content: [
+      { text: "Spider-Man: No Way Home", image: "spiderman no way home movie" },
+      { text: "Among Us", image: "among us multiplayer game" },
+      { text: "Serial Podcast", image: "business podcast audio" },
+      { text: "The Crown Season 5", image: "the crown netflix series" }
+    ]
+  },
+  cruise: {
+    promo: [
+      { text: "Truffle Popcorn with movie", image: "truffle popcorn" },
+      { text: "Buy gifts for your loved ones", image: "watch as gifts" },
+      { text: "Latest entertainment", image: "movie and games" }
+    ],
+    content: [
+      { text: "Avatar: The Way of Water", image: "avatar way of water movie" },
+      { text: "Wordle", image: "wordle puzzle game" },
+      { text: "This American Life", image: "this american life podcast" },
+      { text: "Wednesday", image: "wednesday netflix series" }
+    ]
+  },
+  descent: {
+    promo: [
+      { text: "Luxury holidays", image: "get your guide of luxury <destination>" },
+      { text: "Buy gifts", image: "gifts" },
+      { text: "Add your miles at one click", image: "airlines miles program" }
+    ],
+    content: [
+      { text: "Black Panther: Wakanda Forever", image: "black panther wakanda forever movie" },
+      { text: "Tetris", image: "tetris classic puzzle game" },
+      { text: "Radiolab", image: "radiolab podcast" },
+      { text: "The Last of Us", image: "the last of us hbo series" }
+    ]
+  },
+  landing: {
+    promo: [
+      { text: "Thank you for flying with us", image: "Thank you" },
+      { text: "Save on your next flight", image: "flight booking" },
+      { text: "Shop duty free", image: "duty free shop in airport" }
+    ],
+    content: [
+      { text: "Everything Everywhere All at Once", image: "everything everywhere all at once movie" },
+      { text: "Sudoku", image: "sudoku number puzzle game" },
+      { text: "The Daily", image: "the daily podcast" },
+      { text: "House of the Dragon", image: "house of the dragon hbo series" }
+    ]
+  }
+};
+
+// Non-festive content for airline, city, and origin-destination themes (default/economy)
 export const nonFestiveContent = {
   takeoff: {
     promo: [
@@ -1298,6 +1367,15 @@ export const getFestivalContent = (festivalName, flightPhase, contentType = 'pro
   return festival[flightPhase]?.[contentType] || defaultContent[flightPhase]?.[contentType] || [];
 };
 
+// Helper function to get business profile content for non-festive themes
+export const getBusinessProfileContent = (flightPhase, contentType = 'promo') => {
+  if (!flightPhase) {
+    return [];
+  }
+  
+  return businessProfileContent[flightPhase]?.[contentType] || [];
+};
+
 // Helper function to get non-festive content for airline, city, and origin-destination themes
 export const getNonFestiveContent = (flightPhase, contentType = 'promo') => {
   if (!flightPhase) {
@@ -1305,6 +1383,42 @@ export const getNonFestiveContent = (flightPhase, contentType = 'promo') => {
   }
   
   return nonFestiveContent[flightPhase]?.[contentType] || [];
+};
+
+// Helper function to get specific business profile card content
+export const getBusinessProfileCardContent = (flightPhase, contentType = 'promo', cardIndex = 0, destination = null) => {
+  console.log('=== GET BUSINESS PROFILE CARD CONTENT DEBUG ===', {
+    flightPhase,
+    contentType,
+    cardIndex,
+    destination,
+    hasBusinessProfileContent: !!businessProfileContent[flightPhase],
+    phaseData: businessProfileContent[flightPhase],
+    hasContentType: !!businessProfileContent[flightPhase]?.[contentType],
+    contentTypeData: businessProfileContent[flightPhase]?.[contentType]
+  });
+  
+  const content = getBusinessProfileContent(flightPhase, contentType);
+  console.log('=== GET BUSINESS PROFILE CONTENT RESULT ===', {
+    content,
+    contentLength: content.length,
+    requestedIndex: cardIndex,
+    requestedItem: content[cardIndex],
+    hasRequestedItem: !!content[cardIndex]
+  });
+  
+  const cardContent = content[cardIndex] || null;
+  
+  // Replace <destination> placeholder with actual destination if provided
+  if (cardContent && destination && cardContent.image && cardContent.image.includes('<destination>')) {
+    const destinationCity = typeof destination === 'string' ? destination : destination?.airport?.city || destination;
+    return {
+      ...cardContent,
+      image: cardContent.image.replace('<destination>', destinationCity || 'destination')
+    };
+  }
+  
+  return cardContent;
 };
 
 // Helper function to get specific non-festive card content

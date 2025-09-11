@@ -1,7 +1,7 @@
 import { getReadableOnColor, getLightCardBackgroundColor } from '../utils/color';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getPromoCardContent, shouldUseFestivalContent } from '../utils/festivalUtils';
-import { getNonFestiveCardContent } from '../data/festivalContent';
+import { getNonFestiveCardContent, getBusinessProfileCardContent } from '../data/festivalContent';
 import { getPollinationsImage } from '../utils/unsplash';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import { useImageState } from '../hooks/useIsolatedState';
@@ -30,7 +30,8 @@ export default function Component3Cards({
   isModifyClicked,
   selectedDates,
   isCurrentThemeFestive,
-  getRouteSelectedThemeChip
+  getRouteSelectedThemeChip,
+  selectedProfile
 }) {
   // Generate unique context key for state isolation
   // Include a themeVariantKey so that per-route theme tweaks (like chip selection or modified colors)
@@ -381,25 +382,36 @@ export default function Component3Cards({
       });
     }
     
-    // For non-festive themes or when theme is saved but not festive, use non-festive content
+    // For non-festive themes or when theme is saved but not festive, use profile-specific content
     if (colorPromptSaved && selectedFlightPhase) {
       console.log('=== GETTING NON-FESTIVE CONTENT FOR PROMO CARD ===', {
         selectedFlightPhase,
         cardIndex,
-        colorPromptSaved
+        colorPromptSaved,
+        selectedProfile
       });
       
-      const nonFestiveContent = getNonFestiveCardContent(selectedFlightPhase, 'promo', cardIndex);
-      console.log('=== NON-FESTIVE CONTENT RESULT ===', {
-        nonFestiveContent,
-        hasText: !!nonFestiveContent?.text,
-        hasImage: !!nonFestiveContent?.image
+      // Use business profile content if user has selected "Business" profile
+      let profileContent = null;
+      if (selectedProfile === 'Business') {
+        console.log('=== USING BUSINESS PROFILE CONTENT ===');
+        profileContent = getBusinessProfileCardContent(selectedFlightPhase, 'promo', cardIndex, destination);
+      } else {
+        console.log('=== USING DEFAULT NON-FESTIVE CONTENT ===');
+        profileContent = getNonFestiveCardContent(selectedFlightPhase, 'promo', cardIndex);
+      }
+      
+      console.log('=== PROFILE CONTENT RESULT ===', {
+        profileContent,
+        hasText: !!profileContent?.text,
+        hasImage: !!profileContent?.image,
+        selectedProfile
       });
       
-      if (nonFestiveContent && nonFestiveContent.text) {
+      if (profileContent && profileContent.text) {
         return { 
-          text: nonFestiveContent.text, 
-          image: nonFestiveContent.image || '', 
+          text: profileContent.text, 
+          image: profileContent.image || '', 
           bgColor: getLightCardBackgroundColor(themeColor) 
         };
       }

@@ -3,7 +3,7 @@ import { useIsolatedState, useImageState } from '../hooks/useIsolatedState';
 import { generateContextKey } from '../utils/contextValidation';
 import { getReadableOnColor, getLightCardBackgroundColor } from '../utils/color';
 import { getContentCardContent } from '../utils/festivalUtils';
-import { getNonFestiveCardContent } from '../data/festivalContent';
+import { getNonFestiveCardContent, getBusinessProfileCardContent } from '../data/festivalContent';
 import { getPollinationsImage } from '../utils/unsplash';
 import ThemeCreator from './ThemeCreator';
 import FlightJourneyBar from './FlightJourneyBar';
@@ -55,7 +55,7 @@ const getCurrentRoutePromptBubble = (routePromptBubbles, getCurrentRouteKey) => 
   return bubble;
 };
 
-function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, onContentCardHover, colorPromptClosedWithoutSave, getRouteColorPromptSaved, recommendedContentCards, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, selectedDates = [], isCurrentThemeFestive, getRouteSelectedThemeChip, routePromptBubbles }) {
+function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMinutes, handleProgressChange, themeColor, routes, isPromptMode, onPromptHover, onPromptClick, fpsPrompts, isThemeBuildStarted, selectedLogo, flightsGenerated, onAnimationProgress, onFlightPhaseSelect, selectedFlightPhase, promoCardContents, onContentCardHover, colorPromptClosedWithoutSave, getRouteColorPromptSaved, recommendedContentCards, getCurrentRouteKey, isModifyClicked, isCurrentRouteModified, selectedDates = [], isCurrentThemeFestive, getRouteSelectedThemeChip, routePromptBubbles, selectedProfile }) {
 
   // Generate context key for state isolation
   const contextKey = generateContextKey(getCurrentRouteKey(), selectedFlightPhase, themeColor, selectedDates);
@@ -226,7 +226,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
   };
 
   // Helper function to get content text and image - uses festival content when theme is saved
-  const getContentData = (cardIndex) => {
+  const getContentData = (cardIndex, selectedProfile) => {
     // Only generate festival content if:
     // 1. Theme is saved for this route
     // 2. Current theme is actually festive (not non-festive like Lufthansa)
@@ -277,23 +277,34 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
       });
     }
     
-    // For non-festive themes or when theme is saved but not festive, use non-festive content
+    // For non-festive themes or when theme is saved but not festive, use profile-specific content
     if (getRouteColorPromptSaved() && selectedFlightPhase) {
       console.log('=== GETTING NON-FESTIVE CONTENT FOR CONTENT CARD ===', {
         selectedFlightPhase,
         cardIndex,
-        colorPromptSaved: getRouteColorPromptSaved()
+        colorPromptSaved: getRouteColorPromptSaved(),
+        selectedProfile
       });
       
-      const nonFestiveContent = getNonFestiveCardContent(selectedFlightPhase, 'content', cardIndex);
-      console.log('=== NON-FESTIVE CONTENT RESULT ===', {
-        nonFestiveContent,
-        hasText: !!nonFestiveContent?.text,
-        hasImage: !!nonFestiveContent?.image
+      // Use business profile content if user has selected "Business" profile
+      let profileContent = null;
+      if (selectedProfile === 'Business') {
+        console.log('=== USING BUSINESS PROFILE CONTENT FOR CONTENT CARD ===');
+        profileContent = getBusinessProfileCardContent(selectedFlightPhase, 'content', cardIndex, destination);
+      } else {
+        console.log('=== USING DEFAULT NON-FESTIVE CONTENT FOR CONTENT CARD ===');
+        profileContent = getNonFestiveCardContent(selectedFlightPhase, 'content', cardIndex);
+      }
+      
+      console.log('=== PROFILE CONTENT RESULT FOR CONTENT CARD ===', {
+        profileContent,
+        hasText: !!profileContent?.text,
+        hasImage: !!profileContent?.image,
+        selectedProfile
       });
       
-      if (nonFestiveContent && nonFestiveContent.text) {
-        return { text: nonFestiveContent.text, image: nonFestiveContent.image || '' };
+      if (profileContent && profileContent.text) {
+        return { text: profileContent.text, image: profileContent.image || '' };
       }
     }
     
@@ -305,7 +316,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
 
 
   // Helper function to render a single content card
-  const renderContentCard = (originalCardIndex, displayPosition) => {
+  const renderContentCard = (originalCardIndex, displayPosition, selectedProfile) => {
     const cardStyle = {
       width: '100%',
       height: '160px',
@@ -318,7 +329,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
       marginTop: '1px'
     };
 
-    const contentData = getContentData(originalCardIndex);
+    const contentData = getContentData(originalCardIndex, selectedProfile);
 
     return (
       <div
@@ -390,7 +401,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
               const tooltip = document.getElementById('custom-tooltip');
               if (tooltip) {
                 const rect = tooltip.getBoundingClientRect();
-                const contentDataLocal = getContentData(originalCardIndex);
+                const contentDataLocal = getContentData(originalCardIndex, selectedProfile);
                 // Create the exact same UI as the built-in remix panel (directly positioned)
                 const remixContainer = document.createElement('div');
                 remixContainer.id = 'locked-remix-panel';
@@ -591,7 +602,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
             const t = document.getElementById('custom-tooltip');
             if (!t) return;
             const rect = t.getBoundingClientRect();
-            const contentDataLocal = getContentData(originalCardIndex);
+            const contentDataLocal = getContentData(originalCardIndex, selectedProfile);
             // Create the exact same UI as the built-in remix panel (directly positioned)
             const remixContainer = document.createElement('div');
             remixContainer.id = 'locked-remix-panel';
@@ -967,6 +978,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
         selectedDates={selectedDates}
         isCurrentThemeFestive={isCurrentThemeFestive}
         getRouteSelectedThemeChip={getRouteSelectedThemeChip}
+        selectedProfile={selectedProfile}
       />
       
       {/* Recommended for you section */}
@@ -1048,7 +1060,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
                 displayPosition, 
                 routeContentCards: getRouteContentCards() 
               });
-              return renderContentCard(originalCardIndex, displayPosition);
+              return renderContentCard(originalCardIndex, displayPosition, selectedProfile);
             })
           )}
         </div>
@@ -2650,6 +2662,7 @@ export default function Dashboard() {
               isCurrentThemeFestive={isCurrentThemeFestive}
               getRouteSelectedThemeChip={getRouteSelectedThemeChip}
               routePromptBubbles={routePromptBubbles}
+              selectedProfile={selectedProfile}
             />
           </div>
         </div>
