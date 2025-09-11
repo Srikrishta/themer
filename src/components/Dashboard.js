@@ -95,7 +95,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
     
     setPersistentCustomizations(prev => {
       const updated = {
-        ...prev,
+      ...prev,
         [key]: value
       };
       // Save to localStorage
@@ -164,6 +164,8 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
     return () => {
       const existingPanel = document.getElementById('locked-remix-panel');
       if (existingPanel && existingPanel.parentNode) existingPanel.parentNode.removeChild(existingPanel);
+      const performancePanel = document.getElementById('performance-empty-panel');
+      if (performancePanel && performancePanel.parentNode) performancePanel.parentNode.removeChild(performancePanel);
       const tooltip = document.getElementById('custom-tooltip');
       if (tooltip && tooltip.parentNode) tooltip.parentNode.removeChild(tooltip);
       window.__tooltipLocked = false;
@@ -344,8 +346,10 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
           `;
           tooltip.id = 'custom-tooltip';
           tooltip.innerHTML = `
-            <span>content</span>
-            <span style="width:1px;height:14px;display:inline-block;background:rgba(255,255,255,0.35)"></span>
+            <span id="tooltip-content-text" style="cursor:pointer;padding:2px 4px;border-radius:4px">Content</span>
+            <span> | </span>
+            <span id="tooltip-performance-text" style="cursor:pointer;padding:2px 4px;border-radius:4px">Performance</span>
+            <span> |</span>
             <button id="custom-tooltip-close" aria-label="Close" style="background:transparent;border:none;color:white;opacity:.85;cursor:pointer;padding:0 2px;line-height:1">✕</button>
           `;
           const existing = document.getElementById('custom-tooltip');
@@ -359,7 +363,194 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
               if (t) t.remove();
               const panel = document.getElementById('locked-remix-panel');
               if (panel && panel.parentNode) panel.parentNode.removeChild(panel);
+              const performancePanel = document.getElementById('performance-empty-panel');
+              if (performancePanel && performancePanel.parentNode) performancePanel.parentNode.removeChild(performancePanel);
               window.__tooltipLocked = false;
+            });
+          }
+          
+          // Add click handler for Content text
+          const contentText = document.getElementById('tooltip-content-text');
+          if (contentText) {
+            contentText.addEventListener('click', (ev) => {
+              ev.stopPropagation();
+              // Close performance panel
+              const performancePanel = document.getElementById('performance-empty-panel');
+              if (performancePanel && performancePanel.parentNode) performancePanel.parentNode.removeChild(performancePanel);
+              // Apply selected state to Content text
+              contentText.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+              contentText.style.color = '#FFFFFF';
+              // Remove selected state from Performance text
+              const performanceText = document.getElementById('tooltip-performance-text');
+              if (performanceText) {
+                performanceText.style.backgroundColor = 'transparent';
+                performanceText.style.color = '#FFFFFF';
+              }
+              // Open remix rectangle (reuse existing logic from card click)
+              const tooltip = document.getElementById('custom-tooltip');
+              if (tooltip) {
+                const rect = tooltip.getBoundingClientRect();
+                const contentDataLocal = getContentData(originalCardIndex);
+                // Create the exact same UI as the built-in remix panel (directly positioned)
+                const remixContainer = document.createElement('div');
+                remixContainer.id = 'locked-remix-panel';
+                remixContainer.className = 'px-4 py-3 rounded-lg flex flex-col items-center';
+                remixContainer.style.cssText = 'position:fixed;left:' + rect.left + 'px;top:' + (rect.top - 202) + 'px;z-index:2147483647;background-color:#1C1C1C;border:1px solid rgba(255,255,255,0.2);width:312px;gap:40px;box-shadow:rgba(0,0,0,0.35) 0px 8px 20px';
+
+                // Create the text paragraph with contenteditable spans (exact same as built-in)
+                const textDiv = document.createElement('div');
+                textDiv.className = 'w-full';
+                const textP = document.createElement('p');
+                textP.className = 'whitespace-pre-wrap break-words text-md leading-6 text-white m-0';
+
+                // "Change title to" span
+                const changeTitleSpan = document.createElement('span');
+                changeTitleSpan.className = 'text-gray-300 select-none';
+                changeTitleSpan.style.marginRight = '8px';
+                changeTitleSpan.textContent = 'Change title to';
+
+                // Title span (contenteditable)
+                const titleSpan = document.createElement('span');
+                titleSpan.id = 'locked-tooltip-title';
+                titleSpan.setAttribute('role', 'textbox');
+                titleSpan.setAttribute('aria-label', 'title');
+                titleSpan.setAttribute('contenteditable', 'true');
+                titleSpan.className = 'outline-none';
+                titleSpan.spellCheck = false;
+                titleSpan.style.cssText = 'text-decoration:underline dotted;text-decoration-color:rgba(156,163,175,0.8);text-underline-offset:6px;caret-color:transparent;margin-right:8px';
+                titleSpan.textContent = getContentCardTitle(originalCardIndex) || contentDataLocal.text || 'Add content';
+
+                // "describe image of" span
+                const describeSpan = document.createElement('span');
+                describeSpan.className = 'text-gray-300 select-none';
+                describeSpan.style.marginRight = '8px';
+                describeSpan.textContent = 'describe image of';
+
+                // Description span (contenteditable)
+                const descSpan = document.createElement('span');
+                descSpan.id = 'locked-tooltip-desc';
+                descSpan.setAttribute('role', 'textbox');
+                descSpan.setAttribute('aria-label', 'image description');
+                descSpan.setAttribute('contenteditable', 'true');
+                descSpan.className = 'outline-none';
+                descSpan.spellCheck = false;
+                descSpan.style.cssText = 'text-decoration:underline dotted;text-decoration-color:rgba(156,163,175,0.8);text-underline-offset:6px;caret-color:auto';
+                descSpan.textContent = contentDataLocal.image || contentDataLocal.text || '';
+
+                // Assemble the paragraph
+                textP.appendChild(changeTitleSpan);
+                textP.appendChild(titleSpan);
+                textP.appendChild(describeSpan);
+                textP.appendChild(descSpan);
+                textDiv.appendChild(textP);
+
+                // Buttons container
+                const buttonsDiv = document.createElement('div');
+                buttonsDiv.className = 'flex gap-2';
+
+                // Remix button
+                const lockedRemixBtn = document.createElement('button');
+                lockedRemixBtn.id = 'locked-tooltip-remix';
+                lockedRemixBtn.className = 'px-4 py-2 rounded-lg font-semibold text-xs uppercase transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed';
+                lockedRemixBtn.style.cssText = 'background-color: #10B981; color: white; border: 1px solid rgba(255, 255, 255, 0.3);';
+                lockedRemixBtn.textContent = '🎲 Remix Style';
+
+                // Save button
+                const lockedSaveBtn = document.createElement('button');
+                lockedSaveBtn.id = 'locked-tooltip-save';
+                lockedSaveBtn.className = 'px-4 py-2 rounded-lg font-semibold text-xs uppercase transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed';
+                lockedSaveBtn.style.cssText = 'background-color: #10B981; color: white; border: 1px solid rgba(255, 255, 255, 0.3); backdrop-filter: blur(10px);';
+                lockedSaveBtn.textContent = '💾 Save';
+
+                buttonsDiv.appendChild(lockedRemixBtn);
+                buttonsDiv.appendChild(lockedSaveBtn);
+
+                // Assemble the container
+                remixContainer.appendChild(textDiv);
+                remixContainer.appendChild(buttonsDiv);
+
+                // Remove any existing remix panel
+                const existingPanel = document.getElementById('locked-remix-panel');
+                if (existingPanel && existingPanel.parentNode) {
+                  existingPanel.parentNode.removeChild(existingPanel);
+                }
+
+                document.body.appendChild(remixContainer);
+
+                // Add event listeners for title editing
+                titleSpan.addEventListener('input', (e) => {
+                  const el = e.target;
+                  const raw = el.innerText;
+                  const clamped = raw.length > 50 ? raw.slice(0, 50) : raw;
+                  if (clamped !== raw) el.innerText = clamped;
+                  // Update the content card title
+                  setContentCardTitle(originalCardIndex, clamped);
+                });
+                titleSpan.addEventListener('keydown', (e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); return; }
+                });
+
+                // Add event listeners for remix and save buttons
+                const triggerRemix = () => {
+                  try {
+                    const imageDescription = (descSpan?.innerText || contentDataLocal.image || contentDataLocal.text || 'content');
+                    const newImageUrl = getPollinationsImage(imageDescription, themeColor, { randomize: true });
+                    const timestamp = Date.now();
+                    const separator = newImageUrl.includes('?') ? '&' : '?';
+                    const newUrl = `${newImageUrl}${separator}t=${timestamp}`;
+                    setContentCardRemixedImage(originalCardIndex, newUrl);
+                    setContentCardImageLoading(originalCardIndex, true);
+                    console.log('Content card remix generated from panel', { originalCardIndex, imageDescription, newUrl });
+                  } catch (err) {
+                    console.error('Content card remix failed', err);
+                  }
+                };
+                if (lockedRemixBtn) lockedRemixBtn.addEventListener('click', (ev) => { ev.stopPropagation(); triggerRemix(); });
+                if (lockedSaveBtn) lockedSaveBtn.addEventListener('click', (ev) => { ev.stopPropagation(); triggerRemix(); });
+              }
+            });
+          }
+
+          // Add click handler for Performance text
+          const performanceText = document.getElementById('tooltip-performance-text');
+          if (performanceText) {
+            performanceText.addEventListener('click', (ev) => {
+              ev.stopPropagation();
+              // Close remix rectangle
+              const panel = document.getElementById('locked-remix-panel');
+              if (panel && panel.parentNode) panel.parentNode.removeChild(panel);
+              // Apply selected state to Performance text
+              performanceText.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+              performanceText.style.color = '#FFFFFF';
+              // Remove selected state from Content text
+              const contentText = document.getElementById('tooltip-content-text');
+              if (contentText) {
+                contentText.style.backgroundColor = 'transparent';
+                contentText.style.color = '#FFFFFF';
+              }
+              // Open empty rectangle
+              const tooltip = document.getElementById('custom-tooltip');
+              if (tooltip) {
+                const rect = tooltip.getBoundingClientRect();
+                const emptyContainer = document.createElement('div');
+                emptyContainer.id = 'performance-empty-panel';
+                emptyContainer.className = 'px-4 py-3 rounded-lg flex flex-col items-center';
+                emptyContainer.style.cssText = 'position:fixed;left:' + rect.left + 'px;top:' + (rect.top - 202) + 'px;z-index:2147483647;background-color:#1C1C1C;border:1px solid rgba(255,255,255,0.2);width:312px;gap:40px;box-shadow:rgba(0,0,0,0.35) 0px 8px 20px';
+                
+                // Create empty content
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'w-full text-center';
+                emptyDiv.innerHTML = '<p class="text-white text-sm opacity-70">Performance panel coming soon...</p>';
+                emptyContainer.appendChild(emptyDiv);
+                
+                // Remove any existing performance panel
+                const existingPanel = document.getElementById('performance-empty-panel');
+                if (existingPanel && existingPanel.parentNode) {
+                  existingPanel.parentNode.removeChild(existingPanel);
+                }
+                
+                document.body.appendChild(emptyContainer);
+              }
             });
           }
           if (!window.__tooltipLocked) window.__tooltipLocked = false;
@@ -381,6 +572,14 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
             if (tooltip) {
               tooltip.style.left = `${e.clientX + 12}px`;
               tooltip.style.top = `${e.clientY + 12}px`;
+              // Apply selected state to Content text (matching hovertip selected state)
+              const contentText = tooltip.querySelector('#tooltip-content-text');
+              if (contentText) {
+                contentText.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                contentText.style.color = '#FFFFFF';
+                contentText.style.padding = '2px 4px';
+                contentText.style.borderRadius = '4px';
+              }
             }
             window.__tooltipLocked = true;
             // Show remix panel UI below tooltip, left-aligned (content cards)
@@ -397,7 +596,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
             const remixContainer = document.createElement('div');
             remixContainer.id = 'locked-remix-panel';
             remixContainer.className = 'px-4 py-3 rounded-lg flex flex-col items-center';
-            remixContainer.style.cssText = 'position:fixed;left:' + rect.left + 'px;top:' + (rect.top - 208) + 'px;z-index:2147483647;background-color:#1C1C1C;border:1px solid rgba(255,255,255,0.2);width:312px;gap:40px;box-shadow:rgba(0,0,0,0.35) 0px 8px 20px';
+            remixContainer.style.cssText = 'position:fixed;left:' + rect.left + 'px;top:' + (rect.top - 202) + 'px;z-index:2147483647;background-color:#1C1C1C;border:1px solid rgba(255,255,255,0.2);width:312px;gap:40px;box-shadow:rgba(0,0,0,0.35) 0px 8px 20px';
 
             // Create the text paragraph with contenteditable spans (exact same as built-in)
             const textDiv = document.createElement('div');
