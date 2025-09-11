@@ -227,11 +227,21 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
 
   // Helper function to get content text and image - uses festival content when theme is saved
   const getContentData = (cardIndex, selectedProfile) => {
+    // CRITICAL: Only show content if theme has been saved for this route
+    if (!getRouteColorPromptSaved()) {
+      console.log('=== NO CONTENT - THEME NOT SAVED ===', {
+        cardIndex,
+        colorPromptSaved: getRouteColorPromptSaved(),
+        reason: 'Theme must be saved before showing any content'
+      });
+      return { text: 'Add content', image: '' };
+    }
+
     // Only generate festival content if:
-    // 1. Theme is saved for this route
+    // 1. Theme is saved for this route (already checked above)
     // 2. Current theme is actually festive (not non-festive like Lufthansa)
     // 3. Required data is available
-    if (getRouteColorPromptSaved() && isCurrentThemeFestive() && selectedFlightPhase && origin && destination) {
+    if (isCurrentThemeFestive() && selectedFlightPhase && origin && destination) {
       console.log('=== GETTING FESTIVAL CONTENT FOR CONTENT CARD ===', {
         colorPromptSaved: getRouteColorPromptSaved(),
         isFestive: isCurrentThemeFestive(),
@@ -278,7 +288,7 @@ function FrameContent({ origin, destination, minutesLeft, landingIn, maxFlightMi
     }
     
     // For non-festive themes or when theme is saved but not festive, use profile-specific content
-    if (getRouteColorPromptSaved() && selectedFlightPhase) {
+    if (selectedFlightPhase) {
       console.log('=== GETTING NON-FESTIVE CONTENT FOR CONTENT CARD ===', {
         selectedFlightPhase,
         cardIndex,

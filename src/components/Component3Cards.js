@@ -290,10 +290,21 @@ export default function Component3Cards({
       currentRouteKey,
       selectedFlightPhase,
       promoCardContents,
+      colorPromptSaved,
       hasRouteKey: !!currentRouteKey,
       hasRouteContents: !!(currentRouteKey && promoCardContents[currentRouteKey]),
       hasCardContent: !!(currentRouteKey && promoCardContents[currentRouteKey] && promoCardContents[currentRouteKey][cardIndex])
     });
+
+    // CRITICAL: Only show content if theme has been saved for this route
+    if (!colorPromptSaved) {
+      console.log('=== NO CONTENT - THEME NOT SAVED ===', {
+        cardIndex,
+        colorPromptSaved,
+        reason: 'Theme must be saved before showing any content'
+      });
+      return { text: "Add experience", bgColor: getLightCardBackgroundColor(themeColor) };
+    }
 
     // Prefer content saved for the current phase, then fallback to route-level saved content
     const phaseKey = (currentRouteKey && selectedFlightPhase)
@@ -329,10 +340,10 @@ export default function Component3Cards({
     }
     
     // Only generate festival content if:
-    // 1. Theme is saved for this route
+    // 1. Theme is saved for this route (already checked above)
     // 2. Current theme is actually festive (not non-festive like Lufthansa)
     // 3. Required data is available
-    if (colorPromptSaved && isCurrentThemeFestive && isCurrentThemeFestive() && selectedFlightPhase && origin && destination) {
+    if (isCurrentThemeFestive && isCurrentThemeFestive() && selectedFlightPhase && origin && destination) {
       console.log('=== GETTING FESTIVAL CONTENT FOR PROMO CARD ===', {
         colorPromptSaved,
         isFestive: isCurrentThemeFestive(),
@@ -375,15 +386,14 @@ export default function Component3Cards({
         colorPromptSaved,
         isFestive: isCurrentThemeFestive ? isCurrentThemeFestive() : 'function not provided',
         selectedThemeChip: getRouteSelectedThemeChip ? getRouteSelectedThemeChip() : 'function not provided',
-        reason: !colorPromptSaved ? 'theme not saved' : 
-                !isCurrentThemeFestive ? 'validation function not provided' :
+        reason: !isCurrentThemeFestive ? 'validation function not provided' :
                 !isCurrentThemeFestive() ? 'theme not festive' : 
                 'missing required data'
       });
     }
     
     // For non-festive themes or when theme is saved but not festive, use profile-specific content
-    if (colorPromptSaved && selectedFlightPhase) {
+    if (selectedFlightPhase) {
       console.log('=== GETTING NON-FESTIVE CONTENT FOR PROMO CARD ===', {
         selectedFlightPhase,
         cardIndex,
@@ -885,8 +895,8 @@ export default function Component3Cards({
       >
           <div className="relative h-full w-full">
             
-            {/* Image area - show image if available OR if we have a remixed image */}
-            {(cardContent.image || remixedImages[originalCardIndex]) && (
+            {/* Image area - show image if available OR if we have a remixed image, but only if theme is saved */}
+            {((cardContent.image || remixedImages[originalCardIndex]) && colorPromptSaved) && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-full h-full relative">
                   {/* Loading spinner */}
@@ -904,10 +914,29 @@ export default function Component3Cards({
                     // Use remixed image if available, otherwise use original logic
                     const hasRemixedImage = !!remixedImages[originalCardIndex];
                     const baseDescription = cardContent.image || cardContent.text || 'in-flight experience';
-                    const imageSrc = remixedImages[originalCardIndex] || 
-                      ((cardContent && cardContent.backgroundImage)
-                        ? cardContent.backgroundImage
-                        : getPollinationsImage(baseDescription, themeColor));
+                    
+                    // CRITICAL: Only generate images if theme is saved or we have a remixed image
+                    let imageSrc = null;
+                    if (hasRemixedImage) {
+                      imageSrc = remixedImages[originalCardIndex];
+                    } else if (cardContent && cardContent.backgroundImage) {
+                      imageSrc = cardContent.backgroundImage;
+                    } else if (cardContent.image && colorPromptSaved) {
+                      // Only generate Pollinations image if theme is saved and we have image content
+                      imageSrc = getPollinationsImage(baseDescription, themeColor);
+                    }
+                    
+                    // Don't render image if no valid source and theme not saved
+                    if (!imageSrc) {
+                      console.log('=== NO IMAGE - THEME NOT SAVED OR NO CONTENT ===', {
+                        originalCardIndex,
+                        hasRemixedImage,
+                        cardContentImage: cardContent.image,
+                        colorPromptSaved,
+                        reason: 'No image source available and theme not saved'
+                      });
+                      return null;
+                    }
                     
                     console.log('=== IMAGE RENDERING DEBUG ===', {
                       originalCardIndex,
@@ -915,7 +944,8 @@ export default function Component3Cards({
                       remixedImages,
                       imageSrc,
                       cardContentImage: cardContent.image,
-                      isLoading: isImageLoading(originalCardIndex)
+                      isLoading: isImageLoading(originalCardIndex),
+                      colorPromptSaved
                     });
                     
                     return (
